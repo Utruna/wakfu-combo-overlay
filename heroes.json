@@ -1,0 +1,39 @@
+{
+  "heroes": [
+    {
+      "heroNumber": 1,
+      "name": "Héros 1 — Iop",
+      "profile": "profiles/iop.json",
+      "color": {
+        "r": 220,
+        "g": 50,
+        "b": 50
+      }
+    },
+    {
+      "heroNumber": 2,
+      "name": "Héros 2 — Eniripsa",
+      "profile": "profiles/eniripsa.json",
+      "color": {
+        "r": 50,
+        "g": 180,
+        "b": 50
+      }
+    },
+    {
+      "heroNumber": 3,
+      "name": "Héros 3 — Cra",
+      "profile": "profiles/cra.json",
+      "color": {
+        "r": 50,
+        "g": 120,
+        "b": 220
+      }
+    }
+  ],
+  "settings": {
+    "debounceMs": 300,
+    "defaultHeroIndex": 0,
+    "streamDeckModel": "standard"
+  }
+}

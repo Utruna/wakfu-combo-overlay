@@ -1,0 +1,30 @@
+{
+  "name": "streamdeck-wakfu",
+  "version": "1.0.0",
+  "description": "Stream Deck profile manager for Wakfu — maps spell shortcuts for up to 3 heroes.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "lint": "eslint ."
+  },
+  "keywords": [
+    "wakfu",
+    "streamdeck",
+    "elgato",
+    "gaming",
+    "keyboard-macro"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@elgato-stream-deck/node": "^6.1.0",
+    "robotjs": "^0.6.0",
+    "sharp": "^0.33.3"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
