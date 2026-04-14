@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "postinstall": "node tools/fetch_icons.js",
+    "fetch-icons:all": "node tools/fetch_all_icons_by_class.js"
   },
   "keywords": [
     "wakfu",
@@ -17,9 +19,9 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@elgato-stream-deck/node": "^6.1.0",
-    "robotjs": "^0.6.0",
-    "sharp": "^0.33.3"
+    "@nut-tree-fork/nut-js": "^4.2.6",
+    "@elgato-stream-deck/node": "^6.2.2",
+    "sharp": "^0.33.5"
   },
   "devDependencies": {
     "eslint": "^8.57.0"
