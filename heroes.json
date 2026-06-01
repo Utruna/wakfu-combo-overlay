@@ -2,8 +2,9 @@
   "heroes": [
     {
       "heroNumber": 1,
-      "name": "Héros 1 — Iop",
-      "profile": "profiles/iop.json",
+      "name": "Héros 1 — Sram",
+      "profile": "profiles/sram.json",
+      "characterName": "Lueur Pourpre",
       "color": {
         "r": 220,
         "g": 50,
@@ -14,6 +15,7 @@
       "heroNumber": 2,
       "name": "Héros 2 — Eniripsa",
       "profile": "profiles/eniripsa.json",
+      "characterName": "Lueur Grenat",
       "color": {
         "r": 50,
         "g": 180,
@@ -24,6 +26,7 @@
       "heroNumber": 3,
       "name": "Héros 3 — Cra",
       "profile": "profiles/cra.json",
+      "characterName": "Lueur Acérée",
       "color": {
         "r": 50,
         "g": 120,
@@ -34,6 +37,11 @@
   "settings": {
     "debounceMs": 300,
     "defaultHeroIndex": 0,
-    "streamDeckModel": "standard"
+    "streamDeckModel": "standard",
+    "characterMap": {
+      "Lueur Pourpre": 0,
+      "Lueur Grenat": 1,
+      "Lueur Acérée": 2
+    }
   }
 }
