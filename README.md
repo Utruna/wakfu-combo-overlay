@@ -40,6 +40,16 @@ npm run dist
 
 Produit un installeur Windows (NSIS) dans `dist/`.
 
+### Publier une release sur GitHub
+
+Le workflow `.github/workflows/release.yml` build l'installeur sur un runner Windows et le publie directement en **GitHub Release** — pas besoin de commit l'exe dans le dépôt.
+
+1. Monte la version dans `package.json` (`npm version patch` / `minor` / `major`, ou modifie le champ `version` à la main) et pousse le commit.
+2. Sur GitHub : onglet **Actions** → workflow **Build & Release (Windows)** → **Run workflow**.
+3. Une fois terminé, la release `vX.Y.Z` apparaît dans l'onglet **Releases** avec l'installeur `.exe` en pièce jointe.
+
+Le tag et le nom de la release sont dérivés automatiquement de `package.json` — relancer le workflow sans avoir bumpé la version échoue (le tag existe déjà).
+
 ---
 
 ## Configuration dans OBS

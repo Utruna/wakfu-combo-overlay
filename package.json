@@ -37,6 +37,10 @@
     "appId": "com.colinliaud.wakfu-combo-overlay",
     "productName": "Wakfu Combo Overlay",
     "asar": true,
+    "npmRebuild": false,
+    "extraMetadata": {
+      "main": "electron/main.js"
+    },
     "files": [
       "electron/**/*",
       "src/wakfuCombatLogReader.js",
