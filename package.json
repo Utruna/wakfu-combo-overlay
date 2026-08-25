@@ -6,7 +6,7 @@
   "scripts": {
     "lint": "eslint .",
     "electron:dev": "electron electron/main.js",
-    "dist": "electron-builder --win"
+    "dist": "electron-builder --win --publish never"
   },
   "keywords": [
     "wakfu",
