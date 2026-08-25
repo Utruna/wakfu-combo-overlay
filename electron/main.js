@@ -4,14 +4,17 @@
  * Standalone desktop app: tails the Wakfu combat log, filters casts down to
  * the tracked heroes, and serves a live combo-list overlay for OBS. Has
  * nothing to do with the Stream Deck tool (index.js) — no shared runtime
- * state, just the same heroes.json roster and two small reusable modules.
+ * state. The tracked-character roster lives entirely in this app's own
+ * settings (SettingsStore), keyed by characterName; heroes.json is only
+ * consulted once, on first run, to seed that roster so nothing already
+ * configured for the Stream Deck tool is lost.
  */
 
 'use strict';
 
 const path = require('path');
 const fs = require('fs');
-const { app, BrowserWindow, Tray, Menu, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain } = require('electron');
 
 const { OverlayServer } = require('../overlay/server');
 const { WakfuCombatLogReader } = require('../src/wakfuCombatLogReader');
@@ -32,7 +35,6 @@ if (!gotSingleInstanceLock) {
 }
 
 const ROOT_DIR = app.isPackaged ? app.getAppPath() : path.resolve(__dirname, '..');
-const HEROES_CONFIG_PATH = path.join(ROOT_DIR, 'heroes.json');
 
 let tray = null;
 let settingsWindow = null;
@@ -43,8 +45,18 @@ app.on('second-instance', () => {
   showSettingsWindow();
 });
 
-function loadHeroesConfig() {
-  return JSON.parse(fs.readFileSync(HEROES_CONFIG_PATH, 'utf-8'));
+/** One-time seed for first run only — heroes.json stays the Stream Deck tool's own file. */
+function loadHeroesJsonSeed() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'heroes.json'), 'utf-8'));
+    return (raw.heroes || []).map((h) => ({
+      name: h.name,
+      characterName: h.characterName,
+      color: h.color,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 /** name -> {class, iconId, icon} lookup built by tools/scrape_spell_icons.js. Missing file = no icons, text-only fallback. */
@@ -54,13 +66,6 @@ function loadSpellIcons() {
   } catch {
     return {};
   }
-}
-
-function findSampleSpellForClass(spellIcons, classSlug) {
-  for (const [name, info] of Object.entries(spellIcons)) {
-    if (info.class === classSlug) return name;
-  }
-  return null;
 }
 
 function pushDebugEvent(entry) {
@@ -73,7 +78,7 @@ function pushDebugEvent(entry) {
 function createSettingsWindow() {
   settingsWindow = new BrowserWindow({
     width: 480,
-    height: 640,
+    height: 700,
     show: true,
     autoHideMenuBar: true,
     webPreferences: {
@@ -109,20 +114,13 @@ function createTray() {
 }
 
 app.whenReady().then(async () => {
-  let heroesConfig;
-  try {
-    heroesConfig = loadHeroesConfig();
-  } catch (err) {
-    dialog.showErrorBox('Wakfu Combo Overlay', `Impossible de charger heroes.json :\n${err.message}`);
-    app.quit();
-    return;
-  }
-  const characterMap = heroesConfig.settings?.characterMap || {};
   const spellIcons = loadSpellIcons();
 
   const settingsStore = new SettingsStore(path.join(app.getPath('userData'), 'settings.json'));
+  const seedHeroes = loadHeroesJsonSeed();
   settingsStore.ensureDefaults({
-    trackedHeroIndexes: heroesConfig.heroes.map((_, i) => i),
+    heroes: seedHeroes,
+    trackedCharacterNames: seedHeroes.map((h) => h.characterName),
     comboLayout: { orientation: 'vertical', direction: 'top-to-bottom' },
   });
 
@@ -133,10 +131,12 @@ app.whenReady().then(async () => {
   settingsStore.on('comboLayoutChanged', (layout) => overlay.broadcastConfig(layout));
 
   combatLogReader = new WakfuCombatLogReader((castEvent) => {
+    // Read the roster live on every event — it can change at runtime via add/remove.
+    const heroes = settingsStore.heroes;
     const heroIndex = CharacterMatcher.findHeroIndexByName(
       castEvent.characterName,
-      heroesConfig.heroes,
-      { characterMap, strict: true }
+      heroes,
+      { strict: true }
     );
     if (heroIndex === null) {
       pushDebugEvent({
@@ -148,9 +148,9 @@ app.whenReady().then(async () => {
       return; // random player or mob — excluded
     }
 
-    const hero = heroesConfig.heroes[heroIndex];
+    const hero = heroes[heroIndex];
 
-    if (!settingsStore.isTracked(heroIndex)) {
+    if (!settingsStore.isTracked(hero.characterName)) {
       pushDebugEvent({
         status: 'ignored-untracked',
         characterName: castEvent.characterName,
@@ -173,7 +173,6 @@ app.whenReady().then(async () => {
 
     overlay.broadcastCast({
       characterName: castEvent.characterName,
-      heroIndex,
       heroName: hero.name,
       spellName: castEvent.spellName,
       color: hero.color,
@@ -184,12 +183,14 @@ app.whenReady().then(async () => {
   await combatLogReader.start();
 
   ipcMain.handle('settings:getState', () => ({
-    heroes: heroesConfig.heroes,
-    trackedHeroIndexes: settingsStore.trackedHeroIndexes,
+    heroes: settingsStore.heroes,
+    trackedCharacterNames: settingsStore.trackedCharacterNames,
     comboLayout: settingsStore.comboLayout,
   }));
-  ipcMain.handle('settings:setTrackedHeroes', (_e, indexes) => settingsStore.setTrackedHeroes(indexes));
+  ipcMain.handle('settings:setTrackedHeroes', (_e, characterNames) => settingsStore.setTrackedHeroes(characterNames));
   ipcMain.handle('settings:setComboLayout', (_e, layout) => settingsStore.setComboLayout(layout));
+  ipcMain.handle('settings:addHero', (_e, hero) => settingsStore.addHero(hero));
+  ipcMain.handle('settings:removeHero', (_e, characterName) => settingsStore.removeHero(characterName));
 
   ipcMain.handle('settings:getDiagnostics', () => ({
     logsDir: WakfuCombatLogReader.DEFAULT_LOGS_DIR,
@@ -198,15 +199,20 @@ app.whenReady().then(async () => {
     overlayClients: overlay.clientCount,
   }));
 
-  ipcMain.handle('settings:sendTestCast', (_e, heroIndex) => {
-    const hero = heroesConfig.heroes[heroIndex] ?? heroesConfig.heroes[0];
+  ipcMain.handle('settings:sendTestCast', (_e, characterName) => {
+    const hero = settingsStore.heroes.find((h) => h.characterName === characterName) ?? settingsStore.heroes[0];
     if (!hero) return;
-    const classSlug = path.basename(hero.profile ?? '', '.json');
-    const sampleSpellName = findSampleSpellForClass(spellIcons, classSlug);
+
+    // Class isn't tracked for user-added heroes, so just grab any icon as a
+    // visual smoke test rather than trying to match the hero's real spells.
+    const spellNames = Object.keys(spellIcons);
+    const sampleSpellName = spellNames.length
+      ? spellNames[Math.floor(Math.random() * spellNames.length)]
+      : null;
     const spellName = sampleSpellName ?? 'Sort de test';
+
     const testEvent = {
       characterName: hero.characterName,
-      heroIndex: heroesConfig.heroes.indexOf(hero),
       heroName: hero.name,
       spellName,
       color: hero.color,

@@ -13,19 +13,19 @@ function showStatus(text) {
   showStatusTimer = setTimeout(() => { statusEl.textContent = ''; }, 1500);
 }
 
-function renderHeroes(heroes, trackedHeroIndexes) {
+function renderHeroes(heroes, trackedCharacterNames) {
   heroList.innerHTML = '';
-  const tracked = new Set(trackedHeroIndexes);
+  const tracked = new Set(trackedCharacterNames);
 
-  heroes.forEach((hero, index) => {
+  heroes.forEach((hero) => {
     const row = document.createElement('label');
     row.className = 'hero-row';
 
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
-    checkbox.checked = tracked.has(index);
+    checkbox.checked = tracked.has(hero.characterName);
     checkbox.addEventListener('change', () => {
-      if (checkbox.checked) tracked.add(index); else tracked.delete(index);
+      if (checkbox.checked) tracked.add(hero.characterName); else tracked.delete(hero.characterName);
       window.settingsAPI.setTrackedHeroes([...tracked]);
       showStatus('Réglages enregistrés');
     });
@@ -44,13 +44,61 @@ function renderHeroes(heroes, trackedHeroIndexes) {
     testBtn.textContent = 'Tester';
     testBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      window.settingsAPI.sendTestCast(index);
+      window.settingsAPI.sendTestCast(hero.characterName);
     });
 
-    row.append(checkbox, swatch, label, testBtn);
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'remove-btn';
+    removeBtn.textContent = '✕';
+    removeBtn.title = 'Retirer ce héros';
+    removeBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await window.settingsAPI.removeHero(hero.characterName);
+      await refreshHeroes();
+      showStatus('Héros retiré');
+    });
+
+    row.append(checkbox, swatch, label, testBtn, removeBtn);
     heroList.appendChild(row);
   });
 }
+
+async function refreshHeroes() {
+  const state = await window.settingsAPI.getState();
+  renderHeroes(state.heroes, state.trackedCharacterNames);
+}
+
+// ── Add hero form ────────────────────────────────────────────────────────────
+
+function hexToRgb(hex) {
+  const match = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
+  if (!match) return { r: 120, g: 120, b: 120 };
+  return { r: parseInt(match[1], 16), g: parseInt(match[2], 16), b: parseInt(match[3], 16) };
+}
+
+const addHeroForm = document.getElementById('add-hero-form');
+const addHeroError = document.getElementById('add-hero-error');
+
+addHeroForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  addHeroError.textContent = '';
+
+  const name = document.getElementById('add-hero-name').value.trim();
+  const characterName = document.getElementById('add-hero-character-name').value.trim();
+  const color = hexToRgb(document.getElementById('add-hero-color').value);
+
+  const ok = await window.settingsAPI.addHero({ name, characterName, color });
+  if (!ok) {
+    addHeroError.textContent = 'Ce nom de personnage existe déjà (ou est vide).';
+    return;
+  }
+
+  addHeroForm.reset();
+  document.getElementById('add-hero-color').value = '#4a90e2';
+  await refreshHeroes();
+  showStatus('Héros ajouté');
+});
 
 function updateDirectionVisibility(orientation) {
   directionVertical.classList.toggle('active', orientation === 'vertical');
@@ -139,7 +187,7 @@ document.getElementById('clear-debug-log').addEventListener('click', () => {
 
 async function init() {
   const state = await window.settingsAPI.getState();
-  renderHeroes(state.heroes, state.trackedHeroIndexes);
+  renderHeroes(state.heroes, state.trackedCharacterNames);
   renderLayout(state.comboLayout);
   await loadDiagnostics();
   debugLog.innerHTML = '<div class="debug-empty">En attente d\'un sort détecté dans les logs…</div>';

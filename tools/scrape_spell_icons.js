@@ -27,11 +27,26 @@ const OUTPUT_PATH = path.join(ROOT_DIR, 'data', 'spellIcons.json');
 const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
-// Only the classes actually used by heroes.json — no need to fetch the other 14.
+// All 18 classes — heroes can now be added freely from the settings UI
+// (any class), not just the 4 originally hardcoded in heroes.json.
 const CLASSES = [
+  { slug: '1-feca', class: 'feca' },
+  { slug: '2-osamodas', class: 'osamodas' },
+  { slug: '3-enutrof', class: 'enutrof' },
   { slug: '4-sram', class: 'sram' },
+  { slug: '5-xelor', class: 'xelor' },
+  { slug: '6-ecaflip', class: 'ecaflip' },
   { slug: '7-eniripsa', class: 'eniripsa' },
+  { slug: '8-iop', class: 'iop' },
   { slug: '9-cra', class: 'cra' },
+  { slug: '10-sadida', class: 'sadida' },
+  { slug: '11-sacrieur', class: 'sacrieur' },
+  { slug: '12-pandawa', class: 'pandawa' },
+  { slug: '13-roublard', class: 'roublard' },
+  { slug: '14-zobal', class: 'zobal' },
+  { slug: '15-ouginak', class: 'ouginak' },
+  { slug: '16-steamer', class: 'steamer' },
+  { slug: '18-eliotrope', class: 'eliotrope' },
   { slug: '19-huppermage', class: 'huppermage' },
 ];
 

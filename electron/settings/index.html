@@ -11,6 +11,14 @@
   <p class="hint">Seuls les sorts lancés par les héros cochés apparaissent sur l'overlay.</p>
   <div id="hero-list"></div>
 
+  <form id="add-hero-form">
+    <input type="text" id="add-hero-name" placeholder="Nom affiché (ex: Héros 5 — Iop)" required>
+    <input type="text" id="add-hero-character-name" placeholder="Nom exact du personnage en jeu" required>
+    <input type="color" id="add-hero-color" value="#4a90e2" title="Couleur">
+    <button type="submit">Ajouter</button>
+  </form>
+  <p class="error" id="add-hero-error"></p>
+
   <h1>Disposition de la liste</h1>
   <fieldset id="orientation-field">
     <legend>Orientation</legend>

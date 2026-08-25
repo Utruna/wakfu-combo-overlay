@@ -1,7 +1,13 @@
 /**
  * settingsStore.js
- * Persists and broadcasts user-editable combo-overlay settings:
- * which heroes are currently tracked, and how the combo list is laid out.
+ * Persists and broadcasts user-editable combo-overlay settings: the tracked
+ * character roster (own to this app, independent of the Stream Deck tool's
+ * heroes.json), which of them are currently tracked, and how the combo list
+ * is laid out.
+ *
+ * Heroes are keyed by `characterName` (the exact in-game name, already
+ * required to be unique for combat-log matching) rather than array position,
+ * so adding/removing a character never invalidates other stored references.
  */
 
 'use strict';
@@ -16,22 +22,28 @@ class SettingsStore extends EventEmitter {
     super();
     this._filePath = filePath;
     this._state = this._readOrEmpty();
-    this._trackedSet = new Set(this._state.trackedHeroIndexes || []);
+    this._trackedSet = new Set(this._state.trackedCharacterNames || []);
   }
 
   /**
-   * Fill in any missing fields with defaults (e.g. on first run), persisting
-   * only if something was actually missing.
+   * Fill in any missing fields with defaults (e.g. on first run — importing
+   * the existing heroes.json roster so nothing is lost), persisting only if
+   * something was actually missing.
    *
    * @param {object} defaults
-   * @param {number[]} defaults.trackedHeroIndexes
+   * @param {{name: string, characterName: string, color: object}[]} defaults.heroes
+   * @param {string[]} defaults.trackedCharacterNames
    * @param {{orientation: string, direction: string}} defaults.comboLayout
    */
   ensureDefaults(defaults) {
     let changed = false;
-    if (!this._state.trackedHeroIndexes) {
-      this._state.trackedHeroIndexes = defaults.trackedHeroIndexes;
-      this._trackedSet = new Set(this._state.trackedHeroIndexes);
+    if (!this._state.heroes) {
+      this._state.heroes = defaults.heroes;
+      changed = true;
+    }
+    if (!this._state.trackedCharacterNames) {
+      this._state.trackedCharacterNames = defaults.trackedCharacterNames;
+      this._trackedSet = new Set(this._state.trackedCharacterNames);
       changed = true;
     }
     if (!this._state.comboLayout) {
@@ -41,7 +53,11 @@ class SettingsStore extends EventEmitter {
     if (changed) this._persist();
   }
 
-  get trackedHeroIndexes() {
+  get heroes() {
+    return this._state.heroes || [];
+  }
+
+  get trackedCharacterNames() {
     return [...this._trackedSet];
   }
 
@@ -49,21 +65,57 @@ class SettingsStore extends EventEmitter {
     return this._state.comboLayout;
   }
 
-  isTracked(heroIndex) {
-    return this._trackedSet.has(heroIndex);
+  isTracked(characterName) {
+    return this._trackedSet.has(characterName);
   }
 
-  setTrackedHeroes(indexes) {
-    this._trackedSet = new Set((indexes || []).filter((n) => Number.isInteger(n)));
-    this._state.trackedHeroIndexes = [...this._trackedSet];
+  setTrackedHeroes(characterNames) {
+    this._trackedSet = new Set((characterNames || []).filter((n) => typeof n === 'string' && n));
+    this._state.trackedCharacterNames = [...this._trackedSet];
     this._persist();
-    this.emit('trackedHeroesChanged', this.trackedHeroIndexes);
+    this.emit('trackedHeroesChanged', this.trackedCharacterNames);
   }
 
   setComboLayout(layout) {
     this._state.comboLayout = { ...this._state.comboLayout, ...layout };
     this._persist();
     this.emit('comboLayoutChanged', this._state.comboLayout);
+  }
+
+  /**
+   * Add a new tracked character. Rejects a duplicate/blank characterName
+   * (it's the matching key, so it must stay unique) — returns false in that
+   * case, true on success.
+   *
+   * @param {{name: string, characterName: string, color: {r:number,g:number,b:number}}} hero
+   */
+  addHero(hero) {
+    const characterName = String(hero.characterName || '').trim();
+    if (!characterName) return false;
+    if (this.heroes.some((h) => h.characterName === characterName)) return false;
+
+    const name = String(hero.name || '').trim() || characterName;
+    const heroes = [...this.heroes, { name, characterName, color: hero.color }];
+    this._state.heroes = heroes;
+
+    this._trackedSet.add(characterName);
+    this._state.trackedCharacterNames = [...this._trackedSet];
+
+    this._persist();
+    this.emit('heroesChanged', this.heroes);
+    this.emit('trackedHeroesChanged', this.trackedCharacterNames);
+    return true;
+  }
+
+  /** Remove a tracked character by characterName. */
+  removeHero(characterName) {
+    this._state.heroes = this.heroes.filter((h) => h.characterName !== characterName);
+    if (this._trackedSet.delete(characterName)) {
+      this._state.trackedCharacterNames = [...this._trackedSet];
+    }
+    this._persist();
+    this.emit('heroesChanged', this.heroes);
+    this.emit('trackedHeroesChanged', this.trackedCharacterNames);
   }
 
   // ── Private ──────────────────────────────────────────────────────────────

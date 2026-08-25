@@ -99,6 +99,61 @@ fieldset label {
 }
 .test-btn:hover { color: var(--text); border-color: var(--accent); }
 
+.remove-btn {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 5px;
+  font-size: 11px;
+  width: 22px;
+  height: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.remove-btn:hover { color: #e53935; border-color: #e53935; }
+
+#add-hero-form {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+#add-hero-form input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 5px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+#add-hero-form input[type="color"] {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: none;
+  cursor: pointer;
+}
+#add-hero-form button {
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  border-radius: 5px;
+  padding: 0 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+#add-hero-form button:hover { opacity: 0.9; }
+
+.error {
+  color: #e53935;
+  font-size: 12px;
+  margin-top: 6px;
+  min-height: 1.2em;
+}
+
 #diagnostics-panel {
   background: var(--bg-panel);
   border: 1px solid var(--border);
