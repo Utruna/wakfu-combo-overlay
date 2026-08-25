@@ -34,6 +34,8 @@ class SettingsStore extends EventEmitter {
    * @param {{name: string, characterName: string, color: object}[]} defaults.heroes
    * @param {string[]} defaults.trackedCharacterNames
    * @param {{orientation: string, direction: string}} defaults.comboLayout
+   * @param {number} defaults.overlayPort
+   * @param {string} defaults.logsDir
    */
   ensureDefaults(defaults) {
     let changed = false;
@@ -50,6 +52,14 @@ class SettingsStore extends EventEmitter {
       this._state.comboLayout = defaults.comboLayout;
       changed = true;
     }
+    if (!this._state.overlayPort) {
+      this._state.overlayPort = defaults.overlayPort;
+      changed = true;
+    }
+    if (!this._state.logsDir) {
+      this._state.logsDir = defaults.logsDir;
+      changed = true;
+    }
     if (changed) this._persist();
   }
 
@@ -63,6 +73,42 @@ class SettingsStore extends EventEmitter {
 
   get comboLayout() {
     return this._state.comboLayout;
+  }
+
+  get overlayPort() {
+    return this._state.overlayPort;
+  }
+
+  /**
+   * @param {number} port - Must be an integer in the unprivileged TCP range.
+   * @returns {boolean} true if valid and applied, false otherwise (caller keeps the old port).
+   */
+  setOverlayPort(port) {
+    const value = Number(port);
+    if (!Number.isInteger(value) || value < 1024 || value > 65535) return false;
+    this._state.overlayPort = value;
+    this._persist();
+    this.emit('overlayPortChanged', value);
+    return true;
+  }
+
+  get logsDir() {
+    return this._state.logsDir;
+  }
+
+  /**
+   * @param {string} dir - Non-empty path. Existence isn't checked here — the
+   *   diagnostics panel reports found/not-found separately, since the user
+   *   may be pointing at a location Wakfu hasn't written to yet.
+   * @returns {boolean} true if valid and applied, false otherwise.
+   */
+  setLogsDir(dir) {
+    const value = String(dir || '').trim();
+    if (!value) return false;
+    this._state.logsDir = value;
+    this._persist();
+    this.emit('logsDirChanged', value);
+    return true;
   }
 
   isTracked(characterName) {

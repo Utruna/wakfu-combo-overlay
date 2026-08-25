@@ -36,7 +36,9 @@ function renderHeroes(heroes, trackedCharacterNames) {
     swatch.style.background = `rgb(${r}, ${g}, ${b})`;
 
     const label = document.createElement('span');
-    label.textContent = `${hero.name} (${hero.characterName})`;
+    label.textContent = hero.name && hero.name !== hero.characterName
+      ? `${hero.name} (${hero.characterName})`
+      : hero.characterName;
 
     const testBtn = document.createElement('button');
     testBtn.type = 'button';
@@ -84,11 +86,10 @@ addHeroForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   addHeroError.textContent = '';
 
-  const name = document.getElementById('add-hero-name').value.trim();
   const characterName = document.getElementById('add-hero-character-name').value.trim();
   const color = hexToRgb(document.getElementById('add-hero-color').value);
 
-  const ok = await window.settingsAPI.addHero({ name, characterName, color });
+  const ok = await window.settingsAPI.addHero({ characterName, color });
   if (!ok) {
     addHeroError.textContent = 'Ce nom de personnage existe déjà (ou est vide).';
     return;
@@ -146,8 +147,11 @@ const diagLogsStatus = document.getElementById('diag-logs-status');
 const diagClients = document.getElementById('diag-clients');
 const debugLog = document.getElementById('debug-log');
 
+let currentOverlayUrl = '';
+
 async function loadDiagnostics() {
   const diag = await window.settingsAPI.getDiagnostics();
+  currentOverlayUrl = diag.overlayUrl;
   diagOverlayUrl.textContent = diag.overlayUrl;
   diagLogsDir.textContent = diag.logsDir;
   diagLogsStatus.textContent = diag.logsDirExists ? 'trouvé' : 'introuvable';
@@ -156,9 +160,66 @@ async function loadDiagnostics() {
     ? `${diag.overlayClients} connecté(s)`
     : 'aucun — OBS (ou le navigateur) n\'est pas connecté à la page overlay';
   diagClients.className = diag.overlayClients > 0 ? 'diag-ok' : 'diag-bad';
+
+  // Don't clobber what the user is actively typing.
+  if (document.activeElement !== overlayPortInput) {
+    overlayPortInput.value = diag.overlayPort;
+  }
+  if (document.activeElement !== logsDirInput) {
+    logsDirInput.value = diag.logsDir;
+  }
 }
 
 setInterval(loadDiagnostics, 2000);
+
+// ── Click-to-copy overlay URL ───────────────────────────────────────────────
+
+diagOverlayUrl.addEventListener('click', async () => {
+  if (!currentOverlayUrl) return;
+  try {
+    await navigator.clipboard.writeText(currentOverlayUrl);
+    showStatus('URL copiée');
+  } catch {
+    showStatus('Impossible de copier');
+  }
+});
+
+// ── Overlay port ─────────────────────────────────────────────────────────────
+
+const overlayPortInput = document.getElementById('overlay-port-input');
+const overlayPortError = document.getElementById('overlay-port-error');
+
+document.getElementById('overlay-port-apply').addEventListener('click', async () => {
+  overlayPortError.textContent = '';
+  const result = await window.settingsAPI.setOverlayPort(overlayPortInput.value);
+  if (!result.ok) {
+    overlayPortError.textContent = result.error || 'Port invalide.';
+    return;
+  }
+  showStatus('Port changé — pense à mettre à jour l\'URL dans OBS');
+  await loadDiagnostics();
+});
+
+// ── Logs directory ───────────────────────────────────────────────────────────
+
+const logsDirInput = document.getElementById('logs-dir-input');
+const logsDirError = document.getElementById('logs-dir-error');
+
+document.getElementById('logs-dir-browse').addEventListener('click', async () => {
+  const picked = await window.settingsAPI.browseLogsDir();
+  if (picked) logsDirInput.value = picked;
+});
+
+document.getElementById('logs-dir-apply').addEventListener('click', async () => {
+  logsDirError.textContent = '';
+  const result = await window.settingsAPI.setLogsDir(logsDirInput.value);
+  if (!result.ok) {
+    logsDirError.textContent = result.error || 'Chemin invalide.';
+    return;
+  }
+  showStatus('Dossier de logs changé');
+  await loadDiagnostics();
+});
 
 const DEBUG_LABELS = {
   broadcast: 'Envoyé à l\'overlay',

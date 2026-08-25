@@ -177,6 +177,64 @@ fieldset label {
   margin-bottom: 6px;
 }
 
+#diag-overlay-url {
+  cursor: pointer;
+  border-bottom: 1px dashed var(--text-dim);
+}
+#diag-overlay-url:hover { color: var(--accent); border-color: var(--accent); }
+
+.port-edit {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.port-edit input[type="number"] {
+  width: 70px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 5px;
+  padding: 3px 6px;
+  font-size: 11px;
+}
+.port-edit button {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 5px;
+  font-size: 11px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+.port-edit button:hover { color: var(--text); border-color: var(--accent); }
+
+.path-edit {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+.path-edit input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 5px;
+  padding: 3px 6px;
+  font-size: 11px;
+}
+.path-edit button {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 5px;
+  font-size: 11px;
+  padding: 3px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.path-edit button:hover { color: var(--text); border-color: var(--accent); }
+
 code {
   font-family: Consolas, monospace;
   color: var(--text);

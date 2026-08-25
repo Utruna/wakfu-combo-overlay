@@ -76,6 +76,8 @@ const NAMED_ENTITIES = {
   Ucirc: 'Û', Ugrave: 'Ù', Uuml: 'Ü',
   Icirc: 'Î', Iuml: 'Ï', Igrave: 'Ì',
   OElig: 'Œ',
+  rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“',
+  ndash: '–', mdash: '—', hellip: '…', nbsp: ' ',
 };
 
 function decodeHtmlEntities(text) {

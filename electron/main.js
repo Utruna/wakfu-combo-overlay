@@ -14,14 +14,14 @@
 
 const path = require('path');
 const fs = require('fs');
-const { app, BrowserWindow, Tray, Menu, ipcMain } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, dialog } = require('electron');
 
 const { OverlayServer } = require('../overlay/server');
 const { WakfuCombatLogReader } = require('../src/wakfuCombatLogReader');
 const { CharacterMatcher } = require('../src/characterMatcher');
 const { SettingsStore } = require('../src/settingsStore');
 
-const OVERLAY_PORT = 3457;
+const DEFAULT_OVERLAY_PORT = 3457;
 
 app.setName('Wakfu Combo Overlay'); // keeps userData path consistent between dev and packaged runs
 
@@ -66,6 +66,14 @@ function loadSpellIcons() {
   } catch {
     return {};
   }
+}
+
+/** (Re)creates the overlay HTTP/SSE server on the given port, preserving the current layout. */
+function startOverlay(port, comboLayout) {
+  const server = new OverlayServer({ rootDir: ROOT_DIR, staticDir: path.join(__dirname, 'overlay') });
+  server.start(port);
+  server.broadcastConfig(comboLayout);
+  return server;
 }
 
 function pushDebugEvent(entry) {
@@ -122,15 +130,15 @@ app.whenReady().then(async () => {
     heroes: seedHeroes,
     trackedCharacterNames: seedHeroes.map((h) => h.characterName),
     comboLayout: { orientation: 'vertical', direction: 'top-to-bottom' },
+    overlayPort: DEFAULT_OVERLAY_PORT,
+    logsDir: WakfuCombatLogReader.DEFAULT_LOGS_DIR,
   });
 
-  overlay = new OverlayServer({ rootDir: ROOT_DIR, staticDir: path.join(__dirname, 'overlay') });
-  overlay.start(OVERLAY_PORT);
-  overlay.broadcastConfig(settingsStore.comboLayout);
+  overlay = startOverlay(settingsStore.overlayPort, settingsStore.comboLayout);
 
   settingsStore.on('comboLayoutChanged', (layout) => overlay.broadcastConfig(layout));
 
-  combatLogReader = new WakfuCombatLogReader((castEvent) => {
+  function handleCastEvent(castEvent) {
     // Read the roster live on every event — it can change at runtime via add/remove.
     const heroes = settingsStore.heroes;
     const heroIndex = CharacterMatcher.findHeroIndexByName(
@@ -179,8 +187,15 @@ app.whenReady().then(async () => {
       timestamp: castEvent.timestamp,
       icon: iconEntry?.icon ?? null,
     });
-  });
-  await combatLogReader.start();
+  }
+
+  async function startCombatLogReader(logsDir) {
+    const reader = new WakfuCombatLogReader(handleCastEvent, { logsDir });
+    await reader.start();
+    return reader;
+  }
+
+  combatLogReader = await startCombatLogReader(settingsStore.logsDir);
 
   ipcMain.handle('settings:getState', () => ({
     heroes: settingsStore.heroes,
@@ -193,11 +208,52 @@ app.whenReady().then(async () => {
   ipcMain.handle('settings:removeHero', (_e, characterName) => settingsStore.removeHero(characterName));
 
   ipcMain.handle('settings:getDiagnostics', () => ({
-    logsDir: WakfuCombatLogReader.DEFAULT_LOGS_DIR,
-    logsDirExists: fs.existsSync(WakfuCombatLogReader.DEFAULT_LOGS_DIR),
-    overlayUrl: `http://localhost:${OVERLAY_PORT}`,
+    logsDir: settingsStore.logsDir,
+    logsDirExists: fs.existsSync(settingsStore.logsDir),
+    overlayUrl: `http://localhost:${settingsStore.overlayPort}`,
+    overlayPort: settingsStore.overlayPort,
     overlayClients: overlay.clientCount,
   }));
+
+  ipcMain.handle('settings:setLogsDir', async (_e, dir) => {
+    if (dir === settingsStore.logsDir) {
+      return { ok: true, logsDir: settingsStore.logsDir, logsDirExists: fs.existsSync(settingsStore.logsDir) };
+    }
+
+    const applied = settingsStore.setLogsDir(dir);
+    if (!applied) {
+      return { ok: false, error: 'Chemin invalide.' };
+    }
+
+    combatLogReader.stop();
+    combatLogReader = await startCombatLogReader(settingsStore.logsDir);
+    return { ok: true, logsDir: settingsStore.logsDir, logsDirExists: fs.existsSync(settingsStore.logsDir) };
+  });
+
+  ipcMain.handle('settings:browseLogsDir', async () => {
+    const result = await dialog.showOpenDialog(settingsWindow, {
+      properties: ['openDirectory'],
+      defaultPath: settingsStore.logsDir,
+      title: 'Choisir le dossier de logs Wakfu',
+    });
+    if (result.canceled || result.filePaths.length === 0) return null;
+    return result.filePaths[0];
+  });
+
+  ipcMain.handle('settings:setOverlayPort', (_e, port) => {
+    if (Number(port) === settingsStore.overlayPort) {
+      return { ok: true, overlayUrl: `http://localhost:${settingsStore.overlayPort}` };
+    }
+
+    const applied = settingsStore.setOverlayPort(port);
+    if (!applied) {
+      return { ok: false, error: 'Port invalide (doit être entre 1024 et 65535).' };
+    }
+
+    overlay.stop();
+    overlay = startOverlay(settingsStore.overlayPort, settingsStore.comboLayout);
+    return { ok: true, overlayUrl: `http://localhost:${settingsStore.overlayPort}` };
+  });
 
   ipcMain.handle('settings:sendTestCast', (_e, characterName) => {
     const hero = settingsStore.heroes.find((h) => h.characterName === characterName) ?? settingsStore.heroes[0];

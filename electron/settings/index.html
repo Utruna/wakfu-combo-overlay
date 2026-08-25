@@ -12,7 +12,6 @@
   <div id="hero-list"></div>
 
   <form id="add-hero-form">
-    <input type="text" id="add-hero-name" placeholder="Nom affiché (ex: Héros 5 — Iop)" required>
     <input type="text" id="add-hero-character-name" placeholder="Nom exact du personnage en jeu" required>
     <input type="color" id="add-hero-color" value="#4a90e2" title="Couleur">
     <button type="submit">Ajouter</button>
@@ -42,9 +41,26 @@
 
   <h1>Diagnostic</h1>
   <div id="diagnostics-panel">
-    <div class="diag-row"><span>Overlay OBS :</span> <code id="diag-overlay-url">—</code></div>
+    <div class="diag-row">
+      <span>Overlay OBS :</span>
+      <code id="diag-overlay-url" title="Cliquer pour copier">—</code>
+    </div>
+    <div class="diag-row">
+      <span>Port de l'overlay :</span>
+      <span class="port-edit">
+        <input type="number" id="overlay-port-input" min="1024" max="65535">
+        <button type="button" id="overlay-port-apply">Changer</button>
+      </span>
+    </div>
+    <p class="error" id="overlay-port-error"></p>
     <div class="diag-row"><span>Dossier de logs surveillé :</span></div>
     <code id="diag-logs-dir" class="diag-path">—</code>
+    <div class="path-edit">
+      <input type="text" id="logs-dir-input" placeholder="Chemin du dossier de logs Wakfu">
+      <button type="button" id="logs-dir-browse">Parcourir…</button>
+      <button type="button" id="logs-dir-apply">Changer</button>
+    </div>
+    <p class="error" id="logs-dir-error"></p>
     <div class="diag-row"><span>État :</span> <span id="diag-logs-status">—</span></div>
     <div class="diag-row"><span>Connectés sur l'overlay (OBS/navigateur) :</span> <span id="diag-clients">—</span></div>
   </div>

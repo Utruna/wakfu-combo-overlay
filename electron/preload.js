@@ -9,6 +9,9 @@ contextBridge.exposeInMainWorld('settingsAPI', {
   addHero: (hero) => ipcRenderer.invoke('settings:addHero', hero),
   removeHero: (characterName) => ipcRenderer.invoke('settings:removeHero', characterName),
   getDiagnostics: () => ipcRenderer.invoke('settings:getDiagnostics'),
+  setOverlayPort: (port) => ipcRenderer.invoke('settings:setOverlayPort', port),
+  setLogsDir: (dir) => ipcRenderer.invoke('settings:setLogsDir', dir),
+  browseLogsDir: () => ipcRenderer.invoke('settings:browseLogsDir'),
   sendTestCast: (characterName) => ipcRenderer.invoke('settings:sendTestCast', characterName),
   onDebugEvent: (callback) => {
     const handler = (_event, payload) => callback(payload);
