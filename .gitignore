@@ -8,5 +8,4 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 assets/icons/*/
-profiles/*
-log_test/*
+data/spellIcons.json

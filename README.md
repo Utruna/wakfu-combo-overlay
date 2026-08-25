@@ -2,8 +2,6 @@
 
 Application de bureau autonome (Electron) qui lit les logs de combat Wakfu en temps réel et affiche les sorts lancés par tes personnages sur un overlay OBS, sous forme d'icônes qui défilent.
 
-Aucun rapport avec l'outil Stream Deck de ce dépôt (`index.js`, `heroes.json`, `profiles/*.json`) — ils ne partagent aucun état, aucun port, aucun fichier de config. Cette appli vit entièrement dans `electron/`.
-
 ---
 
 ## Ce que ça fait

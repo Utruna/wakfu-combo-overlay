@@ -1,30 +1,22 @@
 {
-  "name": "streamdeck-wakfu",
+  "name": "wakfu-combo-overlay",
   "version": "1.0.0",
-  "description": "Stream Deck profile manager for Wakfu — maps spell shortcuts for up to 3 heroes.",
-  "main": "index.js",
+  "description": "Overlay OBS qui affiche en temps réel les sorts lancés par tes personnages dans Wakfu, à partir des logs de combat.",
+  "main": "electron/main.js",
   "scripts": {
-    "start": "node index.js",
     "lint": "eslint .",
-    "postinstall": "node tools/fetch_icons.js",
-    "fetch-icons:all": "node tools/fetch_all_icons_by_class.js",
     "electron:dev": "electron electron/main.js",
     "dist": "electron-builder --win"
   },
   "keywords": [
     "wakfu",
-    "streamdeck",
-    "elgato",
-    "gaming",
-    "keyboard-macro"
+    "overlay",
+    "obs",
+    "combo",
+    "electron"
   ],
   "author": "",
   "license": "MIT",
-  "dependencies": {
-    "@elgato-stream-deck/node": "^6.2.2",
-    "@nut-tree-fork/nut-js": "^4.2.6",
-    "sharp": "^0.33.5"
-  },
   "devDependencies": {
     "electron": "^32.3.3",
     "electron-builder": "^25.1.8",
@@ -38,9 +30,6 @@
     "productName": "Wakfu Combo Overlay",
     "asar": true,
     "npmRebuild": false,
-    "extraMetadata": {
-      "main": "electron/main.js"
-    },
     "files": [
       "electron/**/*",
       "src/wakfuCombatLogReader.js",
@@ -49,11 +38,7 @@
       "overlay/server.js",
       "heroes.json",
       "assets/tray-icon.png",
-      "package.json",
-      "!node_modules/@elgato-stream-deck/**",
-      "!node_modules/@nut-tree-fork/**",
-      "!node_modules/sharp/**",
-      "!node_modules/@img/**"
+      "package.json"
     ],
     "directories": {
       "output": "dist"
