@@ -32,6 +32,17 @@
         "g": 120,
         "b": 220
       }
+    },
+    {
+      "heroNumber": 4,
+      "name": "Héros 4 — Huppermage",
+      "profile": "profiles/hupper.json",
+      "characterName": "Lueur Etherique",
+      "color": {
+        "r": 50,
+        "g": 120,
+        "b": 220
+      }
     }
   ],
   "settings": {
