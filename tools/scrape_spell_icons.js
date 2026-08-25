@@ -193,6 +193,23 @@ async function main() {
     if (didNetworkRequest) await sleep(ICON_DELAY_MS);
   }
 
+  // Some spell names are reused across classes with a different icon (e.g. "Rafale"
+  // exists for both Iop and Cra). The lookup is flat (by name only, since that's all
+  // the combat log gives us), so a collision means whichever class is scraped last
+  // silently wins — surface these clearly instead of hiding the overwrite.
+  const byName = new Map();
+  for (const spell of allSpells) {
+    if (!byName.has(spell.name)) byName.set(spell.name, []);
+    byName.get(spell.name).push(spell);
+  }
+  const collisions = [...byName.entries()].filter(([, list]) => list.length > 1);
+  if (collisions.length > 0) {
+    console.log(`\n[scrape] ${collisions.length} nom(s) de sort partagé(s) entre plusieurs classes (la dernière classe traitée l'emporte dans la table) :`);
+    for (const [name, list] of collisions) {
+      console.log(`  - "${name}": ${list.map((s) => `${s.class} (id ${s.iconId})`).join(' / ')}`);
+    }
+  }
+
   const lookup = {};
   for (const spell of allSpells) {
     lookup[spell.name] = {
