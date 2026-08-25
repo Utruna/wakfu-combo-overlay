@@ -1,5 +1,23 @@
 'use strict';
 
+const CLASSES = [
+  ['feca', 'Féca'], ['osamodas', 'Osamodas'], ['enutrof', 'Enutrof'], ['sram', 'Sram'],
+  ['xelor', 'Xélor'], ['ecaflip', 'Ecaflip'], ['eniripsa', 'Eniripsa'], ['iop', 'Iop'],
+  ['cra', 'Cra'], ['sadida', 'Sadida'], ['sacrieur', 'Sacrieur'], ['pandawa', 'Pandawa'],
+  ['roublard', 'Roublard'], ['zobal', 'Zobal'], ['ouginak', 'Ouginak'], ['steamer', 'Steamer'],
+  ['eliotrope', 'Eliotrope'], ['huppermage', 'Huppermage'],
+];
+
+const CLASS_LABELS = new Map(CLASSES);
+
+const addHeroClassSelect = document.getElementById('add-hero-class');
+for (const [slug, label] of CLASSES) {
+  const option = document.createElement('option');
+  option.value = slug;
+  option.textContent = label;
+  addHeroClassSelect.appendChild(option);
+}
+
 const heroList = document.getElementById('hero-list');
 const statusEl = document.getElementById('status');
 const orientationField = document.getElementById('orientation-field');
@@ -36,9 +54,11 @@ function renderHeroes(heroes, trackedCharacterNames) {
     swatch.style.background = `rgb(${r}, ${g}, ${b})`;
 
     const label = document.createElement('span');
-    label.textContent = hero.name && hero.name !== hero.characterName
+    const baseLabel = hero.name && hero.name !== hero.characterName
       ? `${hero.name} (${hero.characterName})`
       : hero.characterName;
+    const classLabel = CLASS_LABELS.get(hero.class);
+    label.textContent = classLabel ? `${baseLabel} — ${classLabel}` : baseLabel;
 
     const testBtn = document.createElement('button');
     testBtn.type = 'button';
@@ -87,9 +107,15 @@ addHeroForm.addEventListener('submit', async (e) => {
   addHeroError.textContent = '';
 
   const characterName = document.getElementById('add-hero-character-name').value.trim();
+  const heroClass = addHeroClassSelect.value;
   const color = hexToRgb(document.getElementById('add-hero-color').value);
 
-  const ok = await window.settingsAPI.addHero({ characterName, color });
+  if (!heroClass) {
+    addHeroError.textContent = 'Choisis une classe.';
+    return;
+  }
+
+  const ok = await window.settingsAPI.addHero({ characterName, color, class: heroClass });
   if (!ok) {
     addHeroError.textContent = 'Ce nom de personnage existe déjà (ou est vide).';
     return;

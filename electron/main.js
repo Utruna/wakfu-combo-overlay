@@ -53,19 +53,37 @@ function loadHeroesJsonSeed() {
       name: h.name,
       characterName: h.characterName,
       color: h.color,
+      // heroes.json's profile path doubles as the class slug (e.g. "profiles/sram.json" -> "sram").
+      class: h.profile ? path.basename(h.profile, '.json') : null,
     }));
   } catch {
     return [];
   }
 }
 
-/** name -> {class, iconId, icon} lookup built by tools/scrape_spell_icons.js. Missing file = no icons, text-only fallback. */
+/** class -> {spellName -> {iconId, icon}} table built by tools/scrape_spell_icons.js. Missing file = no icons, nothing displayed. */
 function loadSpellIcons() {
   try {
     return JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'data', 'spellIcons.json'), 'utf-8'));
   } catch {
     return {};
   }
+}
+
+/**
+ * Look up a spell's icon, scoped to the caster's class when known (this is what
+ * correctly resolves same-named spells across classes, e.g. "Rafale" for both
+ * Iop and Cra). Falls back to a best-effort search across every class when the
+ * hero's class isn't set (e.g. a hero added before this field existed).
+ */
+function findSpellIcon(spellIcons, heroClass, spellName) {
+  const direct = heroClass && spellIcons[heroClass]?.[spellName];
+  if (direct) return direct;
+
+  for (const classSpells of Object.values(spellIcons)) {
+    if (classSpells[spellName]) return classSpells[spellName];
+  }
+  return null;
 }
 
 /** (Re)creates the overlay HTTP/SSE server on the given port, preserving the current layout. */
@@ -177,7 +195,7 @@ app.whenReady().then(async () => {
       timestamp: castEvent.timestamp,
     });
 
-    const iconEntry = spellIcons[castEvent.spellName.trim()];
+    const iconEntry = findSpellIcon(spellIcons, hero.class, castEvent.spellName.trim());
 
     overlay.broadcastCast({
       characterName: castEvent.characterName,
@@ -259,11 +277,14 @@ app.whenReady().then(async () => {
     const hero = settingsStore.heroes.find((h) => h.characterName === characterName) ?? settingsStore.heroes[0];
     if (!hero) return;
 
-    // Class isn't tracked for user-added heroes, so just grab any icon as a
-    // visual smoke test rather than trying to match the hero's real spells.
-    const spellNames = Object.keys(spellIcons);
-    const sampleSpellName = spellNames.length
-      ? spellNames[Math.floor(Math.random() * spellNames.length)]
+    // Prefer a real spell from the hero's own class; fall back to any class's
+    // spell if the hero has none set (heroes added before the class field existed).
+    const classSpells = spellIcons[hero.class] || {};
+    const namesToPickFrom = Object.keys(classSpells).length
+      ? Object.keys(classSpells)
+      : Object.keys(spellIcons).flatMap((cls) => Object.keys(spellIcons[cls]));
+    const sampleSpellName = namesToPickFrom.length
+      ? namesToPickFrom[Math.floor(Math.random() * namesToPickFrom.length)]
       : null;
     const spellName = sampleSpellName ?? 'Sort de test';
 
@@ -273,7 +294,7 @@ app.whenReady().then(async () => {
       spellName,
       color: hero.color,
       timestamp: Date.now(),
-      icon: sampleSpellName ? spellIcons[sampleSpellName].icon : null,
+      icon: sampleSpellName ? findSpellIcon(spellIcons, hero.class, sampleSpellName)?.icon : null,
     };
     pushDebugEvent({ status: 'test', characterName: hero.characterName, heroName: hero.name, spellName: testEvent.spellName, timestamp: testEvent.timestamp });
     overlay.broadcastCast(testEvent);

@@ -133,7 +133,7 @@ class SettingsStore extends EventEmitter {
    * (it's the matching key, so it must stay unique) — returns false in that
    * case, true on success.
    *
-   * @param {{name: string, characterName: string, color: {r:number,g:number,b:number}}} hero
+   * @param {{name: string, characterName: string, color: {r:number,g:number,b:number}, class: string}} hero
    */
   addHero(hero) {
     const characterName = String(hero.characterName || '').trim();
@@ -141,7 +141,8 @@ class SettingsStore extends EventEmitter {
     if (this.heroes.some((h) => h.characterName === characterName)) return false;
 
     const name = String(hero.name || '').trim() || characterName;
-    const heroes = [...this.heroes, { name, characterName, color: hero.color }];
+    const heroClass = String(hero.class || '').trim() || null;
+    const heroes = [...this.heroes, { name, characterName, color: hero.color, class: heroClass }];
     this._state.heroes = heroes;
 
     this._trackedSet.add(characterName);

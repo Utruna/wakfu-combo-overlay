@@ -55,9 +55,9 @@ L'aperçu OBS affiche déjà la source en direct sans avoir besoin de démarrer 
 
 ## Fenêtre de réglages
 
-- **Héros suivis** : coche/décoche qui doit apparaître sur l'overlay. Un formulaire permet d'**ajouter** un personnage (nom affiché, nom exact du personnage en jeu, couleur) et un bouton **✕** permet d'en **retirer** un. Tout est sauvegardé immédiatement, pas de bouton "Enregistrer".
+- **Héros suivis** : coche/décoche qui doit apparaître sur l'overlay. Un formulaire permet d'**ajouter** un personnage (nom exact du personnage en jeu, classe, couleur) et un bouton **✕** permet d'en **retirer** un. La classe sert à choisir la bonne icône quand un nom de sort existe pour plusieurs classes (ex: "Rafale" chez Iop et chez Cra). Tout est sauvegardé immédiatement, pas de bouton "Enregistrer".
 - **Disposition de la liste** : orientation (verticale/horizontale) et sens d'apparition des nouvelles entrées.
-- **Diagnostic** : chemin du dossier de logs surveillé (et s'il est trouvé), nombre de clients connectés à l'overlay (OBS ou navigateur), et un journal d'activité en temps réel qui montre chaque sort détecté et ce qu'il en advient (envoyé / ignoré car non suivi / ignoré car joueur ou mob inconnu). Chaque héros a aussi un bouton **Tester** qui envoie un faux sort à l'overlay, pour vérifier l'affichage sans avoir à jouer.
+- **Diagnostic** : URL de l'overlay (**cliquer dessus la copie** dans le presse-papier) avec un champ pour changer son **port**, chemin du dossier de logs surveillé (modifiable via un champ + bouton **Parcourir…**) et son état (trouvé/introuvable), nombre de clients connectés à l'overlay (OBS ou navigateur), et un journal d'activité en temps réel qui montre chaque sort détecté et ce qu'il en advient (envoyé / ignoré car non suivi / ignoré car joueur ou mob inconnu). Chaque héros a aussi un bouton **Tester** qui envoie un faux sort à l'overlay, pour vérifier l'affichage sans avoir à jouer. Changer le port ou le dossier de logs redémarre le service concerné à la volée, sans relancer toute l'appli.
 
 Fermer la fenêtre (✕) la cache dans le tray mais **ne quitte pas l'appli** — le suivi continue en arrière-plan pendant le stream. Pour fermer complètement : clic droit sur l'icône du tray → **Quitter**, ou `Ctrl+C` dans le terminal si lancé en dev.
 
@@ -85,9 +85,11 @@ Les réglages sont sauvegardés dans `%APPDATA%\Wakfu Combo Overlay\settings.jso
 node tools/scrape_spell_icons.js
 ```
 
-Récupère le nom officiel et l'icône de chaque sort pour les 18 classes depuis l'encyclopédie Wakfu, et les stocke dans `assets/icons/<classe>/<id>.png` + `data/spellIcons.json`. Volontairement lent (délai entre chaque requête) — un lancement à froid prend plusieurs dizaines de minutes, un relancement ne re-télécharge que ce qui manque.
+Récupère le nom officiel et l'icône de chaque sort pour les 18 classes depuis l'encyclopédie Wakfu, et les stocke dans `assets/icons/<classe>/<id>.png` + `data/spellIcons.json` (table imbriquée par classe : `{classe: {nomDuSort: {iconId, icon}}}` — ça évite qu'un nom de sort partagé entre deux classes, comme "Rafale", n'écrase l'icône de l'autre). Volontairement lent (délai entre chaque requête) — un lancement à froid prend plusieurs dizaines de minutes, un relancement ne re-télécharge que ce qui manque.
 
-L'overlay est actuellement **icône seule** : un sort sans icône connue dans cette table n'affiche rien du tout (pas de texte de secours). Relance le script ci-dessus si un personnage d'une classe pas encore couverte n'affiche rien.
+**Ni `assets/icons/` ni `data/spellIcons.json` ne sont versionnés dans git** (voir `.gitignore`) : les CGU de Wakfu interdisent explicitement le scraping/moissonnage de leur site (article 13.5) et la redistribution de leurs assets sans autorisation écrite. Chacun doit générer ces fichiers localement chez soi avec la commande ci-dessus plutôt que de les récupérer via le dépôt.
+
+L'overlay est actuellement **icône seule** : un sort sans icône connue n'affiche rien du tout (pas de texte de secours). Certains sorts (mécaniques spéciales à coût PW, ex: "Uppercut" chez Iop) n'apparaissent pas du tout sur l'encyclopédie officielle par classe — connu, non couvert pour l'instant (voir Dépannage).
 
 ---
 
@@ -102,7 +104,10 @@ L'overlay est actuellement **icône seule** : un sort sans icône connue dans ce
 → Une page qui n'a jamais rien affiché peut ne pas se "peindre" dans OBS tant qu'un premier changement ne survient pas — le bouton **Tester** sert justement à déclencher ce premier rendu.
 
 **Le dossier de logs est marqué "introuvable"**
-→ Wakfu n'a peut-être jamais été lancé sur cette machine, ou est installé ailleurs que via Zaap.
+→ Wakfu n'a peut-être jamais été lancé sur cette machine, ou est installé ailleurs que via Zaap. Utilise le champ + bouton **Parcourir…** dans le Diagnostic pour pointer vers le bon dossier.
+
+**Un sort précis (ex: "Uppercut") n'affiche jamais d'icône, même après avoir relancé le scraper**
+→ Normal pour l'instant : certains sorts à mécanique spéciale (coût en PW plutôt qu'en PA, sorts de combo) n'apparaissent pas sur les pages classe de l'encyclopédie officielle, donc `tools/scrape_spell_icons.js` ne peut pas les trouver. Limitation connue, non résolue pour cette version alpha.
 
 **"address already in use" au lancement**
 → Une instance tourne déjà (souvent invisible : fermer la fenêtre ne quitte pas l'appli). Cherche "Wakfu Combo Overlay" dans le Gestionnaire des tâches, ou utilise "Quitter" depuis le tray avant de relancer.

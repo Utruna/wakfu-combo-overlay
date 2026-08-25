@@ -194,9 +194,9 @@ async function main() {
   }
 
   // Some spell names are reused across classes with a different icon (e.g. "Rafale"
-  // exists for both Iop and Cra). The lookup is flat (by name only, since that's all
-  // the combat log gives us), so a collision means whichever class is scraped last
-  // silently wins — surface these clearly instead of hiding the overwrite.
+  // exists for both Iop and Cra). Nesting the lookup by class (rather than one flat
+  // name -> icon map) avoids that collision entirely — the app knows each tracked
+  // hero's class, so it looks up spellIcons[hero.class][spellName] directly.
   const byName = new Map();
   for (const spell of allSpells) {
     if (!byName.has(spell.name)) byName.set(spell.name, []);
@@ -204,7 +204,7 @@ async function main() {
   }
   const collisions = [...byName.entries()].filter(([, list]) => list.length > 1);
   if (collisions.length > 0) {
-    console.log(`\n[scrape] ${collisions.length} nom(s) de sort partagé(s) entre plusieurs classes (la dernière classe traitée l'emporte dans la table) :`);
+    console.log(`\n[scrape] ${collisions.length} nom(s) de sort partagé(s) entre plusieurs classes (chacun garde sa propre icône grâce à la table par classe) :`);
     for (const [name, list] of collisions) {
       console.log(`  - "${name}": ${list.map((s) => `${s.class} (id ${s.iconId})`).join(' / ')}`);
     }
@@ -212,8 +212,8 @@ async function main() {
 
   const lookup = {};
   for (const spell of allSpells) {
-    lookup[spell.name] = {
-      class: spell.class,
+    if (!lookup[spell.class]) lookup[spell.class] = {};
+    lookup[spell.class][spell.name] = {
       iconId: spell.iconId,
       icon: `assets/icons/${spell.class}/${spell.iconId}.png`,
     };
@@ -221,7 +221,7 @@ async function main() {
 
   fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
   fs.writeFileSync(OUTPUT_PATH, JSON.stringify(lookup, null, 2));
-  console.log(`\n[scrape] Terminé. Table écrite dans ${OUTPUT_PATH} (${Object.keys(lookup).length} entrées).`);
+  console.log(`\n[scrape] Terminé. Table écrite dans ${OUTPUT_PATH} (${allSpells.length} sorts, ${Object.keys(lookup).length} classes).`);
 }
 
 if (require.main === module) {
