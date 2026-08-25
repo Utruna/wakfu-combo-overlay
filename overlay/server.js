@@ -4,9 +4,10 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const PROJECT_ROOT = path.resolve(__dirname, '..');
-const STATIC_DIR = __dirname;
+const DEFAULT_ROOT_DIR = path.resolve(__dirname, '..');
+const DEFAULT_STATIC_DIR = __dirname;
 const PORT = 3456;
+const CAST_BUFFER_SIZE = 20;
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -19,9 +20,18 @@ const MIME = {
 };
 
 class OverlayServer {
-  constructor() {
+  /**
+   * @param {object} [options]
+   * @param {string} [options.rootDir] - Project root, used to resolve /assets/* requests.
+   * @param {string} [options.staticDir] - Directory serving the overlay page itself (index.html, client.js, style.css).
+   */
+  constructor({ rootDir = DEFAULT_ROOT_DIR, staticDir = DEFAULT_STATIC_DIR } = {}) {
+    this._rootDir = rootDir;
+    this._staticDir = staticDir;
     this._clients = new Set();
     this._lastState = null;
+    this._castBuffer = [];
+    this._lastConfig = null;
     this._server = http.createServer((req, res) => this._handle(req, res));
   }
 
@@ -37,10 +47,31 @@ class OverlayServer {
     this._server.close();
   }
 
+  /** Number of browser clients currently connected to /events. */
+  get clientCount() {
+    return this._clients.size;
+  }
+
   /** Push hero + profile state to all connected browser clients. */
   broadcast(state) {
     this._lastState = state;
     const payload = `data: ${JSON.stringify(state)}\n\n`;
+    for (const res of this._clients) res.write(payload);
+  }
+
+  /** Push a discrete spell-cast event to all connected browser clients. */
+  broadcastCast(event) {
+    this._castBuffer.push(event);
+    if (this._castBuffer.length > CAST_BUFFER_SIZE) this._castBuffer.shift();
+
+    const payload = `event: cast\ndata: ${JSON.stringify(event)}\n\n`;
+    for (const res of this._clients) res.write(payload);
+  }
+
+  /** Push a display-config change (e.g. combo-list layout) to all connected browser clients. */
+  broadcastConfig(config) {
+    this._lastConfig = config;
+    const payload = `event: config\ndata: ${JSON.stringify(config)}\n\n`;
     for (const res of this._clients) res.write(payload);
   }
 
@@ -62,6 +93,12 @@ class OverlayServer {
       if (this._lastState) {
         res.write(`data: ${JSON.stringify(this._lastState)}\n\n`);
       }
+      if (this._lastConfig) {
+        res.write(`event: config\ndata: ${JSON.stringify(this._lastConfig)}\n\n`);
+      }
+      for (const event of this._castBuffer) {
+        res.write(`event: cast\ndata: ${JSON.stringify(event)}\n\n`);
+      }
 
       this._clients.add(res);
       req.on('close', () => this._clients.delete(res));
@@ -70,20 +107,20 @@ class OverlayServer {
 
     // Project assets (icons, etc.)
     if (pathname.startsWith('/assets/')) {
-      return this._serveFile(path.join(PROJECT_ROOT, pathname), res);
+      return this._serveFile(path.join(this._rootDir, pathname), res, this._rootDir);
     }
 
     // Overlay static files
     const file = pathname === '/'
-      ? path.join(STATIC_DIR, 'index.html')
-      : path.join(STATIC_DIR, pathname.replace(/^\//, ''));
+      ? path.join(this._staticDir, 'index.html')
+      : path.join(this._staticDir, pathname.replace(/^\//, ''));
 
-    this._serveFile(file, res);
+    this._serveFile(file, res, this._staticDir);
   }
 
-  _serveFile(filePath, res) {
+  _serveFile(filePath, res, allowedBase) {
     const resolved = path.resolve(filePath);
-    const allowed = resolved.startsWith(PROJECT_ROOT);
+    const allowed = resolved.startsWith(path.resolve(allowedBase));
     if (!allowed) {
       res.writeHead(403);
       return res.end();

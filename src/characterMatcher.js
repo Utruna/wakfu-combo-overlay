@@ -24,6 +24,10 @@ class CharacterMatcher {
    * @param {object} [options] - Optional matching options.
    * @param {object<string, string|number>} [options.characterMap] - Map of characterName -> hero name or hero index.
   * @param {string} [options.combatSpellName] - Spell name captured from combat logs.
+   * @param {boolean} [options.strict] - If true, stop after exact name/alias matches and never
+   *   fall back to fuzzy class-substring matching. Use this whenever the input name could belong
+   *   to someone other than your own tracked characters (e.g. any fighter from a combat log line),
+   *   since the fuzzy tiers below can false-positive on unrelated names containing a class word.
    * @returns {number|null} Index of matching hero, or null if not found.
    */
   static findHeroIndexByName(logCharacterName, heroConfigs, options = {}) {
@@ -58,6 +62,8 @@ class CharacterMatcher {
       (hero) => this._normalizeName(hero.name).includes(logNameNorm)
     );
     if (match !== -1) return match;
+
+    if (options.strict) return null;
 
     // Second try: match the class name extracted from log
     // Example: "Héros 1 — Iop" contains "Iop", match by class

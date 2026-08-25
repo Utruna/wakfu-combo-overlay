@@ -7,7 +7,9 @@
     "start": "node index.js",
     "lint": "eslint .",
     "postinstall": "node tools/fetch_icons.js",
-    "fetch-icons:all": "node tools/fetch_all_icons_by_class.js"
+    "fetch-icons:all": "node tools/fetch_all_icons_by_class.js",
+    "electron:dev": "electron electron/main.js",
+    "dist": "electron-builder --win"
   },
   "keywords": [
     "wakfu",
@@ -19,14 +21,44 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@nut-tree-fork/nut-js": "^4.2.6",
     "@elgato-stream-deck/node": "^6.2.2",
+    "@nut-tree-fork/nut-js": "^4.2.6",
     "sharp": "^0.33.5"
   },
   "devDependencies": {
+    "electron": "^32.3.3",
+    "electron-builder": "^25.1.8",
     "eslint": "^8.57.0"
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "build": {
+    "appId": "com.colinliaud.wakfu-combo-overlay",
+    "productName": "Wakfu Combo Overlay",
+    "asar": true,
+    "files": [
+      "electron/**/*",
+      "src/wakfuCombatLogReader.js",
+      "src/characterMatcher.js",
+      "src/settingsStore.js",
+      "overlay/server.js",
+      "heroes.json",
+      "assets/tray-icon.png",
+      "package.json",
+      "!node_modules/@elgato-stream-deck/**",
+      "!node_modules/@nut-tree-fork/**",
+      "!node_modules/sharp/**",
+      "!node_modules/@img/**"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.png"
+    }
   }
 }

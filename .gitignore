@@ -9,3 +9,4 @@ yarn-error.log*
 Thumbs.db
 assets/icons/*/
 profiles/*
+log_test/*

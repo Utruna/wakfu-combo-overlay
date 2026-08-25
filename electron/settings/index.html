@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Réglages — Wakfu Combo Overlay</title>
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <h1>Héros suivis</h1>
+  <p class="hint">Seuls les sorts lancés par les héros cochés apparaissent sur l'overlay.</p>
+  <div id="hero-list"></div>
+
+  <h1>Disposition de la liste</h1>
+  <fieldset id="orientation-field">
+    <legend>Orientation</legend>
+    <label><input type="radio" name="orientation" value="vertical"> Verticale</label>
+    <label><input type="radio" name="orientation" value="horizontal"> Horizontale</label>
+  </fieldset>
+
+  <fieldset id="direction-field">
+    <legend>Sens des nouvelles entrées</legend>
+    <div id="direction-vertical" class="direction-group">
+      <label><input type="radio" name="direction" value="top-to-bottom"> Haut → bas</label>
+      <label><input type="radio" name="direction" value="bottom-to-top"> Bas → haut</label>
+    </div>
+    <div id="direction-horizontal" class="direction-group">
+      <label><input type="radio" name="direction" value="left-to-right"> Gauche → droite</label>
+      <label><input type="radio" name="direction" value="right-to-left"> Droite → gauche</label>
+    </div>
+  </fieldset>
+
+  <p class="status" id="status"></p>
+
+  <h1>Diagnostic</h1>
+  <div id="diagnostics-panel">
+    <div class="diag-row"><span>Overlay OBS :</span> <code id="diag-overlay-url">—</code></div>
+    <div class="diag-row"><span>Dossier de logs surveillé :</span></div>
+    <code id="diag-logs-dir" class="diag-path">—</code>
+    <div class="diag-row"><span>État :</span> <span id="diag-logs-status">—</span></div>
+    <div class="diag-row"><span>Connectés sur l'overlay (OBS/navigateur) :</span> <span id="diag-clients">—</span></div>
+  </div>
+
+  <div id="debug-log-header">
+    <span>Activité en temps réel</span>
+    <button id="clear-debug-log" type="button">Effacer</button>
+  </div>
+  <div id="debug-log"></div>
+
+  <script src="settings.js"></script>
+</body>
+</html>

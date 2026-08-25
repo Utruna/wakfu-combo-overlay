@@ -1,0 +1,62 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --text: #e8e8ec;
+}
+
+body {
+  background: transparent;
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Combo log (spell casts) ─────────────────────────────── */
+
+#combo-log {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column; /* default: vertical, top-to-bottom */
+  align-items: center;
+  gap: 6px;
+}
+
+#combo-log[data-orientation="vertical"][data-direction="top-to-bottom"] { flex-direction: column; }
+#combo-log[data-orientation="vertical"][data-direction="bottom-to-top"] { flex-direction: column-reverse; }
+
+#combo-log[data-orientation="horizontal"] {
+  width: auto;
+  max-width: 90vw;
+  flex-wrap: nowrap;
+}
+#combo-log[data-orientation="horizontal"][data-direction="left-to-right"] { flex-direction: row; }
+#combo-log[data-orientation="horizontal"][data-direction="right-to-left"] { flex-direction: row-reverse; }
+
+.cast-entry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  background: rgba(20, 20, 26, 0.85);
+  border: 2px solid rgb(var(--cast-r), var(--cast-g), var(--cast-b));
+  border-radius: 6px;
+  opacity: 0;
+  transform: translateX(12px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+#combo-log[data-orientation="vertical"] .cast-entry { transform: translateY(12px); }
+
+.cast-entry.visible { opacity: 1; transform: translate(0, 0); }
+.cast-entry.fading  { opacity: 0; }
+
+.cast-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  flex-shrink: 0;
+}
