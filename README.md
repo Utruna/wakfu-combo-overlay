@@ -97,7 +97,7 @@ Récupère le nom officiel et l'icône de chaque sort pour les 18 classes depuis
 
 **Ni `assets/icons/` ni `data/spellIcons.json` ne sont versionnés dans git** (voir `.gitignore`) : les CGU de Wakfu interdisent explicitement le scraping/moissonnage de leur site (article 13.5) et la redistribution de leurs assets sans autorisation écrite. Chacun doit générer ces fichiers localement chez soi avec la commande ci-dessus plutôt que de les récupérer via le dépôt.
 
-L'overlay est actuellement **icône seule** : un sort sans icône connue n'affiche rien du tout (pas de texte de secours). Certains sorts (mécaniques spéciales à coût PW, ex: "Uppercut" chez Iop) n'apparaissent pas du tout sur l'encyclopédie officielle par classe — connu, non couvert pour l'instant (voir Dépannage).
+L'overlay est actuellement **icône seule** : un sort sans icône connue n'affiche rien du tout (pas de texte de secours). Tous les sorts des 18 classes sont couverts, à l'exception des sorts d'**invocation** (créature Osamodas, poupée Sadida, etc.) : ils sont lancés sous le nom de l'invocation elle-même, pas du personnage, et ne figurent pas sur les pages classe de l'encyclopédie officielle que scrape `tools/scrape_spell_icons.js` — connu, non couvert pour l'instant (voir Dépannage).
 
 ---
 
@@ -114,8 +114,8 @@ L'overlay est actuellement **icône seule** : un sort sans icône connue n'affic
 **Le dossier de logs est marqué "introuvable"**
 → Wakfu n'a peut-être jamais été lancé sur cette machine, ou est installé ailleurs que via Zaap. Utilise le champ + bouton **Parcourir…** dans le Diagnostic pour pointer vers le bon dossier.
 
-**Un sort précis (ex: "Uppercut") n'affiche jamais d'icône, même après avoir relancé le scraper**
-→ Normal pour l'instant : certains sorts à mécanique spéciale (coût en PW plutôt qu'en PA, sorts de combo) n'apparaissent pas sur les pages classe de l'encyclopédie officielle, donc `tools/scrape_spell_icons.js` ne peut pas les trouver. Limitation connue, non résolue pour cette version alpha.
+**Un sort lancé par une invocation (créature, poupée, etc.) n'affiche jamais d'icône**
+→ Normal pour l'instant : les invocations lancent leurs sorts sous leur propre nom, pas celui du personnage qui les a invoquées, et ces sorts ne figurent pas sur les pages classe de l'encyclopédie officielle, donc `tools/scrape_spell_icons.js` ne peut pas les trouver. Limitation connue, non résolue pour cette version alpha.
 
 **"address already in use" au lancement**
 → Une instance tourne déjà (souvent invisible : fermer la fenêtre ne quitte pas l'appli). Cherche "Wakfu Combo Overlay" dans le Gestionnaire des tâches, ou utilise "Quitter" depuis le tray avant de relancer.
