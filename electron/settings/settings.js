@@ -132,6 +132,22 @@ function updateDirectionVisibility(orientation) {
   directionHorizontal.classList.toggle('active', orientation === 'horizontal');
 }
 
+// Mirrors overlay/style.css: .cast-icon (32px) + .cast-entry padding (4px * 2) + border (2px * 2).
+const CAST_ENTRY_BOX_PX = 32 + 4 * 2 + 2 * 2;
+const CAST_ENTRY_GAP_PX = 6;
+const MAX_VISIBLE_CASTS = 8; // mirrors electron/overlay/client.js
+
+const layoutSizeHint = document.getElementById('layout-size-hint');
+
+function updateLayoutSizeHint(orientation) {
+  const along = MAX_VISIBLE_CASTS * CAST_ENTRY_BOX_PX + (MAX_VISIBLE_CASTS - 1) * CAST_ENTRY_GAP_PX;
+  const across = CAST_ENTRY_BOX_PX;
+  const [width, height] = orientation === 'horizontal' ? [along, across] : [across, along];
+  layoutSizeHint.textContent =
+    `Taille recommandée pour la source navigateur OBS : ${width} × ${height} px `
+    + `(fond transparent — un peu plus large ne pose aucun problème).`;
+}
+
 function renderLayout(layout) {
   const orientation = layout?.orientation || 'vertical';
   const direction = layout?.direction || 'top-to-bottom';
@@ -143,6 +159,7 @@ function renderLayout(layout) {
     input.checked = input.value === direction;
   }
   updateDirectionVisibility(orientation);
+  updateLayoutSizeHint(orientation);
 }
 
 function defaultDirectionFor(orientation) {
