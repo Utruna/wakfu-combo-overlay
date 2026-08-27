@@ -21,12 +21,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Read version from package.json
-        id: version
-        shell: bash
-        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
-
       - name: Build and publish Windows installer
-        run: npx electron-builder --win --publish always -c.releaseInfo.releaseName="Wakfu Combo Overlay v${{ steps.version.outputs.version }}"
+        run: npx electron-builder --win --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
