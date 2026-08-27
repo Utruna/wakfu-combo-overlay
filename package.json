@@ -45,6 +45,8 @@
       "overlay/server.js",
       "heroes.json",
       "assets/tray-icon.png",
+      "assets/icons/**/*",
+      "data/spellIcons.json",
       "package.json",
       "node_modules/**/*"
     ],
