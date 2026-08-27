@@ -86,7 +86,6 @@ class OverlayServer {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*',
       });
       res.write(': connected\n\n');
 
@@ -120,7 +119,10 @@ class OverlayServer {
 
   _serveFile(filePath, res, allowedBase) {
     const resolved = path.resolve(filePath);
-    const allowed = resolved.startsWith(path.resolve(allowedBase));
+    // Trailing separator matters: without it, "<allowedBase>-evil" would
+    // wrongly pass a plain startsWith("<allowedBase>") check.
+    const resolvedBase = path.resolve(allowedBase) + path.sep;
+    const allowed = (resolved + path.sep).startsWith(resolvedBase);
     if (!allowed) {
       res.writeHead(403);
       return res.end();

@@ -18,4 +18,11 @@ contextBridge.exposeInMainWorld('settingsAPI', {
     ipcRenderer.on('debug:event', handler);
     return () => ipcRenderer.removeListener('debug:event', handler);
   },
+  getAppVersion: () => ipcRenderer.invoke('updates:getVersion'),
+  checkForUpdates: () => ipcRenderer.invoke('updates:check'),
+  onUpdateStatus: (callback) => {
+    const handler = (_event, payload) => callback(payload);
+    ipcRenderer.on('update:status', handler);
+    return () => ipcRenderer.removeListener('update:status', handler);
+  },
 });

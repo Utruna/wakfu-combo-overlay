@@ -21,17 +21,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Windows installer
-        run: npm run dist
-
       - name: Read version from package.json
         id: version
         shell: bash
         run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ steps.version.outputs.version }}
-          name: Wakfu Combo Overlay v${{ steps.version.outputs.version }}
-          files: dist/*.exe
+      - name: Build and publish Windows installer
+        run: npx electron-builder --win --publish always -c.releaseInfo.releaseName="Wakfu Combo Overlay v${{ steps.version.outputs.version }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
