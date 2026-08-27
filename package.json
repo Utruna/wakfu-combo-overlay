@@ -1,8 +1,12 @@
 {
   "name": "wakfu-combo-overlay",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Overlay OBS qui affiche en temps réel les sorts lancés par tes personnages dans Wakfu, à partir des logs de combat.",
   "main": "electron/main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/utruna/wakfu-combo-overlay.git"
+  },
   "scripts": {
     "lint": "eslint .",
     "electron:dev": "electron electron/main.js",
@@ -17,6 +21,9 @@
   ],
   "author": "",
   "license": "MIT",
+  "dependencies": {
+    "electron-updater": "^6.3.9"
+  },
   "devDependencies": {
     "electron": "^32.3.3",
     "electron-builder": "^25.1.8",
@@ -38,10 +45,16 @@
       "overlay/server.js",
       "heroes.json",
       "assets/tray-icon.png",
-      "package.json"
+      "package.json",
+      "node_modules/**/*"
     ],
     "directories": {
       "output": "dist"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "utruna",
+      "repo": "wakfu-combo-overlay"
     },
     "win": {
       "target": [

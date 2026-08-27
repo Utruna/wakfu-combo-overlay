@@ -15,6 +15,7 @@
 const path = require('path');
 const fs = require('fs');
 const { app, BrowserWindow, Tray, Menu, ipcMain, dialog } = require('electron');
+const { autoUpdater } = require('electron-updater');
 
 const { OverlayServer } = require('../overlay/server');
 const { WakfuCombatLogReader } = require('../src/wakfuCombatLogReader');
@@ -101,6 +102,113 @@ function pushDebugEvent(entry) {
   }
 }
 
+// ── Auto-update ──────────────────────────────────────────────────────────
+// Checks the app's own GitHub Releases (same ones .github/workflows/release.yml
+// publishes) via electron-updater. Downloads only on explicit confirmation —
+// never silently, so a background check never surprises the user mid-stream.
+
+autoUpdater.autoDownload = false;
+
+// Set only while a manually-triggered check is in flight, so "up to date" is
+// only announced when someone actually asked — the silent startup check must
+// stay silent when there's nothing new.
+let manualUpdateCheckPending = false;
+
+function pushUpdateStatus(status, extra = {}) {
+  if (settingsWindow && !settingsWindow.isDestroyed()) {
+    settingsWindow.webContents.send('update:status', { status, ...extra });
+  }
+}
+
+autoUpdater.on('checking-for-update', () => pushUpdateStatus('checking'));
+
+autoUpdater.on('update-available', (info) => {
+  pushUpdateStatus('available', { version: info.version });
+  dialog.showMessageBox(settingsWindow, {
+    type: 'info',
+    buttons: ['Télécharger', 'Plus tard'],
+    defaultId: 0,
+    cancelId: 1,
+    title: 'Mise à jour disponible',
+    message: `Une nouvelle version (${info.version}) est disponible.`,
+    detail: 'Télécharger maintenant ? L\'installation se fera au redémarrage de l\'application.',
+  }).then(({ response }) => {
+    if (response === 0) autoUpdater.downloadUpdate();
+  });
+});
+
+autoUpdater.on('update-not-available', () => {
+  pushUpdateStatus('not-available');
+  if (manualUpdateCheckPending) {
+    dialog.showMessageBox(settingsWindow, {
+      type: 'info',
+      title: 'Mises à jour',
+      message: `Tu es déjà à jour (v${app.getVersion()}).`,
+    });
+  }
+  manualUpdateCheckPending = false;
+});
+
+autoUpdater.on('error', (err) => {
+  pushUpdateStatus('error', { message: err?.message });
+  if (manualUpdateCheckPending) {
+    dialog.showMessageBox(settingsWindow, {
+      type: 'error',
+      title: 'Mises à jour',
+      message: 'Erreur lors de la recherche de mise à jour.',
+      detail: err?.message || '',
+    });
+  }
+  manualUpdateCheckPending = false;
+});
+
+autoUpdater.on('download-progress', (progress) => pushUpdateStatus('downloading', { percent: progress.percent }));
+
+autoUpdater.on('update-downloaded', (info) => {
+  pushUpdateStatus('downloaded', { version: info.version });
+  dialog.showMessageBox(settingsWindow, {
+    type: 'info',
+    buttons: ['Redémarrer maintenant', 'Plus tard'],
+    defaultId: 0,
+    cancelId: 1,
+    title: 'Mise à jour prête',
+    message: `La mise à jour vers la version ${info.version} est prête.`,
+    detail: 'Redémarre l\'application pour l\'installer.',
+  }).then(({ response }) => {
+    if (response === 0) {
+      app.isQuitting = true;
+      autoUpdater.quitAndInstall();
+    }
+  });
+});
+
+function checkForUpdates({ manual = false } = {}) {
+  if (!app.isPackaged) {
+    if (manual) {
+      dialog.showMessageBox(settingsWindow, {
+        type: 'info',
+        title: 'Mises à jour',
+        message: 'Recherche de mise à jour indisponible en développement (build non packagé).',
+      });
+    }
+    return;
+  }
+
+  manualUpdateCheckPending = manual;
+  autoUpdater.checkForUpdates().catch((err) => {
+    pushUpdateStatus('error', { message: err?.message });
+    if (manualUpdateCheckPending) {
+      dialog.showMessageBox(settingsWindow, {
+        type: 'error',
+        title: 'Mises à jour',
+        message: 'Erreur lors de la recherche de mise à jour.',
+        detail: err?.message || '',
+      });
+    }
+    manualUpdateCheckPending = false;
+  });
+}
+
 function createSettingsWindow() {
   settingsWindow = new BrowserWindow({
     width: 480,
@@ -133,6 +241,7 @@ function createTray() {
   tray.setToolTip('Wakfu Combo Overlay');
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'Ouvrir les réglages', click: showSettingsWindow },
+    { label: 'Vérifier les mises à jour', click: () => checkForUpdates({ manual: true }) },
     { type: 'separator' },
     { label: 'Quitter', click: () => { app.isQuitting = true; app.quit(); } },
   ]));
@@ -300,8 +409,15 @@ app.whenReady().then(async () => {
     overlay.broadcastCast(testEvent);
   });
 
+  ipcMain.handle('updates:check', () => checkForUpdates({ manual: true }));
+  ipcMain.handle('updates:getVersion', () => app.getVersion());
+
   createTray();
   createSettingsWindow();
+
+  // Silent check a few seconds after launch — never interrupts startup, and
+  // stays quiet unless a newer version actually exists (see update-not-available above).
+  setTimeout(() => checkForUpdates({ manual: false }), 3000);
 });
 
 app.on('window-all-closed', () => {

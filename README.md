@@ -69,6 +69,8 @@ L'aperçu OBS affiche déjà la source en direct sans avoir besoin de démarrer 
 
 Fermer la fenêtre (✕) la cache dans le tray mais **ne quitte pas l'appli** — le suivi continue en arrière-plan pendant le stream. Pour fermer complètement : clic droit sur l'icône du tray → **Quitter**, ou `Ctrl+C` dans le terminal si lancé en dev.
 
+- **Mises à jour** : l'appli (une fois installée via l'exécutable, pas en dev) vérifie automatiquement la présence d'une nouvelle version sur GitHub Releases quelques secondes après son lancement, et affiche une boîte de dialogue si une mise à jour est disponible — la mise à jour n'est ni téléchargée ni installée sans confirmation. Le panneau **Mises à jour** de la fenêtre de réglages (ou l'entrée **Vérifier les mises à jour** du menu du tray) permet de relancer la recherche manuellement à tout moment. Rien à faire côté publication : le workflow `release.yml` existant fournit déjà les fichiers nécessaires.
+
 ---
 
 ## Fichiers et dossiers

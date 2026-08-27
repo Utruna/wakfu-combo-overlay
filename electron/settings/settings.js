@@ -289,6 +289,30 @@ document.getElementById('clear-debug-log').addEventListener('click', () => {
   debugLog.innerHTML = '<div class="debug-empty">Aucune activité pour l\'instant.</div>';
 });
 
+// ── Mises à jour ─────────────────────────────────────────────────────────
+
+const updateVersionEl = document.getElementById('update-version');
+const updateStatusEl = document.getElementById('update-status');
+const updateCheckBtn = document.getElementById('update-check-btn');
+
+const UPDATE_STATUS_LABELS = {
+  checking: 'Recherche en cours…',
+  available: (p) => `Nouvelle version disponible : v${p.version}`,
+  'not-available': 'À jour.',
+  downloading: (p) => `Téléchargement… ${Math.round(p.percent || 0)}%`,
+  downloaded: (p) => `Prêt à installer (v${p.version}) — redémarre l'application.`,
+  error: (p) => `Erreur : ${p.message || 'inconnue'}`,
+};
+
+function renderUpdateStatus(payload) {
+  const label = UPDATE_STATUS_LABELS[payload.status];
+  updateStatusEl.textContent = typeof label === 'function' ? label(payload) : (label || '—');
+  updateCheckBtn.disabled = payload.status === 'checking' || payload.status === 'downloading';
+}
+
+updateCheckBtn.addEventListener('click', () => window.settingsAPI.checkForUpdates());
+window.settingsAPI.onUpdateStatus(renderUpdateStatus);
+
 async function init() {
   const state = await window.settingsAPI.getState();
   renderHeroes(state.heroes, state.trackedCharacterNames);
@@ -296,6 +320,7 @@ async function init() {
   await loadDiagnostics();
   debugLog.innerHTML = '<div class="debug-empty">En attente d\'un sort détecté dans les logs…</div>';
   window.settingsAPI.onDebugEvent(addDebugEntry);
+  updateVersionEl.textContent = `v${await window.settingsAPI.getAppVersion()}`;
 }
 
 init();
