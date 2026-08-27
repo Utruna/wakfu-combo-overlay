@@ -9,7 +9,7 @@
   },
   "scripts": {
     "lint": "eslint .",
-    "electron:dev": "electron electron/main.js",
+    "electron:dev": "electron .",
     "dist": "electron-builder --win --publish never"
   },
   "keywords": [
