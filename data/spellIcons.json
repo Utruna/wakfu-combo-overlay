@@ -1,0 +1,3126 @@
+{
+  "feca": {
+    "Goutte": {
+      "iconId": "2282",
+      "icon": "assets/icons/feca/2282.png"
+    },
+    "Onde": {
+      "iconId": "6973",
+      "icon": "assets/icons/feca/6973.png"
+    },
+    "Avalanche": {
+      "iconId": "2329",
+      "icon": "assets/icons/feca/2329.png"
+    },
+    "Orage": {
+      "iconId": "6975",
+      "icon": "assets/icons/feca/6975.png"
+    },
+    "Lame de fond": {
+      "iconId": "682",
+      "icon": "assets/icons/feca/682.png"
+    },
+    "Fécalistofedes": {
+      "iconId": "2338",
+      "icon": "assets/icons/feca/2338.png"
+    },
+    "Météorite": {
+      "iconId": "2258",
+      "icon": "assets/icons/feca/2258.png"
+    },
+    "Attaque naturelle": {
+      "iconId": "2288",
+      "icon": "assets/icons/feca/2288.png"
+    },
+    "Magma": {
+      "iconId": "2289",
+      "icon": "assets/icons/feca/2289.png"
+    },
+    "Volcan": {
+      "iconId": "2290",
+      "icon": "assets/icons/feca/2290.png"
+    },
+    "Frappe tellurique": {
+      "iconId": "661",
+      "icon": "assets/icons/feca/661.png"
+    },
+    "Orbe défensif": {
+      "iconId": "2372",
+      "icon": "assets/icons/feca/2372.png"
+    },
+    "Bastion": {
+      "iconId": "6979",
+      "icon": "assets/icons/feca/6979.png"
+    },
+    "Rempart": {
+      "iconId": "6980",
+      "icon": "assets/icons/feca/6980.png"
+    },
+    "Bâton": {
+      "iconId": "2373",
+      "icon": "assets/icons/feca/2373.png"
+    },
+    "Immunité": {
+      "iconId": "5243",
+      "icon": "assets/icons/feca/5243.png"
+    },
+    "Trêve": {
+      "iconId": "665",
+      "icon": "assets/icons/feca/665.png"
+    },
+    "Pacification": {
+      "iconId": "2274",
+      "icon": "assets/icons/feca/2274.png"
+    },
+    "Provocation": {
+      "iconId": "2273",
+      "icon": "assets/icons/feca/2273.png"
+    },
+    "Égide": {
+      "iconId": "634",
+      "icon": "assets/icons/feca/634.png"
+    },
+    "Magnétisme": {
+      "iconId": "1824",
+      "icon": "assets/icons/feca/1824.png"
+    },
+    "Glyphe augmenté": {
+      "iconId": "5244",
+      "icon": "assets/icons/feca/5244.png"
+    },
+    "Ligne": {
+      "iconId": "6989",
+      "icon": "assets/icons/feca/6989.png"
+    },
+    "Un pour tous": {
+      "iconId": "2269",
+      "icon": "assets/icons/feca/2269.png"
+    },
+    "Maître des boucliers": {
+      "iconId": "6691",
+      "icon": "assets/icons/feca/6691.png"
+    },
+    "Qui veut la paix prépare la guerre": {
+      "iconId": "2295",
+      "icon": "assets/icons/feca/2295.png"
+    },
+    "Marché pacifiste": {
+      "iconId": "866",
+      "icon": "assets/icons/feca/866.png"
+    },
+    "Connaissance de la carte": {
+      "iconId": "5104",
+      "icon": "assets/icons/feca/5104.png"
+    },
+    "La meilleure défense est l’attaque": {
+      "iconId": "5245",
+      "icon": "assets/icons/feca/5245.png"
+    },
+    "Armure de combat": {
+      "iconId": "2374",
+      "icon": "assets/icons/feca/2374.png"
+    },
+    "Peau rocheuse": {
+      "iconId": "6997",
+      "icon": "assets/icons/feca/6997.png"
+    },
+    "Oeil pour oeil": {
+      "iconId": "2324",
+      "icon": "assets/icons/feca/2324.png"
+    },
+    "Glyphes persistants": {
+      "iconId": "6999",
+      "icon": "assets/icons/feca/6999.png"
+    },
+    "Berger": {
+      "iconId": "7000",
+      "icon": "assets/icons/feca/7000.png"
+    },
+    "Expérience du terrain": {
+      "iconId": "2272",
+      "icon": "assets/icons/feca/2272.png"
+    },
+    "Boucliers élémentaires": {
+      "iconId": "7002",
+      "icon": "assets/icons/feca/7002.png"
+    },
+    "Carapace d’épines": {
+      "iconId": "685",
+      "icon": "assets/icons/feca/685.png"
+    },
+    "Compréhension du Wakfu": {
+      "iconId": "7004",
+      "icon": "assets/icons/feca/7004.png"
+    },
+    "Protecteur du troupeau": {
+      "iconId": "7005",
+      "icon": "assets/icons/feca/7005.png"
+    },
+    "Armure de la Paix": {
+      "iconId": "2271",
+      "icon": "assets/icons/feca/2271.png"
+    }
+  },
+  "osamodas": {
+    "Fouet": {
+      "iconId": "7317",
+      "icon": "assets/icons/osamodas/7317.png"
+    },
+    "Déplumage": {
+      "iconId": "7318",
+      "icon": "assets/icons/osamodas/7318.png"
+    },
+    "Transfert": {
+      "iconId": "7319",
+      "icon": "assets/icons/osamodas/7319.png"
+    },
+    "Souffle répulsif": {
+      "iconId": "7320",
+      "icon": "assets/icons/osamodas/7320.png"
+    },
+    "Tornade de plumes": {
+      "iconId": "7321",
+      "icon": "assets/icons/osamodas/7321.png"
+    },
+    "Corbeau incendiaire": {
+      "iconId": "7307",
+      "icon": "assets/icons/osamodas/7307.png"
+    },
+    "Fouet enflammé": {
+      "iconId": "7308",
+      "icon": "assets/icons/osamodas/7308.png"
+    },
+    "Tornade de flammes": {
+      "iconId": "7309",
+      "icon": "assets/icons/osamodas/7309.png"
+    },
+    "Attisement": {
+      "iconId": "7310",
+      "icon": "assets/icons/osamodas/7310.png"
+    },
+    "Souffle du dragon": {
+      "iconId": "7311",
+      "icon": "assets/icons/osamodas/7311.png"
+    },
+    "Tempête de sable": {
+      "iconId": "7312",
+      "icon": "assets/icons/osamodas/7312.png"
+    },
+    "Pesanteur": {
+      "iconId": "7313",
+      "icon": "assets/icons/osamodas/7313.png"
+    },
+    "Empalement": {
+      "iconId": "7314",
+      "icon": "assets/icons/osamodas/7314.png"
+    },
+    "Gambade": {
+      "iconId": "7315",
+      "icon": "assets/icons/osamodas/7315.png"
+    },
+    "Frappe du craqueleur": {
+      "iconId": "7316",
+      "icon": "assets/icons/osamodas/7316.png"
+    },
+    "Dernier souffle": {
+      "iconId": "7322",
+      "icon": "assets/icons/osamodas/7322.png"
+    },
+    "Piqure motivante": {
+      "iconId": "7323",
+      "icon": "assets/icons/osamodas/7323.png"
+    },
+    "Célérité": {
+      "iconId": "7324",
+      "icon": "assets/icons/osamodas/7324.png"
+    },
+    "Cri affaiblissant": {
+      "iconId": "7325",
+      "icon": "assets/icons/osamodas/7325.png"
+    },
+    "Relais": {
+      "iconId": "7326",
+      "icon": "assets/icons/osamodas/7326.png"
+    },
+    "Lien animal": {
+      "iconId": "7327",
+      "icon": "assets/icons/osamodas/7327.png"
+    },
+    "Rage du Mulou": {
+      "iconId": "7328",
+      "icon": "assets/icons/osamodas/7328.png"
+    },
+    "Don animal": {
+      "iconId": "7329",
+      "icon": "assets/icons/osamodas/7329.png"
+    },
+    "Vision du Corbac": {
+      "iconId": "7330",
+      "icon": "assets/icons/osamodas/7330.png"
+    },
+    "Guerrier invocateur": {
+      "iconId": "7331",
+      "icon": "assets/icons/osamodas/7331.png"
+    },
+    "Invocateur solitaire": {
+      "iconId": "7332",
+      "icon": "assets/icons/osamodas/7332.png"
+    },
+    "Puissance draconique": {
+      "iconId": "7333",
+      "icon": "assets/icons/osamodas/7333.png"
+    },
+    "Esprit du phénix": {
+      "iconId": "7334",
+      "icon": "assets/icons/osamodas/7334.png"
+    },
+    "Force-Taure": {
+      "iconId": "7335",
+      "icon": "assets/icons/osamodas/7335.png"
+    },
+    "Synergie animale": {
+      "iconId": "7336",
+      "icon": "assets/icons/osamodas/7336.png"
+    },
+    "Symbiose": {
+      "iconId": "7337",
+      "icon": "assets/icons/osamodas/7337.png"
+    },
+    "Transcendance draconique": {
+      "iconId": "7338",
+      "icon": "assets/icons/osamodas/7338.png"
+    },
+    "Étoile du Sud": {
+      "iconId": "7339",
+      "icon": "assets/icons/osamodas/7339.png"
+    },
+    "Sacrifice animal": {
+      "iconId": "7340",
+      "icon": "assets/icons/osamodas/7340.png"
+    },
+    "Étoile de l'Est": {
+      "iconId": "7341",
+      "icon": "assets/icons/osamodas/7341.png"
+    },
+    "Dévouement animal": {
+      "iconId": "7342",
+      "icon": "assets/icons/osamodas/7342.png"
+    },
+    "Art du dressage": {
+      "iconId": "7343",
+      "icon": "assets/icons/osamodas/7343.png"
+    },
+    "Partage animal": {
+      "iconId": "7344",
+      "icon": "assets/icons/osamodas/7344.png"
+    },
+    "Invocation": {
+      "iconId": "787",
+      "icon": "assets/icons/osamodas/787.png"
+    },
+    "Forme draconique": {
+      "iconId": "746",
+      "icon": "assets/icons/osamodas/746.png"
+    },
+    "Gobgob": {
+      "iconId": "730",
+      "icon": "assets/icons/osamodas/730.png"
+    }
+  },
+  "enutrof": {
+    "Filouterie": {
+      "iconId": "2015",
+      "icon": "assets/icons/enutrof/2015.png"
+    },
+    "Purge": {
+      "iconId": "2032",
+      "icon": "assets/icons/enutrof/2032.png"
+    },
+    "Coupures": {
+      "iconId": "2014",
+      "icon": "assets/icons/enutrof/2014.png"
+    },
+    "Taxe": {
+      "iconId": "2016",
+      "icon": "assets/icons/enutrof/2016.png"
+    },
+    "Epuration": {
+      "iconId": "2017",
+      "icon": "assets/icons/enutrof/2017.png"
+    },
+    "Braise": {
+      "iconId": "2021",
+      "icon": "assets/icons/enutrof/2021.png"
+    },
+    "Météore": {
+      "iconId": "2019",
+      "icon": "assets/icons/enutrof/2019.png"
+    },
+    "Fusion": {
+      "iconId": "2018",
+      "icon": "assets/icons/enutrof/2018.png"
+    },
+    "Coup de grisou": {
+      "iconId": "2037",
+      "icon": "assets/icons/enutrof/2037.png"
+    },
+    "Coulée de lave": {
+      "iconId": "2022",
+      "icon": "assets/icons/enutrof/2022.png"
+    },
+    "Pelle du jugement": {
+      "iconId": "693",
+      "icon": "assets/icons/enutrof/693.png"
+    },
+    "Pelle tueuse": {
+      "iconId": "2010",
+      "icon": "assets/icons/enutrof/2010.png"
+    },
+    "Roulage de pelle": {
+      "iconId": "2011",
+      "icon": "assets/icons/enutrof/2011.png"
+    },
+    "Pelle mêle": {
+      "iconId": "2012",
+      "icon": "assets/icons/enutrof/2012.png"
+    },
+    "Pelle sismique": {
+      "iconId": "2013",
+      "icon": "assets/icons/enutrof/2013.png"
+    },
+    "Accélération": {
+      "iconId": "848",
+      "icon": "assets/icons/enutrof/848.png"
+    },
+    "Maladresse": {
+      "iconId": "696",
+      "icon": "assets/icons/enutrof/696.png"
+    },
+    "Avarice": {
+      "iconId": "8240",
+      "icon": "assets/icons/enutrof/8240.png"
+    },
+    "Force de l'âge": {
+      "iconId": "2064",
+      "icon": "assets/icons/enutrof/2064.png"
+    },
+    "Richesse sismique": {
+      "iconId": "2026",
+      "icon": "assets/icons/enutrof/2026.png"
+    },
+    "Corruption": {
+      "iconId": "8242",
+      "icon": "assets/icons/enutrof/8242.png"
+    },
+    "Art des marcheurs": {
+      "iconId": "7093",
+      "icon": "assets/icons/enutrof/7093.png"
+    },
+    "Géologie avancée": {
+      "iconId": "2028",
+      "icon": "assets/icons/enutrof/2028.png"
+    },
+    "Côté en bourse": {
+      "iconId": "5076",
+      "icon": "assets/icons/enutrof/5076.png"
+    },
+    "Bénédiction Enutrof": {
+      "iconId": "2039",
+      "icon": "assets/icons/enutrof/2039.png"
+    },
+    "Placements boursiers": {
+      "iconId": "5059",
+      "icon": "assets/icons/enutrof/5059.png"
+    },
+    "Phorzertanker": {
+      "iconId": "5075",
+      "icon": "assets/icons/enutrof/5075.png"
+    },
+    "Intérêts créditeurs": {
+      "iconId": "6326",
+      "icon": "assets/icons/enutrof/6326.png"
+    },
+    "Cupidité": {
+      "iconId": "5071",
+      "icon": "assets/icons/enutrof/5071.png"
+    },
+    "Échange asynchrone": {
+      "iconId": "4300",
+      "icon": "assets/icons/enutrof/4300.png"
+    },
+    "Marchepied": {
+      "iconId": "7596",
+      "icon": "assets/icons/enutrof/7596.png"
+    },
+    "Marchand d'âge": {
+      "iconId": "5126",
+      "icon": "assets/icons/enutrof/5126.png"
+    },
+    "La binocle": {
+      "iconId": "7330",
+      "icon": "assets/icons/enutrof/7330.png"
+    },
+    "Assurance tous risques": {
+      "iconId": "845",
+      "icon": "assets/icons/enutrof/845.png"
+    },
+    "Protection minérale": {
+      "iconId": "2009",
+      "icon": "assets/icons/enutrof/2009.png"
+    },
+    "Optimisation focale": {
+      "iconId": "1420",
+      "icon": "assets/icons/enutrof/1420.png"
+    },
+    "Tunnelier": {
+      "iconId": "7184",
+      "icon": "assets/icons/enutrof/7184.png"
+    },
+    "Héritage": {
+      "iconId": "727",
+      "icon": "assets/icons/enutrof/727.png"
+    },
+    "Excavation": {
+      "iconId": "2063",
+      "icon": "assets/icons/enutrof/2063.png"
+    },
+    "Dette": {
+      "iconId": "6325",
+      "icon": "assets/icons/enutrof/6325.png"
+    },
+    "Appel du compagnon": {
+      "iconId": "1089",
+      "icon": "assets/icons/enutrof/1089.png"
+    },
+    "Phorzerker": {
+      "iconId": "2038",
+      "icon": "assets/icons/enutrof/2038.png"
+    }
+  },
+  "sram": {
+    "Premier Sang": {
+      "iconId": "2423",
+      "icon": "assets/icons/sram/2423.png"
+    },
+    "Ouvrir les veines": {
+      "iconId": "2422",
+      "icon": "assets/icons/sram/2422.png"
+    },
+    "Saignée mortelle": {
+      "iconId": "2425",
+      "icon": "assets/icons/sram/2425.png"
+    },
+    "Châtiment": {
+      "iconId": "2424",
+      "icon": "assets/icons/sram/2424.png"
+    },
+    "Mise à mort": {
+      "iconId": "2426",
+      "icon": "assets/icons/sram/2426.png"
+    },
+    "Kleptosram": {
+      "iconId": "2418",
+      "icon": "assets/icons/sram/2418.png"
+    },
+    "Arnaque": {
+      "iconId": "2419",
+      "icon": "assets/icons/sram/2419.png"
+    },
+    "Attaque létale": {
+      "iconId": "2421",
+      "icon": "assets/icons/sram/2421.png"
+    },
+    "Attaque perfide": {
+      "iconId": "2417",
+      "icon": "assets/icons/sram/2417.png"
+    },
+    "Attaque mortelle": {
+      "iconId": "2420",
+      "icon": "assets/icons/sram/2420.png"
+    },
+    "Coup pénétrant": {
+      "iconId": "4594",
+      "icon": "assets/icons/sram/4594.png"
+    },
+    "Fourberie": {
+      "iconId": "4595",
+      "icon": "assets/icons/sram/4595.png"
+    },
+    "Coup Sournois": {
+      "iconId": "2428",
+      "icon": "assets/icons/sram/2428.png"
+    },
+    "Effroi": {
+      "iconId": "2427",
+      "icon": "assets/icons/sram/2427.png"
+    },
+    "Traumatisme": {
+      "iconId": "2431",
+      "icon": "assets/icons/sram/2431.png"
+    },
+    "Peur": {
+      "iconId": "581",
+      "icon": "assets/icons/sram/581.png"
+    },
+    "Galopade": {
+      "iconId": "2434",
+      "icon": "assets/icons/sram/2434.png"
+    },
+    "Entourloupe": {
+      "iconId": "2435",
+      "icon": "assets/icons/sram/2435.png"
+    },
+    "Sournoiserie": {
+      "iconId": "2433",
+      "icon": "assets/icons/sram/2433.png"
+    },
+    "Assassinat": {
+      "iconId": "579",
+      "icon": "assets/icons/sram/579.png"
+    },
+    "Surineur": {
+      "iconId": "2436",
+      "icon": "assets/icons/sram/2436.png"
+    },
+    "Assassin": {
+      "iconId": "2439",
+      "icon": "assets/icons/sram/2439.png"
+    },
+    "Duperie": {
+      "iconId": "5126",
+      "icon": "assets/icons/sram/5126.png"
+    },
+    "Retenue": {
+      "iconId": "5124",
+      "icon": "assets/icons/sram/5124.png"
+    },
+    "Passe-passe": {
+      "iconId": "5103",
+      "icon": "assets/icons/sram/5103.png"
+    },
+    "Embuscade": {
+      "iconId": "588",
+      "icon": "assets/icons/sram/588.png"
+    },
+    "Piège d'Attraction II": {
+      "iconId": "6999",
+      "icon": "assets/icons/sram/6999.png"
+    },
+    "Peur alternative": {
+      "iconId": "2437",
+      "icon": "assets/icons/sram/2437.png"
+    },
+    "Hémophilie": {
+      "iconId": "5123",
+      "icon": "assets/icons/sram/5123.png"
+    },
+    "Piège de Répulsion II": {
+      "iconId": "7191",
+      "icon": "assets/icons/sram/7191.png"
+    },
+    "Localisation quantique": {
+      "iconId": "2438",
+      "icon": "assets/icons/sram/2438.png"
+    },
+    "Leurre": {
+      "iconId": "5122",
+      "icon": "assets/icons/sram/5122.png"
+    },
+    "Diversion alternative": {
+      "iconId": "2118",
+      "icon": "assets/icons/sram/2118.png"
+    },
+    "Piège de Téléportation II": {
+      "iconId": "4609",
+      "icon": "assets/icons/sram/4609.png"
+    },
+    "Assaut létal": {
+      "iconId": "2441",
+      "icon": "assets/icons/sram/2441.png"
+    },
+    "Assaut Brutal": {
+      "iconId": "2440",
+      "icon": "assets/icons/sram/2440.png"
+    },
+    "Invisibilité": {
+      "iconId": "2432",
+      "icon": "assets/icons/sram/2432.png"
+    },
+    "Double": {
+      "iconId": "2435",
+      "icon": "assets/icons/sram/2435.png"
+    },
+    "Piège de Répulsion": {
+      "iconId": "5182",
+      "icon": "assets/icons/sram/5182.png"
+    },
+    "Piège d'Attraction": {
+      "iconId": "5183",
+      "icon": "assets/icons/sram/5183.png"
+    },
+    "Piège de Téléportation": {
+      "iconId": "5184",
+      "icon": "assets/icons/sram/5184.png"
+    },
+    "Retirer un Piège": {
+      "iconId": "2433",
+      "icon": "assets/icons/sram/2433.png"
+    }
+  },
+  "xelor": {
+    "Martel'heure": {
+      "iconId": "749",
+      "icon": "assets/icons/xelor/749.png"
+    },
+    "Ralentissement": {
+      "iconId": "775",
+      "icon": "assets/icons/xelor/775.png"
+    },
+    "Horloge": {
+      "iconId": "763",
+      "icon": "assets/icons/xelor/763.png"
+    },
+    "Sablier": {
+      "iconId": "783",
+      "icon": "assets/icons/xelor/783.png"
+    },
+    "Désynchronisation": {
+      "iconId": "1417",
+      "icon": "assets/icons/xelor/1417.png"
+    },
+    "Pointe-heure": {
+      "iconId": "767",
+      "icon": "assets/icons/xelor/767.png"
+    },
+    "Tempus fugit": {
+      "iconId": "765",
+      "icon": "assets/icons/xelor/765.png"
+    },
+    "Paradoxe": {
+      "iconId": "1418",
+      "icon": "assets/icons/xelor/1418.png"
+    },
+    "Symétrie": {
+      "iconId": "772",
+      "icon": "assets/icons/xelor/772.png"
+    },
+    "Retour spontané": {
+      "iconId": "771",
+      "icon": "assets/icons/xelor/771.png"
+    },
+    "Perturbation": {
+      "iconId": "750",
+      "icon": "assets/icons/xelor/750.png"
+    },
+    "Suspension": {
+      "iconId": "7156",
+      "icon": "assets/icons/xelor/7156.png"
+    },
+    "Éclair obscur": {
+      "iconId": "752",
+      "icon": "assets/icons/xelor/752.png"
+    },
+    "Aiguille": {
+      "iconId": "754",
+      "icon": "assets/icons/xelor/754.png"
+    },
+    "Poussière": {
+      "iconId": "753",
+      "icon": "assets/icons/xelor/753.png"
+    },
+    "Dévouement": {
+      "iconId": "2839",
+      "icon": "assets/icons/xelor/2839.png"
+    },
+    "Contre la montre": {
+      "iconId": "776",
+      "icon": "assets/icons/xelor/776.png"
+    },
+    "Sinistro": {
+      "iconId": "777",
+      "icon": "assets/icons/xelor/777.png"
+    },
+    "Rouage": {
+      "iconId": "766",
+      "icon": "assets/icons/xelor/766.png"
+    },
+    "Prémonition": {
+      "iconId": "757",
+      "icon": "assets/icons/xelor/757.png"
+    },
+    "Régulateur": {
+      "iconId": "5344",
+      "icon": "assets/icons/xelor/5344.png"
+    },
+    "Maître du cadran": {
+      "iconId": "758",
+      "icon": "assets/icons/xelor/758.png"
+    },
+    "Promptitude": {
+      "iconId": "5352",
+      "icon": "assets/icons/xelor/5352.png"
+    },
+    "Présage": {
+      "iconId": "5351",
+      "icon": "assets/icons/xelor/5351.png"
+    },
+    "Tique, Taque": {
+      "iconId": "5353",
+      "icon": "assets/icons/xelor/5353.png"
+    },
+    "Taque, Tique": {
+      "iconId": "764",
+      "icon": "assets/icons/xelor/764.png"
+    },
+    "Horlogerie": {
+      "iconId": "761",
+      "icon": "assets/icons/xelor/761.png"
+    },
+    "Mémoire": {
+      "iconId": "756",
+      "icon": "assets/icons/xelor/756.png"
+    },
+    "Cours du temps": {
+      "iconId": "785",
+      "icon": "assets/icons/xelor/785.png"
+    },
+    "Contre-horaire": {
+      "iconId": "7184",
+      "icon": "assets/icons/xelor/7184.png"
+    },
+    "Déjà vu": {
+      "iconId": "7185",
+      "icon": "assets/icons/xelor/7185.png"
+    },
+    "Connaissance du passé": {
+      "iconId": "7186",
+      "icon": "assets/icons/xelor/7186.png"
+    },
+    "Présages violents": {
+      "iconId": "7187",
+      "icon": "assets/icons/xelor/7187.png"
+    },
+    "Dimension sombre": {
+      "iconId": "7188",
+      "icon": "assets/icons/xelor/7188.png"
+    },
+    "Ralentissement du temps": {
+      "iconId": "7189",
+      "icon": "assets/icons/xelor/7189.png"
+    },
+    "Rémanence": {
+      "iconId": "7190",
+      "icon": "assets/icons/xelor/7190.png"
+    },
+    "Mécanismes spécialisés": {
+      "iconId": "7191",
+      "icon": "assets/icons/xelor/7191.png"
+    },
+    "Permutation momentanée": {
+      "iconId": "7192",
+      "icon": "assets/icons/xelor/7192.png"
+    },
+    "Mage de combat": {
+      "iconId": "7193",
+      "icon": "assets/icons/xelor/7193.png"
+    },
+    "Flétrissement": {
+      "iconId": "7195",
+      "icon": "assets/icons/xelor/7195.png"
+    },
+    "Assimilation": {
+      "iconId": "7196",
+      "icon": "assets/icons/xelor/7196.png"
+    },
+    "Cadran": {
+      "iconId": "5345",
+      "icon": "assets/icons/xelor/5345.png"
+    },
+    "Vol du temps": {
+      "iconId": "3909",
+      "icon": "assets/icons/xelor/3909.png"
+    },
+    "Distorsion": {
+      "iconId": "7794",
+      "icon": "assets/icons/xelor/7794.png"
+    }
+  },
+  "ecaflip": {
+    "Langue rapeuse": {
+      "iconId": "2065",
+      "icon": "assets/icons/ecaflip/2065.png"
+    },
+    "Lacérations": {
+      "iconId": "2066",
+      "icon": "assets/icons/ecaflip/2066.png"
+    },
+    "Capucine": {
+      "iconId": "2067",
+      "icon": "assets/icons/ecaflip/2067.png"
+    },
+    "Bas les pattes": {
+      "iconId": "2072",
+      "icon": "assets/icons/ecaflip/2072.png"
+    },
+    "Pupuce": {
+      "iconId": "2073",
+      "icon": "assets/icons/ecaflip/2073.png"
+    },
+    "Craps": {
+      "iconId": "2045",
+      "icon": "assets/icons/ecaflip/2045.png"
+    },
+    "Dé du chateux": {
+      "iconId": "2042",
+      "icon": "assets/icons/ecaflip/2042.png"
+    },
+    "Dé six": {
+      "iconId": "2050",
+      "icon": "assets/icons/ecaflip/2050.png"
+    },
+    "Roulette à dés": {
+      "iconId": "2048",
+      "icon": "assets/icons/ecaflip/2048.png"
+    },
+    "Feulement": {
+      "iconId": "2046",
+      "icon": "assets/icons/ecaflip/2046.png"
+    },
+    "Pile ou face": {
+      "iconId": "2041",
+      "icon": "assets/icons/ecaflip/2041.png"
+    },
+    "All in": {
+      "iconId": "2047",
+      "icon": "assets/icons/ecaflip/2047.png"
+    },
+    "Bataille": {
+      "iconId": "2049",
+      "icon": "assets/icons/ecaflip/2049.png"
+    },
+    "Tout ou rien": {
+      "iconId": "2043",
+      "icon": "assets/icons/ecaflip/2043.png"
+    },
+    "Trois cartes": {
+      "iconId": "2044",
+      "icon": "assets/icons/ecaflip/2044.png"
+    },
+    "Quitte ou double": {
+      "iconId": "859",
+      "icon": "assets/icons/ecaflip/859.png"
+    },
+    "Topkaj": {
+      "iconId": "2075",
+      "icon": "assets/icons/ecaflip/2075.png"
+    },
+    "Félintuition": {
+      "iconId": "2061",
+      "icon": "assets/icons/ecaflip/2061.png"
+    },
+    "Jeton de vie": {
+      "iconId": "2078",
+      "icon": "assets/icons/ecaflip/2078.png"
+    },
+    "Coup du sort": {
+      "iconId": "850",
+      "icon": "assets/icons/ecaflip/850.png"
+    },
+    "Trèfle": {
+      "iconId": "861",
+      "icon": "assets/icons/ecaflip/861.png"
+    },
+    "La Mésaventure": {
+      "iconId": "2068",
+      "icon": "assets/icons/ecaflip/2068.png"
+    },
+    "Pucif": {
+      "iconId": "7931",
+      "icon": "assets/icons/ecaflip/7931.png"
+    },
+    "En veine": {
+      "iconId": "5246",
+      "icon": "assets/icons/ecaflip/5246.png"
+    },
+    "L'Infortune": {
+      "iconId": "2080",
+      "icon": "assets/icons/ecaflip/2080.png"
+    },
+    "Tarot veinard": {
+      "iconId": "5456",
+      "icon": "assets/icons/ecaflip/5456.png"
+    },
+    "Tarot divinatoire": {
+      "iconId": "4959",
+      "icon": "assets/icons/ecaflip/4959.png"
+    },
+    "Le Destin d'Ecaflip": {
+      "iconId": "5250",
+      "icon": "assets/icons/ecaflip/5250.png"
+    },
+    "Impact félin": {
+      "iconId": "5249",
+      "icon": "assets/icons/ecaflip/5249.png"
+    },
+    "Triche": {
+      "iconId": "852",
+      "icon": "assets/icons/ecaflip/852.png"
+    },
+    "Veine soigneuse": {
+      "iconId": "5463",
+      "icon": "assets/icons/ecaflip/5463.png"
+    },
+    "Tarot félin": {
+      "iconId": "7928",
+      "icon": "assets/icons/ecaflip/7928.png"
+    },
+    "La fortune sourit aux audacieux": {
+      "iconId": "5466",
+      "icon": "assets/icons/ecaflip/5466.png"
+    },
+    "Pile, je gagne": {
+      "iconId": "5251",
+      "icon": "assets/icons/ecaflip/5251.png"
+    },
+    "Dés généreux": {
+      "iconId": "7935",
+      "icon": "assets/icons/ecaflip/7935.png"
+    },
+    "Félin suprême": {
+      "iconId": "2059",
+      "icon": "assets/icons/ecaflip/2059.png"
+    },
+    "Black Jack": {
+      "iconId": "5101",
+      "icon": "assets/icons/ecaflip/5101.png"
+    },
+    "Atouts périodiques": {
+      "iconId": "5461",
+      "icon": "assets/icons/ecaflip/5461.png"
+    },
+    "Veine des cartes": {
+      "iconId": "2062",
+      "icon": "assets/icons/ecaflip/2062.png"
+    },
+    "Sept fétiche": {
+      "iconId": "866",
+      "icon": "assets/icons/ecaflip/866.png"
+    },
+    "L'Univers": {
+      "iconId": "8000",
+      "icon": "assets/icons/ecaflip/8000.png"
+    },
+    "Bond du félin": {
+      "iconId": "983",
+      "icon": "assets/icons/ecaflip/983.png"
+    },
+    "Relance": {
+      "iconId": "7227",
+      "icon": "assets/icons/ecaflip/7227.png"
+    }
+  },
+  "eniripsa": {
+    "Vivification": {
+      "iconId": "649",
+      "icon": "assets/icons/eniripsa/649.png"
+    },
+    "Mot soignant": {
+      "iconId": "779",
+      "icon": "assets/icons/eniripsa/779.png"
+    },
+    "Infusion": {
+      "iconId": "1532",
+      "icon": "assets/icons/eniripsa/1532.png"
+    },
+    "Revitalisation": {
+      "iconId": "780",
+      "icon": "assets/icons/eniripsa/780.png"
+    },
+    "Reconstitution": {
+      "iconId": "625",
+      "icon": "assets/icons/eniripsa/625.png"
+    },
+    "Anatomie": {
+      "iconId": "630",
+      "icon": "assets/icons/eniripsa/630.png"
+    },
+    "Psychose": {
+      "iconId": "1540",
+      "icon": "assets/icons/eniripsa/1540.png"
+    },
+    "Colli-mateur": {
+      "iconId": "623",
+      "icon": "assets/icons/eniripsa/623.png"
+    },
+    "Fiole infectée": {
+      "iconId": "1542",
+      "icon": "assets/icons/eniripsa/1542.png"
+    },
+    "Torpeur": {
+      "iconId": "1541",
+      "icon": "assets/icons/eniripsa/1541.png"
+    },
+    "Explo-soin": {
+      "iconId": "645",
+      "icon": "assets/icons/eniripsa/645.png"
+    },
+    "Cure alternative": {
+      "iconId": "1539",
+      "icon": "assets/icons/eniripsa/1539.png"
+    },
+    "Feu gardien": {
+      "iconId": "638",
+      "icon": "assets/icons/eniripsa/638.png"
+    },
+    "Corro-soin": {
+      "iconId": "636",
+      "icon": "assets/icons/eniripsa/636.png"
+    },
+    "Flamme purificatrice": {
+      "iconId": "1534",
+      "icon": "assets/icons/eniripsa/1534.png"
+    },
+    "Rénisurrection": {
+      "iconId": "624",
+      "icon": "assets/icons/eniripsa/624.png"
+    },
+    "Jouvence": {
+      "iconId": "782",
+      "icon": "assets/icons/eniripsa/782.png"
+    },
+    "Lien d'amitié": {
+      "iconId": "781",
+      "icon": "assets/icons/eniripsa/781.png"
+    },
+    "Déphasage": {
+      "iconId": "627",
+      "icon": "assets/icons/eniripsa/627.png"
+    },
+    "Interdiction": {
+      "iconId": "1538",
+      "icon": "assets/icons/eniripsa/1538.png"
+    },
+    "Fontaine salvatrice": {
+      "iconId": "7985",
+      "icon": "assets/icons/eniripsa/7985.png"
+    },
+    "Paroxysme vital": {
+      "iconId": "646",
+      "icon": "assets/icons/eniripsa/646.png"
+    },
+    "Serial marqueur": {
+      "iconId": "1537",
+      "icon": "assets/icons/eniripsa/1537.png"
+    },
+    "Ponction": {
+      "iconId": "5454",
+      "icon": "assets/icons/eniripsa/5454.png"
+    },
+    "Marquage précis": {
+      "iconId": "567",
+      "icon": "assets/icons/eniripsa/567.png"
+    },
+    "Vampiripsa": {
+      "iconId": "5463",
+      "icon": "assets/icons/eniripsa/5463.png"
+    },
+    "Radiance": {
+      "iconId": "7987",
+      "icon": "assets/icons/eniripsa/7987.png"
+    },
+    "Présence": {
+      "iconId": "7330",
+      "icon": "assets/icons/eniripsa/7330.png"
+    },
+    "Médecin sans barrière": {
+      "iconId": "628",
+      "icon": "assets/icons/eniripsa/628.png"
+    },
+    "Soin unique": {
+      "iconId": "1415",
+      "icon": "assets/icons/eniripsa/1415.png"
+    },
+    "Super Lapino II": {
+      "iconId": "7344",
+      "icon": "assets/icons/eniripsa/7344.png"
+    },
+    "Transgression": {
+      "iconId": "5245",
+      "icon": "assets/icons/eniripsa/5245.png"
+    },
+    "Délai": {
+      "iconId": "5451",
+      "icon": "assets/icons/eniripsa/5451.png"
+    },
+    "Elixir de vent": {
+      "iconId": "959",
+      "icon": "assets/icons/eniripsa/959.png"
+    },
+    "Apprenti alchimiste": {
+      "iconId": "2040",
+      "icon": "assets/icons/eniripsa/2040.png"
+    },
+    "Secret de fabrication": {
+      "iconId": "877",
+      "icon": "assets/icons/eniripsa/877.png"
+    },
+    "Marque anbareul": {
+      "iconId": "5101",
+      "icon": "assets/icons/eniripsa/5101.png"
+    },
+    "Tous pour moi": {
+      "iconId": "5453",
+      "icon": "assets/icons/eniripsa/5453.png"
+    },
+    "Paradoxe Contre-naturel": {
+      "iconId": "5055",
+      "icon": "assets/icons/eniripsa/5055.png"
+    },
+    "Ambivalence": {
+      "iconId": "525",
+      "icon": "assets/icons/eniripsa/525.png"
+    },
+    "Nature morte": {
+      "iconId": "1420",
+      "icon": "assets/icons/eniripsa/1420.png"
+    },
+    "Contre-nature": {
+      "iconId": "7977",
+      "icon": "assets/icons/eniripsa/7977.png"
+    },
+    "Lapino": {
+      "iconId": "7978",
+      "icon": "assets/icons/eniripsa/7978.png"
+    },
+    "Répulsion": {
+      "iconId": "7979",
+      "icon": "assets/icons/eniripsa/7979.png"
+    }
+  },
+  "iop": {
+    "Épée céleste": {
+      "iconId": "518",
+      "icon": "assets/icons/iop/518.png"
+    },
+    "Fulgur": {
+      "iconId": "514",
+      "icon": "assets/icons/iop/514.png"
+    },
+    "Super Iop Punch": {
+      "iconId": "516",
+      "icon": "assets/icons/iop/516.png"
+    },
+    "Jugement": {
+      "iconId": "515",
+      "icon": "assets/icons/iop/515.png"
+    },
+    "Colère de Iop": {
+      "iconId": "519",
+      "icon": "assets/icons/iop/519.png"
+    },
+    "Ébranler": {
+      "iconId": "492",
+      "icon": "assets/icons/iop/492.png"
+    },
+    "Roknocerok": {
+      "iconId": "495",
+      "icon": "assets/icons/iop/495.png"
+    },
+    "Fendoir": {
+      "iconId": "505",
+      "icon": "assets/icons/iop/505.png"
+    },
+    "Charge": {
+      "iconId": "507",
+      "icon": "assets/icons/iop/507.png"
+    },
+    "Ravage": {
+      "iconId": "508",
+      "icon": "assets/icons/iop/508.png"
+    },
+    "Jabs": {
+      "iconId": "509",
+      "icon": "assets/icons/iop/509.png"
+    },
+    "Rafale": {
+      "iconId": "501",
+      "icon": "assets/icons/iop/501.png"
+    },
+    "Torgnole": {
+      "iconId": "500",
+      "icon": "assets/icons/iop/500.png"
+    },
+    "Tannée": {
+      "iconId": "513",
+      "icon": "assets/icons/iop/513.png"
+    },
+    "Épée de Iop": {
+      "iconId": "4789",
+      "icon": "assets/icons/iop/4789.png"
+    },
+    "Focus": {
+      "iconId": "1397",
+      "icon": "assets/icons/iop/1397.png"
+    },
+    "Vertu": {
+      "iconId": "4791",
+      "icon": "assets/icons/iop/4791.png"
+    },
+    "Amplification": {
+      "iconId": "1398",
+      "icon": "assets/icons/iop/1398.png"
+    },
+    "Duel": {
+      "iconId": "4794",
+      "icon": "assets/icons/iop/4794.png"
+    },
+    "Posture": {
+      "iconId": "520",
+      "icon": "assets/icons/iop/520.png"
+    },
+    "Heure de gloire": {
+      "iconId": "5130",
+      "icon": "assets/icons/iop/5130.png"
+    },
+    "Virilité": {
+      "iconId": "525",
+      "icon": "assets/icons/iop/525.png"
+    },
+    "Compulsion": {
+      "iconId": "521",
+      "icon": "assets/icons/iop/521.png"
+    },
+    "Duelliste": {
+      "iconId": "522",
+      "icon": "assets/icons/iop/522.png"
+    },
+    "Mini-Bond": {
+      "iconId": "5103",
+      "icon": "assets/icons/iop/5103.png"
+    },
+    "Autorité": {
+      "iconId": "523",
+      "icon": "assets/icons/iop/523.png"
+    },
+    "Impétueux": {
+      "iconId": "7096",
+      "icon": "assets/icons/iop/7096.png"
+    },
+    "Démonstration": {
+      "iconId": "5132",
+      "icon": "assets/icons/iop/5132.png"
+    },
+    "Roi de la Colline": {
+      "iconId": "1399",
+      "icon": "assets/icons/iop/1399.png"
+    },
+    "Précipitation": {
+      "iconId": "5101",
+      "icon": "assets/icons/iop/5101.png"
+    },
+    "Conquête": {
+      "iconId": "5102",
+      "icon": "assets/icons/iop/5102.png"
+    },
+    "Bravoure": {
+      "iconId": "5100",
+      "icon": "assets/icons/iop/5100.png"
+    },
+    "Porte-étendard": {
+      "iconId": "5131",
+      "icon": "assets/icons/iop/5131.png"
+    },
+    "Dissipation": {
+      "iconId": "7105",
+      "icon": "assets/icons/iop/7105.png"
+    },
+    "Ralliement": {
+      "iconId": "7186",
+      "icon": "assets/icons/iop/7186.png"
+    },
+    "Faille Sismique": {
+      "iconId": "5104",
+      "icon": "assets/icons/iop/5104.png"
+    },
+    "Avant-poste": {
+      "iconId": "7107",
+      "icon": "assets/icons/iop/7107.png"
+    },
+    "Frappe et court": {
+      "iconId": "5352",
+      "icon": "assets/icons/iop/5352.png"
+    },
+    "Le Iop de Wazemmes": {
+      "iconId": "7111",
+      "icon": "assets/icons/iop/7111.png"
+    },
+    "Fortification": {
+      "iconId": "5454",
+      "icon": "assets/icons/iop/5454.png"
+    },
+    "Destin": {
+      "iconId": "6997",
+      "icon": "assets/icons/iop/6997.png"
+    },
+    "Éventrail": {
+      "iconId": "8402",
+      "icon": "assets/icons/iop/8402.png"
+    },
+    "Uppercut": {
+      "iconId": "8403",
+      "icon": "assets/icons/iop/8403.png"
+    },
+    "Bond": {
+      "iconId": "510",
+      "icon": "assets/icons/iop/510.png"
+    },
+    "Étendard de bravoure": {
+      "iconId": "4793",
+      "icon": "assets/icons/iop/4793.png"
+    }
+  },
+  "cra": {
+    "Flèche chercheuse": {
+      "iconId": "594",
+      "icon": "assets/icons/cra/594.png"
+    },
+    "Flèche de recul": {
+      "iconId": "612",
+      "icon": "assets/icons/cra/612.png"
+    },
+    "Flèche tempête": {
+      "iconId": "899",
+      "icon": "assets/icons/cra/899.png"
+    },
+    "Flèche harcelante": {
+      "iconId": "608",
+      "icon": "assets/icons/cra/608.png"
+    },
+    "Flèche statique": {
+      "iconId": "890",
+      "icon": "assets/icons/cra/890.png"
+    },
+    "Flèche fulminante": {
+      "iconId": "601",
+      "icon": "assets/icons/cra/601.png"
+    },
+    "Flèche d'immolation": {
+      "iconId": "604",
+      "icon": "assets/icons/cra/604.png"
+    },
+    "Flèche enflammée": {
+      "iconId": "4821",
+      "icon": "assets/icons/cra/4821.png"
+    },
+    "Flèche ardente": {
+      "iconId": "600",
+      "icon": "assets/icons/cra/600.png"
+    },
+    "Flèche explosive": {
+      "iconId": "606",
+      "icon": "assets/icons/cra/606.png"
+    },
+    "Flèche cinglante": {
+      "iconId": "593",
+      "icon": "assets/icons/cra/593.png"
+    },
+    "Pluie de flèches": {
+      "iconId": "597",
+      "icon": "assets/icons/cra/597.png"
+    },
+    "Flèche criblante": {
+      "iconId": "607",
+      "icon": "assets/icons/cra/607.png"
+    },
+    "Flèche perçante": {
+      "iconId": "599",
+      "icon": "assets/icons/cra/599.png"
+    },
+    "Flèche destructrice": {
+      "iconId": "598",
+      "icon": "assets/icons/cra/598.png"
+    },
+    "Roulade": {
+      "iconId": "617",
+      "icon": "assets/icons/cra/617.png"
+    },
+    "Retraite balisée": {
+      "iconId": "4805",
+      "icon": "assets/icons/cra/4805.png"
+    },
+    "Eclaireur": {
+      "iconId": "4806",
+      "icon": "assets/icons/cra/4806.png"
+    },
+    "Œil de taupe": {
+      "iconId": "7753",
+      "icon": "assets/icons/cra/7753.png"
+    },
+    "Frappe incisive": {
+      "iconId": "4808",
+      "icon": "assets/icons/cra/4808.png"
+    },
+    "Rafale": {
+      "iconId": "654",
+      "icon": "assets/icons/cra/654.png"
+    },
+    "Archer futé": {
+      "iconId": "4801",
+      "icon": "assets/icons/cra/4801.png"
+    },
+    "Éclaireur spécialisé": {
+      "iconId": "1420",
+      "icon": "assets/icons/cra/1420.png"
+    },
+    "Balises discrètes": {
+      "iconId": "615",
+      "icon": "assets/icons/cra/615.png"
+    },
+    "Précision vorace": {
+      "iconId": "5122",
+      "icon": "assets/icons/cra/5122.png"
+    },
+    "Esprit affûté": {
+      "iconId": "852",
+      "icon": "assets/icons/cra/852.png"
+    },
+    "Instinct du chasseur": {
+      "iconId": "6930",
+      "icon": "assets/icons/cra/6930.png"
+    },
+    "La voie de l'arc": {
+      "iconId": "5077",
+      "icon": "assets/icons/cra/5077.png"
+    },
+    "Étude balistique": {
+      "iconId": "620",
+      "icon": "assets/icons/cra/620.png"
+    },
+    "Paradoxe du Crâ": {
+      "iconId": "2076",
+      "icon": "assets/icons/cra/2076.png"
+    },
+    "Éclaireur intouchable": {
+      "iconId": "588",
+      "icon": "assets/icons/cra/588.png"
+    },
+    "Tireur solitaire": {
+      "iconId": "5073",
+      "icon": "assets/icons/cra/5073.png"
+    },
+    "Balisage rapproché": {
+      "iconId": "610",
+      "icon": "assets/icons/cra/610.png"
+    },
+    "Parti pris": {
+      "iconId": "5072",
+      "icon": "assets/icons/cra/5072.png"
+    },
+    "Distance focale": {
+      "iconId": "7330",
+      "icon": "assets/icons/cra/7330.png"
+    },
+    "L'art des Balises": {
+      "iconId": "3362",
+      "icon": "assets/icons/cra/3362.png"
+    },
+    "Pointe protectrice": {
+      "iconId": "6997",
+      "icon": "assets/icons/cra/6997.png"
+    },
+    "Perforation Crâ": {
+      "iconId": "619",
+      "icon": "assets/icons/cra/619.png"
+    },
+    "Tir divergent": {
+      "iconId": "586",
+      "icon": "assets/icons/cra/586.png"
+    },
+    "Tir précis": {
+      "iconId": "611",
+      "icon": "assets/icons/cra/611.png"
+    },
+    "Balise de destruction": {
+      "iconId": "602",
+      "icon": "assets/icons/cra/602.png"
+    },
+    "Balise d'alignement": {
+      "iconId": "595",
+      "icon": "assets/icons/cra/595.png"
+    },
+    "Balise de contact": {
+      "iconId": "609",
+      "icon": "assets/icons/cra/609.png"
+    },
+    "Débalisage": {
+      "iconId": "596",
+      "icon": "assets/icons/cra/596.png"
+    }
+  },
+  "sadida": {
+    "Vaporiser": {
+      "iconId": "921",
+      "icon": "assets/icons/sadida/921.png"
+    },
+    "Larme du Sadida": {
+      "iconId": "918",
+      "icon": "assets/icons/sadida/918.png"
+    },
+    "Gadoule": {
+      "iconId": "930",
+      "icon": "assets/icons/sadida/930.png"
+    },
+    "Rouille": {
+      "iconId": "931",
+      "icon": "assets/icons/sadida/931.png"
+    },
+    "Drainage": {
+      "iconId": "922",
+      "icon": "assets/icons/sadida/922.png"
+    },
+    "Bourrasque": {
+      "iconId": "938",
+      "icon": "assets/icons/sadida/938.png"
+    },
+    "Vent Empoisonné": {
+      "iconId": "919",
+      "icon": "assets/icons/sadida/919.png"
+    },
+    "Coup de Froid": {
+      "iconId": "928",
+      "icon": "assets/icons/sadida/928.png"
+    },
+    "Kohmir": {
+      "iconId": "934",
+      "icon": "assets/icons/sadida/934.png"
+    },
+    "Relent Boisé": {
+      "iconId": "932",
+      "icon": "assets/icons/sadida/932.png"
+    },
+    "Ronce": {
+      "iconId": "925",
+      "icon": "assets/icons/sadida/925.png"
+    },
+    "Engrais": {
+      "iconId": "929",
+      "icon": "assets/icons/sadida/929.png"
+    },
+    "Herbes Folles": {
+      "iconId": "927",
+      "icon": "assets/icons/sadida/927.png"
+    },
+    "Tremblement de Terre": {
+      "iconId": "935",
+      "icon": "assets/icons/sadida/935.png"
+    },
+    "Ronces Multiples": {
+      "iconId": "937",
+      "icon": "assets/icons/sadida/937.png"
+    },
+    "Arbre": {
+      "iconId": "915",
+      "icon": "assets/icons/sadida/915.png"
+    },
+    "Sacrifice Poupesque": {
+      "iconId": "920",
+      "icon": "assets/icons/sadida/920.png"
+    },
+    "Eveil Sylvestre": {
+      "iconId": "2210",
+      "icon": "assets/icons/sadida/2210.png"
+    },
+    "Fertilisant": {
+      "iconId": "7054",
+      "icon": "assets/icons/sadida/7054.png"
+    },
+    "Force de la nature": {
+      "iconId": "8139",
+      "icon": "assets/icons/sadida/8139.png"
+    },
+    "Toxines": {
+      "iconId": "4308",
+      "icon": "assets/icons/sadida/4308.png"
+    },
+    "Prière Sadida": {
+      "iconId": "4959",
+      "icon": "assets/icons/sadida/4959.png"
+    },
+    "Croissance accélérée": {
+      "iconId": "917",
+      "icon": "assets/icons/sadida/917.png"
+    },
+    "Exploupée": {
+      "iconId": "933",
+      "icon": "assets/icons/sadida/933.png"
+    },
+    "Don sylvestre": {
+      "iconId": "5055",
+      "icon": "assets/icons/sadida/5055.png"
+    },
+    "Mauvaise graine": {
+      "iconId": "588",
+      "icon": "assets/icons/sadida/588.png"
+    },
+    "Dévouement poupesque": {
+      "iconId": "916",
+      "icon": "assets/icons/sadida/916.png"
+    },
+    "Sadida Solitaire": {
+      "iconId": "912",
+      "icon": "assets/icons/sadida/912.png"
+    },
+    "Terrain fertile": {
+      "iconId": "5104",
+      "icon": "assets/icons/sadida/5104.png"
+    },
+    "Lien Poupesque": {
+      "iconId": "5463",
+      "icon": "assets/icons/sadida/5463.png"
+    },
+    "Savoir Sadida": {
+      "iconId": "1420",
+      "icon": "assets/icons/sadida/1420.png"
+    },
+    "Cycle sylvestre": {
+      "iconId": "4300",
+      "icon": "assets/icons/sadida/4300.png"
+    },
+    "Venimeux": {
+      "iconId": "5234",
+      "icon": "assets/icons/sadida/5234.png"
+    },
+    "Terrain d'entente": {
+      "iconId": "6997",
+      "icon": "assets/icons/sadida/6997.png"
+    },
+    "Chaîne de la nature": {
+      "iconId": "7193",
+      "icon": "assets/icons/sadida/7193.png"
+    },
+    "Poussée sylvestre": {
+      "iconId": "2118",
+      "icon": "assets/icons/sadida/2118.png"
+    },
+    "Communication végétale": {
+      "iconId": "7053",
+      "icon": "assets/icons/sadida/7053.png"
+    },
+    "Garde Feuille": {
+      "iconId": "913",
+      "icon": "assets/icons/sadida/913.png"
+    },
+    "Bénédiction Voodoll": {
+      "iconId": "2324",
+      "icon": "assets/icons/sadida/2324.png"
+    },
+    "Terrain infecté": {
+      "iconId": "7195",
+      "icon": "assets/icons/sadida/7195.png"
+    },
+    "Murmures Sauvages": {
+      "iconId": "5058",
+      "icon": "assets/icons/sadida/5058.png"
+    },
+    "Graine": {
+      "iconId": "911",
+      "icon": "assets/icons/sadida/911.png"
+    },
+    "La Surpuissante": {
+      "iconId": "914",
+      "icon": "assets/icons/sadida/914.png"
+    },
+    "La Voodoll": {
+      "iconId": "926",
+      "icon": "assets/icons/sadida/926.png"
+    },
+    "Engrènement": {
+      "iconId": "0",
+      "icon": "assets/icons/sadida/0.png"
+    }
+  },
+  "sacrieur": {
+    "Sang pour sang": {
+      "iconId": "895",
+      "icon": "assets/icons/sacrieur/895.png"
+    },
+    "Furie sanguinaire": {
+      "iconId": "887",
+      "icon": "assets/icons/sacrieur/887.png"
+    },
+    "Sang brûlant": {
+      "iconId": "898",
+      "icon": "assets/icons/sacrieur/898.png"
+    },
+    "Cage de sang": {
+      "iconId": "2104",
+      "icon": "assets/icons/sacrieur/2104.png"
+    },
+    "Punition": {
+      "iconId": "900",
+      "icon": "assets/icons/sacrieur/900.png"
+    },
+    "Aversion": {
+      "iconId": "2099",
+      "icon": "assets/icons/sacrieur/2099.png"
+    },
+    "Projection": {
+      "iconId": "883",
+      "icon": "assets/icons/sacrieur/883.png"
+    },
+    "Assaut": {
+      "iconId": "847",
+      "icon": "assets/icons/sacrieur/847.png"
+    },
+    "Tempête spirituelle": {
+      "iconId": "5034",
+      "icon": "assets/icons/sacrieur/5034.png"
+    },
+    "Fulgurance": {
+      "iconId": "2101",
+      "icon": "assets/icons/sacrieur/2101.png"
+    },
+    "Pied rocheux": {
+      "iconId": "889",
+      "icon": "assets/icons/sacrieur/889.png"
+    },
+    "Poing tatoué agrippant": {
+      "iconId": "5039",
+      "icon": "assets/icons/sacrieur/5039.png"
+    },
+    "Démence": {
+      "iconId": "5035",
+      "icon": "assets/icons/sacrieur/5035.png"
+    },
+    "Colonnades": {
+      "iconId": "2116",
+      "icon": "assets/icons/sacrieur/2116.png"
+    },
+    "Fracasse": {
+      "iconId": "892",
+      "icon": "assets/icons/sacrieur/892.png"
+    },
+    "Attirance": {
+      "iconId": "844",
+      "icon": "assets/icons/sacrieur/844.png"
+    },
+    "Sacrifice": {
+      "iconId": "878",
+      "icon": "assets/icons/sacrieur/878.png"
+    },
+    "Transposition": {
+      "iconId": "888",
+      "icon": "assets/icons/sacrieur/888.png"
+    },
+    "Armure sanguine": {
+      "iconId": "2117",
+      "icon": "assets/icons/sacrieur/2117.png"
+    },
+    "Entaille": {
+      "iconId": "7211",
+      "icon": "assets/icons/sacrieur/7211.png"
+    },
+    "Transfert sanguin": {
+      "iconId": "7212",
+      "icon": "assets/icons/sacrieur/7212.png"
+    },
+    "Mobilité": {
+      "iconId": "5192",
+      "icon": "assets/icons/sacrieur/5192.png"
+    },
+    "Sang tatoué": {
+      "iconId": "5051",
+      "icon": "assets/icons/sacrieur/5051.png"
+    },
+    "Veines de Wakfu": {
+      "iconId": "7208",
+      "icon": "assets/icons/sacrieur/7208.png"
+    },
+    "Placidité": {
+      "iconId": "5050",
+      "icon": "assets/icons/sacrieur/5050.png"
+    },
+    "Pacte de sang": {
+      "iconId": "877",
+      "icon": "assets/icons/sacrieur/877.png"
+    },
+    "Libation": {
+      "iconId": "5193",
+      "icon": "assets/icons/sacrieur/5193.png"
+    },
+    "Transcendance": {
+      "iconId": "5194",
+      "icon": "assets/icons/sacrieur/5194.png"
+    },
+    "Traînée de sang": {
+      "iconId": "5101",
+      "icon": "assets/icons/sacrieur/5101.png"
+    },
+    "Fracasseur": {
+      "iconId": "5195",
+      "icon": "assets/icons/sacrieur/5195.png"
+    },
+    "Refus de la mort": {
+      "iconId": "845",
+      "icon": "assets/icons/sacrieur/845.png"
+    },
+    "Circulation sanguine": {
+      "iconId": "7213",
+      "icon": "assets/icons/sacrieur/7213.png"
+    },
+    "Jeu dangereux": {
+      "iconId": "7214",
+      "icon": "assets/icons/sacrieur/7214.png"
+    },
+    "Vision": {
+      "iconId": "7215",
+      "icon": "assets/icons/sacrieur/7215.png"
+    },
+    "Armure brûlante": {
+      "iconId": "7216",
+      "icon": "assets/icons/sacrieur/7216.png"
+    },
+    "Pacte de Wakfu": {
+      "iconId": "7207",
+      "icon": "assets/icons/sacrieur/7207.png"
+    },
+    "Coeur de Sacrieur": {
+      "iconId": "7218",
+      "icon": "assets/icons/sacrieur/7218.png"
+    },
+    "Mal des transports": {
+      "iconId": "7219",
+      "icon": "assets/icons/sacrieur/7219.png"
+    },
+    "Pilier": {
+      "iconId": "880",
+      "icon": "assets/icons/sacrieur/880.png"
+    },
+    "Immolation": {
+      "iconId": "7224",
+      "icon": "assets/icons/sacrieur/7224.png"
+    },
+    "Exécuteur": {
+      "iconId": "5054",
+      "icon": "assets/icons/sacrieur/5054.png"
+    },
+    "Châtiment osé": {
+      "iconId": "879",
+      "icon": "assets/icons/sacrieur/879.png"
+    },
+    "Châtiment sanguin": {
+      "iconId": "6065",
+      "icon": "assets/icons/sacrieur/6065.png"
+    }
+  },
+  "pandawa": {
+    "Souffle Laiteux": {
+      "iconId": "944",
+      "icon": "assets/icons/pandawa/944.png"
+    },
+    "Nuage Laiteux": {
+      "iconId": "2203",
+      "icon": "assets/icons/pandawa/2203.png"
+    },
+    "Tekilait": {
+      "iconId": "2204",
+      "icon": "assets/icons/pandawa/2204.png"
+    },
+    "Vague de Lait": {
+      "iconId": "2205",
+      "icon": "assets/icons/pandawa/2205.png"
+    },
+    "Fontaine de Laiqueur": {
+      "iconId": "2207",
+      "icon": "assets/icons/pandawa/2207.png"
+    },
+    "Souffle Enflammé": {
+      "iconId": "2194",
+      "icon": "assets/icons/pandawa/2194.png"
+    },
+    "Tournée Générale": {
+      "iconId": "2199",
+      "icon": "assets/icons/pandawa/2199.png"
+    },
+    "Coup Laiteux": {
+      "iconId": "2196",
+      "icon": "assets/icons/pandawa/2196.png"
+    },
+    "Flasque Explosive": {
+      "iconId": "2200",
+      "icon": "assets/icons/pandawa/2200.png"
+    },
+    "Toilaitage": {
+      "iconId": "2256",
+      "icon": "assets/icons/pandawa/2256.png"
+    },
+    "Triple Karma Leet": {
+      "iconId": "2190",
+      "icon": "assets/icons/pandawa/2190.png"
+    },
+    "Six Roses": {
+      "iconId": "2193",
+      "icon": "assets/icons/pandawa/2193.png"
+    },
+    "Frappe Fût": {
+      "iconId": "2197",
+      "icon": "assets/icons/pandawa/2197.png"
+    },
+    "Lucha L'ambrée": {
+      "iconId": "2198",
+      "icon": "assets/icons/pandawa/2198.png"
+    },
+    "Blitzkriek": {
+      "iconId": "2201",
+      "icon": "assets/icons/pandawa/2201.png"
+    },
+    "Coup de bambou": {
+      "iconId": "943",
+      "icon": "assets/icons/pandawa/943.png"
+    },
+    "Soif": {
+      "iconId": "664",
+      "icon": "assets/icons/pandawa/664.png"
+    },
+    "Happy Hour": {
+      "iconId": "978",
+      "icon": "assets/icons/pandawa/978.png"
+    },
+    "Ether": {
+      "iconId": "2208",
+      "icon": "assets/icons/pandawa/2208.png"
+    },
+    "Téléportono": {
+      "iconId": "2209",
+      "icon": "assets/icons/pandawa/2209.png"
+    },
+    "Ebriété": {
+      "iconId": "949",
+      "icon": "assets/icons/pandawa/949.png"
+    },
+    "Cocktail": {
+      "iconId": "7987",
+      "icon": "assets/icons/pandawa/7987.png"
+    },
+    "Maître de l'Ivresse": {
+      "iconId": "2212",
+      "icon": "assets/icons/pandawa/2212.png"
+    },
+    "Tonneau sans Fond": {
+      "iconId": "2213",
+      "icon": "assets/icons/pandawa/2213.png"
+    },
+    "Tonneau Agressif": {
+      "iconId": "2214",
+      "icon": "assets/icons/pandawa/2214.png"
+    },
+    "Instinct Laiteux": {
+      "iconId": "2211",
+      "icon": "assets/icons/pandawa/2211.png"
+    },
+    "Bambouteille": {
+      "iconId": "5148",
+      "icon": "assets/icons/pandawa/5148.png"
+    },
+    "Cyanose": {
+      "iconId": "5149",
+      "icon": "assets/icons/pandawa/5149.png"
+    },
+    "Buvette": {
+      "iconId": "5150",
+      "icon": "assets/icons/pandawa/5150.png"
+    },
+    "Pandémie": {
+      "iconId": "5151",
+      "icon": "assets/icons/pandawa/5151.png"
+    },
+    "Éméché": {
+      "iconId": "2215",
+      "icon": "assets/icons/pandawa/2215.png"
+    },
+    "Karcham": {
+      "iconId": "2195",
+      "icon": "assets/icons/pandawa/2195.png"
+    },
+    "Chamrak": {
+      "iconId": "975",
+      "icon": "assets/icons/pandawa/975.png"
+    },
+    "Tonneau": {
+      "iconId": "2192",
+      "icon": "assets/icons/pandawa/2192.png"
+    }
+  },
+  "roublard": {
+    "Mitraille": {
+      "iconId": "1807",
+      "icon": "assets/icons/roublard/1807.png"
+    },
+    "Tromblon": {
+      "iconId": "2337",
+      "icon": "assets/icons/roublard/2337.png"
+    },
+    "Balle plombante": {
+      "iconId": "6470",
+      "icon": "assets/icons/roublard/6470.png"
+    },
+    "Dague boomerang": {
+      "iconId": "6471",
+      "icon": "assets/icons/roublard/6471.png"
+    },
+    "Pulsar": {
+      "iconId": "1804",
+      "icon": "assets/icons/roublard/1804.png"
+    },
+    "Coup rapide": {
+      "iconId": "1811",
+      "icon": "assets/icons/roublard/1811.png"
+    },
+    "Tricherie": {
+      "iconId": "2331",
+      "icon": "assets/icons/roublard/2331.png"
+    },
+    "Espingole": {
+      "iconId": "4824",
+      "icon": "assets/icons/roublard/4824.png"
+    },
+    "Longue lame": {
+      "iconId": "1814",
+      "icon": "assets/icons/roublard/1814.png"
+    },
+    "Oblitération": {
+      "iconId": "6476",
+      "icon": "assets/icons/roublard/6476.png"
+    },
+    "Barbrûlé": {
+      "iconId": "1800",
+      "icon": "assets/icons/roublard/1800.png"
+    },
+    "Bombe collante": {
+      "iconId": "6464",
+      "icon": "assets/icons/roublard/6464.png"
+    },
+    "Exécution": {
+      "iconId": "6465",
+      "icon": "assets/icons/roublard/6465.png"
+    },
+    "Croisement": {
+      "iconId": "6466",
+      "icon": "assets/icons/roublard/6466.png"
+    },
+    "Perforation": {
+      "iconId": "6467",
+      "icon": "assets/icons/roublard/6467.png"
+    },
+    "Botte": {
+      "iconId": "1817",
+      "icon": "assets/icons/roublard/1817.png"
+    },
+    "Fumigènes": {
+      "iconId": "1820",
+      "icon": "assets/icons/roublard/1820.png"
+    },
+    "Grappin": {
+      "iconId": "6475",
+      "icon": "assets/icons/roublard/6475.png"
+    },
+    "Evanescence": {
+      "iconId": "1810",
+      "icon": "assets/icons/roublard/1810.png"
+    },
+    "Aimant": {
+      "iconId": "1824",
+      "icon": "assets/icons/roublard/1824.png"
+    },
+    "Défourailleur": {
+      "iconId": "1823",
+      "icon": "assets/icons/roublard/1823.png"
+    },
+    "Trainée de poudre": {
+      "iconId": "5192",
+      "icon": "assets/icons/roublard/5192.png"
+    },
+    "Roublaboom": {
+      "iconId": "5357",
+      "icon": "assets/icons/roublard/5357.png"
+    },
+    "Explobombe": {
+      "iconId": "7065",
+      "icon": "assets/icons/roublard/7065.png"
+    },
+    "Artificier": {
+      "iconId": "6482",
+      "icon": "assets/icons/roublard/6482.png"
+    },
+    "Fugitif": {
+      "iconId": "2334",
+      "icon": "assets/icons/roublard/2334.png"
+    },
+    "Maître des lames": {
+      "iconId": "5050",
+      "icon": "assets/icons/roublard/5050.png"
+    },
+    "Bombes élémentaires": {
+      "iconId": "7090",
+      "icon": "assets/icons/roublard/7090.png"
+    },
+    "Tunique renforcée": {
+      "iconId": "1816",
+      "icon": "assets/icons/roublard/1816.png"
+    },
+    "Bomber Fan": {
+      "iconId": "4311",
+      "icon": "assets/icons/roublard/4311.png"
+    },
+    "Tir surprise": {
+      "iconId": "2332",
+      "icon": "assets/icons/roublard/2332.png"
+    },
+    "Grande évasion": {
+      "iconId": "6480",
+      "icon": "assets/icons/roublard/6480.png"
+    },
+    "Maître Roublard": {
+      "iconId": "2339",
+      "icon": "assets/icons/roublard/2339.png"
+    },
+    "Baril": {
+      "iconId": "4300",
+      "icon": "assets/icons/roublard/4300.png"
+    },
+    "Lame rouillée": {
+      "iconId": "5123",
+      "icon": "assets/icons/roublard/5123.png"
+    },
+    "Démineur": {
+      "iconId": "7064",
+      "icon": "assets/icons/roublard/7064.png"
+    },
+    "Mur de poudre": {
+      "iconId": "6933",
+      "icon": "assets/icons/roublard/6933.png"
+    },
+    "Dynamite": {
+      "iconId": "6485",
+      "icon": "assets/icons/roublard/6485.png"
+    },
+    "Jackpot": {
+      "iconId": "7092",
+      "icon": "assets/icons/roublard/7092.png"
+    },
+    "Tacticien": {
+      "iconId": "2335",
+      "icon": "assets/icons/roublard/2335.png"
+    },
+    "Bombes à retardement": {
+      "iconId": "7063",
+      "icon": "assets/icons/roublard/7063.png"
+    },
+    "Détonation": {
+      "iconId": "1815",
+      "icon": "assets/icons/roublard/1815.png"
+    },
+    "Ruse": {
+      "iconId": "1822",
+      "icon": "assets/icons/roublard/1822.png"
+    },
+    "Roublabot": {
+      "iconId": "1819",
+      "icon": "assets/icons/roublard/1819.png"
+    }
+  },
+  "zobal": {
+    "Signe": {
+      "iconId": "7071",
+      "icon": "assets/icons/zobal/7071.png"
+    },
+    "Armature": {
+      "iconId": "3309",
+      "icon": "assets/icons/zobal/3309.png"
+    },
+    "Rescousse": {
+      "iconId": "3310",
+      "icon": "assets/icons/zobal/3310.png"
+    },
+    "Acharnement": {
+      "iconId": "3312",
+      "icon": "assets/icons/zobal/3312.png"
+    },
+    "Sarabande": {
+      "iconId": "7075",
+      "icon": "assets/icons/zobal/7075.png"
+    },
+    "Fugue": {
+      "iconId": "7076",
+      "icon": "assets/icons/zobal/7076.png"
+    },
+    "Poursuite": {
+      "iconId": "3313",
+      "icon": "assets/icons/zobal/3313.png"
+    },
+    "Culbute": {
+      "iconId": "3315",
+      "icon": "assets/icons/zobal/3315.png"
+    },
+    "Cavalcade": {
+      "iconId": "3316",
+      "icon": "assets/icons/zobal/3316.png"
+    },
+    "Dislocation": {
+      "iconId": "3317",
+      "icon": "assets/icons/zobal/3317.png"
+    },
+    "Coup de pied fouetté": {
+      "iconId": "7066",
+      "icon": "assets/icons/zobal/7066.png"
+    },
+    "Félure": {
+      "iconId": "3303",
+      "icon": "assets/icons/zobal/3303.png"
+    },
+    "Détraquage": {
+      "iconId": "3304",
+      "icon": "assets/icons/zobal/3304.png"
+    },
+    "Névrose": {
+      "iconId": "3305",
+      "icon": "assets/icons/zobal/3305.png"
+    },
+    "Cabriole": {
+      "iconId": "3307",
+      "icon": "assets/icons/zobal/3307.png"
+    },
+    "Esprit masqué": {
+      "iconId": "7084",
+      "icon": "assets/icons/zobal/7084.png"
+    },
+    "Danse motivante": {
+      "iconId": "7085",
+      "icon": "assets/icons/zobal/7085.png"
+    },
+    "Danse macabre": {
+      "iconId": "7086",
+      "icon": "assets/icons/zobal/7086.png"
+    },
+    "Voltige": {
+      "iconId": "7087",
+      "icon": "assets/icons/zobal/7087.png"
+    },
+    "Aura de brutalité": {
+      "iconId": "7088",
+      "icon": "assets/icons/zobal/7088.png"
+    },
+    "Solidité": {
+      "iconId": "7089",
+      "icon": "assets/icons/zobal/7089.png"
+    },
+    "Jeu de jambes": {
+      "iconId": "7093",
+      "icon": "assets/icons/zobal/7093.png"
+    },
+    "Bas les masques": {
+      "iconId": "3364",
+      "icon": "assets/icons/zobal/3364.png"
+    },
+    "Poussées violentes": {
+      "iconId": "7095",
+      "icon": "assets/icons/zobal/7095.png"
+    },
+    "Art de la vengeance": {
+      "iconId": "7096",
+      "icon": "assets/icons/zobal/7096.png"
+    },
+    "Masque de vie": {
+      "iconId": "7097",
+      "icon": "assets/icons/zobal/7097.png"
+    },
+    "Carnaval": {
+      "iconId": "3357",
+      "icon": "assets/icons/zobal/3357.png"
+    },
+    "Armure unique": {
+      "iconId": "7099",
+      "icon": "assets/icons/zobal/7099.png"
+    },
+    "Ancre": {
+      "iconId": "3363",
+      "icon": "assets/icons/zobal/3363.png"
+    },
+    "Brute": {
+      "iconId": "3356",
+      "icon": "assets/icons/zobal/3356.png"
+    },
+    "Protecteur reculé": {
+      "iconId": "5348",
+      "icon": "assets/icons/zobal/5348.png"
+    },
+    "Collisions de support": {
+      "iconId": "7103",
+      "icon": "assets/icons/zobal/7103.png"
+    },
+    "Érosion": {
+      "iconId": "7104",
+      "icon": "assets/icons/zobal/7104.png"
+    },
+    "Virevolte": {
+      "iconId": "7105",
+      "icon": "assets/icons/zobal/7105.png"
+    },
+    "Collisions régénérantes": {
+      "iconId": "7106",
+      "icon": "assets/icons/zobal/7106.png"
+    },
+    "Miroirs": {
+      "iconId": "7107",
+      "icon": "assets/icons/zobal/7107.png"
+    },
+    "Au contact": {
+      "iconId": "5347",
+      "icon": "assets/icons/zobal/5347.png"
+    },
+    "Art de la fuite": {
+      "iconId": "7111",
+      "icon": "assets/icons/zobal/7111.png"
+    },
+    "Regard masqué": {
+      "iconId": "5359",
+      "icon": "assets/icons/zobal/5359.png"
+    },
+    "Poussées d'entrave": {
+      "iconId": "7113",
+      "icon": "assets/icons/zobal/7113.png"
+    },
+    "Masque de psychopathe": {
+      "iconId": "7081",
+      "icon": "assets/icons/zobal/7081.png"
+    },
+    "Masque de pleutre": {
+      "iconId": "7082",
+      "icon": "assets/icons/zobal/7082.png"
+    },
+    "Masque de classe": {
+      "iconId": "7083",
+      "icon": "assets/icons/zobal/7083.png"
+    }
+  },
+  "ouginak": {
+    "Emeute": {
+      "iconId": "6260",
+      "icon": "assets/icons/ouginak/6260.png"
+    },
+    "Fléau": {
+      "iconId": "6257",
+      "icon": "assets/icons/ouginak/6257.png"
+    },
+    "Rupture": {
+      "iconId": "6258",
+      "icon": "assets/icons/ouginak/6258.png"
+    },
+    "Plombage": {
+      "iconId": "6256",
+      "icon": "assets/icons/ouginak/6256.png"
+    },
+    "Balafre": {
+      "iconId": "6259",
+      "icon": "assets/icons/ouginak/6259.png"
+    },
+    "Croc-en-jambe": {
+      "iconId": "6261",
+      "icon": "assets/icons/ouginak/6261.png"
+    },
+    "Bastonnade": {
+      "iconId": "6263",
+      "icon": "assets/icons/ouginak/6263.png"
+    },
+    "Molosse": {
+      "iconId": "6265",
+      "icon": "assets/icons/ouginak/6265.png"
+    },
+    "Hachure": {
+      "iconId": "6262",
+      "icon": "assets/icons/ouginak/6262.png"
+    },
+    "Saccade": {
+      "iconId": "6264",
+      "icon": "assets/icons/ouginak/6264.png"
+    },
+    "Balayage": {
+      "iconId": "6266",
+      "icon": "assets/icons/ouginak/6266.png"
+    },
+    "Contusion": {
+      "iconId": "6267",
+      "icon": "assets/icons/ouginak/6267.png"
+    },
+    "Cador": {
+      "iconId": "6268",
+      "icon": "assets/icons/ouginak/6268.png"
+    },
+    "Brise'Os": {
+      "iconId": "6269",
+      "icon": "assets/icons/ouginak/6269.png"
+    },
+    "Baroud": {
+      "iconId": "6270",
+      "icon": "assets/icons/ouginak/6270.png"
+    },
+    "Chasseur": {
+      "iconId": "6284",
+      "icon": "assets/icons/ouginak/6284.png"
+    },
+    "Élan": {
+      "iconId": "7552",
+      "icon": "assets/icons/ouginak/7552.png"
+    },
+    "Canine": {
+      "iconId": "6287",
+      "icon": "assets/icons/ouginak/6287.png"
+    },
+    "Apaisement": {
+      "iconId": "6288",
+      "icon": "assets/icons/ouginak/6288.png"
+    },
+    "Poursuite": {
+      "iconId": "6285",
+      "icon": "assets/icons/ouginak/6285.png"
+    },
+    "Meute": {
+      "iconId": "7088",
+      "icon": "assets/icons/ouginak/7088.png"
+    },
+    "Compagnon": {
+      "iconId": "6274",
+      "icon": "assets/icons/ouginak/6274.png"
+    },
+    "Marchandage": {
+      "iconId": "6280",
+      "icon": "assets/icons/ouginak/6280.png"
+    },
+    "Canin'Os": {
+      "iconId": "7596",
+      "icon": "assets/icons/ouginak/7596.png"
+    },
+    "Acharné": {
+      "iconId": "7193",
+      "icon": "assets/icons/ouginak/7193.png"
+    },
+    "Chasse ouverte": {
+      "iconId": "7554",
+      "icon": "assets/icons/ouginak/7554.png"
+    },
+    "Digestion": {
+      "iconId": "6272",
+      "icon": "assets/icons/ouginak/6272.png"
+    },
+    "Énergie Canine": {
+      "iconId": "7343",
+      "icon": "assets/icons/ouginak/7343.png"
+    },
+    "Ardeur": {
+      "iconId": "7328",
+      "icon": "assets/icons/ouginak/7328.png"
+    },
+    "Pillage": {
+      "iconId": "6277",
+      "icon": "assets/icons/ouginak/6277.png"
+    },
+    "Fureur": {
+      "iconId": "7557",
+      "icon": "assets/icons/ouginak/7557.png"
+    },
+    "Epuisement": {
+      "iconId": "6276",
+      "icon": "assets/icons/ouginak/6276.png"
+    },
+    "Pistage": {
+      "iconId": "5103",
+      "icon": "assets/icons/ouginak/5103.png"
+    },
+    "Flair": {
+      "iconId": "6279",
+      "icon": "assets/icons/ouginak/6279.png"
+    },
+    "Art Canin": {
+      "iconId": "6275",
+      "icon": "assets/icons/ouginak/6275.png"
+    },
+    "Terrier": {
+      "iconId": "6271",
+      "icon": "assets/icons/ouginak/6271.png"
+    },
+    "Crocs Futés": {
+      "iconId": "6278",
+      "icon": "assets/icons/ouginak/6278.png"
+    },
+    "Traqueur Canin": {
+      "iconId": "7558",
+      "icon": "assets/icons/ouginak/7558.png"
+    },
+    "Force sage": {
+      "iconId": "7185",
+      "icon": "assets/icons/ouginak/7185.png"
+    },
+    "Maître Chien": {
+      "iconId": "6273",
+      "icon": "assets/icons/ouginak/6273.png"
+    },
+    "Proie": {
+      "iconId": "6283",
+      "icon": "assets/icons/ouginak/6283.png"
+    },
+    "Ougigarou": {
+      "iconId": "6855",
+      "icon": "assets/icons/ouginak/6855.png"
+    },
+    "Chienchien": {
+      "iconId": "6286",
+      "icon": "assets/icons/ouginak/6286.png"
+    }
+  },
+  "steamer": {
+    "Courant": {
+      "iconId": "923",
+      "icon": "assets/icons/steamer/923.png"
+    },
+    "Évaporation": {
+      "iconId": "942",
+      "icon": "assets/icons/steamer/942.png"
+    },
+    "Ecume": {
+      "iconId": "4102",
+      "icon": "assets/icons/steamer/4102.png"
+    },
+    "Flibuste": {
+      "iconId": "4101",
+      "icon": "assets/icons/steamer/4101.png"
+    },
+    "Dissolution": {
+      "iconId": "5862",
+      "icon": "assets/icons/steamer/5862.png"
+    },
+    "À la masse": {
+      "iconId": "2826",
+      "icon": "assets/icons/steamer/2826.png"
+    },
+    "Piétinement": {
+      "iconId": "2827",
+      "icon": "assets/icons/steamer/2827.png"
+    },
+    "Pilonnage": {
+      "iconId": "2830",
+      "icon": "assets/icons/steamer/2830.png"
+    },
+    "Marteau aimant": {
+      "iconId": "2828",
+      "icon": "assets/icons/steamer/2828.png"
+    },
+    "Choc": {
+      "iconId": "2829",
+      "icon": "assets/icons/steamer/2829.png"
+    },
+    "Feu ardent": {
+      "iconId": "2833",
+      "icon": "assets/icons/steamer/2833.png"
+    },
+    "Crache flammes": {
+      "iconId": "2832",
+      "icon": "assets/icons/steamer/2832.png"
+    },
+    "Calcination": {
+      "iconId": "2835",
+      "icon": "assets/icons/steamer/2835.png"
+    },
+    "Flambage": {
+      "iconId": "2831",
+      "icon": "assets/icons/steamer/2831.png"
+    },
+    "Sabordage": {
+      "iconId": "2834",
+      "icon": "assets/icons/steamer/2834.png"
+    },
+    "Blindage": {
+      "iconId": "2814",
+      "icon": "assets/icons/steamer/2814.png"
+    },
+    "Surtension": {
+      "iconId": "3571",
+      "icon": "assets/icons/steamer/3571.png"
+    },
+    "Machinerie": {
+      "iconId": "2815",
+      "icon": "assets/icons/steamer/2815.png"
+    },
+    "Embuscade": {
+      "iconId": "3984",
+      "icon": "assets/icons/steamer/3984.png"
+    },
+    "Transition": {
+      "iconId": "4297",
+      "icon": "assets/icons/steamer/4297.png"
+    },
+    "Flux de Stasis": {
+      "iconId": "2822",
+      "icon": "assets/icons/steamer/2822.png"
+    },
+    "Modérateur d'énergie": {
+      "iconId": "6931",
+      "icon": "assets/icons/steamer/6931.png"
+    },
+    "Routes sinueuses": {
+      "iconId": "2817",
+      "icon": "assets/icons/steamer/2817.png"
+    },
+    "Versatilité": {
+      "iconId": "4689",
+      "icon": "assets/icons/steamer/4689.png"
+    },
+    "Blindage renforcé": {
+      "iconId": "6691",
+      "icon": "assets/icons/steamer/6691.png"
+    },
+    "Stratégie robotique": {
+      "iconId": "5462",
+      "icon": "assets/icons/steamer/5462.png"
+    },
+    "Technologie de transports": {
+      "iconId": "6930",
+      "icon": "assets/icons/steamer/6930.png"
+    },
+    "Assistance tellurique": {
+      "iconId": "2816",
+      "icon": "assets/icons/steamer/2816.png"
+    },
+    "Substitution mécanique": {
+      "iconId": "5461",
+      "icon": "assets/icons/steamer/5461.png"
+    },
+    "Patience": {
+      "iconId": "6939",
+      "icon": "assets/icons/steamer/6939.png"
+    },
+    "Alliage léger": {
+      "iconId": "2819",
+      "icon": "assets/icons/steamer/2819.png"
+    },
+    "Inversion d'énergie": {
+      "iconId": "4300",
+      "icon": "assets/icons/steamer/4300.png"
+    },
+    "Revêtement à toute épreuve": {
+      "iconId": "7344",
+      "icon": "assets/icons/steamer/7344.png"
+    },
+    "Activation": {
+      "iconId": "5456",
+      "icon": "assets/icons/steamer/5456.png"
+    },
+    "Exécution immédiate": {
+      "iconId": "6925",
+      "icon": "assets/icons/steamer/6925.png"
+    },
+    "Protection stasifiée": {
+      "iconId": "2820",
+      "icon": "assets/icons/steamer/2820.png"
+    },
+    "Roues chaudes": {
+      "iconId": "6933",
+      "icon": "assets/icons/steamer/6933.png"
+    },
+    "Conquête sereine": {
+      "iconId": "5245",
+      "icon": "assets/icons/steamer/5245.png"
+    },
+    "Tacticien": {
+      "iconId": "5351",
+      "icon": "assets/icons/steamer/5351.png"
+    },
+    "Mécanique avancée": {
+      "iconId": "7181",
+      "icon": "assets/icons/steamer/7181.png"
+    },
+    "Déploiement tactique": {
+      "iconId": "7107",
+      "icon": "assets/icons/steamer/7107.png"
+    },
+    "Microbot": {
+      "iconId": "2811",
+      "icon": "assets/icons/steamer/2811.png"
+    },
+    "Tourelle": {
+      "iconId": "2813",
+      "icon": "assets/icons/steamer/2813.png"
+    },
+    "Steamerator": {
+      "iconId": "2808",
+      "icon": "assets/icons/steamer/2808.png"
+    },
+    "Canonnier": {
+      "iconId": "2812",
+      "icon": "assets/icons/steamer/2812.png"
+    }
+  },
+  "eliotrope": {
+    "Wakméha": {
+      "iconId": "4691",
+      "icon": "assets/icons/eliotrope/4691.png"
+    },
+    "Pulsation": {
+      "iconId": "4692",
+      "icon": "assets/icons/eliotrope/4692.png"
+    },
+    "Déluge": {
+      "iconId": "4693",
+      "icon": "assets/icons/eliotrope/4693.png"
+    },
+    "Tourbillon": {
+      "iconId": "4680",
+      "icon": "assets/icons/eliotrope/4680.png"
+    },
+    "Cataclysme": {
+      "iconId": "4694",
+      "icon": "assets/icons/eliotrope/4694.png"
+    },
+    "Targe fracassante": {
+      "iconId": "4669",
+      "icon": "assets/icons/eliotrope/4669.png"
+    },
+    "Egide ardente": {
+      "iconId": "4668",
+      "icon": "assets/icons/eliotrope/4668.png"
+    },
+    "Séisme": {
+      "iconId": "4670",
+      "icon": "assets/icons/eliotrope/4670.png"
+    },
+    "Heurt": {
+      "iconId": "4695",
+      "icon": "assets/icons/eliotrope/4695.png"
+    },
+    "Raclée": {
+      "iconId": "4671",
+      "icon": "assets/icons/eliotrope/4671.png"
+    },
+    "Flux torrentiel": {
+      "iconId": "4697",
+      "icon": "assets/icons/eliotrope/4697.png"
+    },
+    "Siphon": {
+      "iconId": "4698",
+      "icon": "assets/icons/eliotrope/4698.png"
+    },
+    "Salve éthérée": {
+      "iconId": "4699",
+      "icon": "assets/icons/eliotrope/4699.png"
+    },
+    "Tempête": {
+      "iconId": "4700",
+      "icon": "assets/icons/eliotrope/4700.png"
+    },
+    "Lame déchaînée": {
+      "iconId": "4701",
+      "icon": "assets/icons/eliotrope/4701.png"
+    },
+    "Coalition": {
+      "iconId": "4684",
+      "icon": "assets/icons/eliotrope/4684.png"
+    },
+    "Empreinte de Wakfu": {
+      "iconId": "4843",
+      "icon": "assets/icons/eliotrope/4843.png"
+    },
+    "Brèche temporaire": {
+      "iconId": "4683",
+      "icon": "assets/icons/eliotrope/4683.png"
+    },
+    "Exode": {
+      "iconId": "7199",
+      "icon": "assets/icons/eliotrope/7199.png"
+    },
+    "Incandescence": {
+      "iconId": "4685",
+      "icon": "assets/icons/eliotrope/4685.png"
+    },
+    "Barrière": {
+      "iconId": "7200",
+      "icon": "assets/icons/eliotrope/7200.png"
+    },
+    "Résilience": {
+      "iconId": "4690",
+      "icon": "assets/icons/eliotrope/4690.png"
+    },
+    "Traquenard": {
+      "iconId": "4687",
+      "icon": "assets/icons/eliotrope/4687.png"
+    },
+    "Intermédiaire": {
+      "iconId": "4689",
+      "icon": "assets/icons/eliotrope/4689.png"
+    },
+    "Rage": {
+      "iconId": "4686",
+      "icon": "assets/icons/eliotrope/4686.png"
+    },
+    "Transitoire": {
+      "iconId": "5352",
+      "icon": "assets/icons/eliotrope/5352.png"
+    },
+    "Effervescence": {
+      "iconId": "7185",
+      "icon": "assets/icons/eliotrope/7185.png"
+    },
+    "Portail céleste": {
+      "iconId": "5143",
+      "icon": "assets/icons/eliotrope/5143.png"
+    },
+    "Disciple du portail": {
+      "iconId": "5348",
+      "icon": "assets/icons/eliotrope/5348.png"
+    },
+    "Réminiscence": {
+      "iconId": "5132",
+      "icon": "assets/icons/eliotrope/5132.png"
+    },
+    "Interstellaire": {
+      "iconId": "5101",
+      "icon": "assets/icons/eliotrope/5101.png"
+    },
+    "Dimension blanche": {
+      "iconId": "5104",
+      "icon": "assets/icons/eliotrope/5104.png"
+    },
+    "Quiétude": {
+      "iconId": "880",
+      "icon": "assets/icons/eliotrope/880.png"
+    },
+    "Espace-temps": {
+      "iconId": "4688",
+      "icon": "assets/icons/eliotrope/4688.png"
+    },
+    "Porta(i)l": {
+      "iconId": "7206",
+      "icon": "assets/icons/eliotrope/7206.png"
+    },
+    "Bouclier de la fin": {
+      "iconId": "7207",
+      "icon": "assets/icons/eliotrope/7207.png"
+    },
+    "Épée du début": {
+      "iconId": "7208",
+      "icon": "assets/icons/eliotrope/7208.png"
+    },
+    "Cicatrisation": {
+      "iconId": "5454",
+      "icon": "assets/icons/eliotrope/5454.png"
+    },
+    "Concentration": {
+      "iconId": "7343",
+      "icon": "assets/icons/eliotrope/7343.png"
+    },
+    "Méditation": {
+      "iconId": "5131",
+      "icon": "assets/icons/eliotrope/5131.png"
+    },
+    "Souffle de la déesse": {
+      "iconId": "6925",
+      "icon": "assets/icons/eliotrope/6925.png"
+    },
+    "Portail": {
+      "iconId": "4678",
+      "icon": "assets/icons/eliotrope/4678.png"
+    },
+    "Exaltation": {
+      "iconId": "4682",
+      "icon": "assets/icons/eliotrope/4682.png"
+    }
+  },
+  "huppermage": {
+    "Flux d'énergie": {
+      "iconId": "5562",
+      "icon": "assets/icons/huppermage/5562.png"
+    },
+    "Disque luminescent": {
+      "iconId": "5571",
+      "icon": "assets/icons/huppermage/5571.png"
+    },
+    "Résonance": {
+      "iconId": "5561",
+      "icon": "assets/icons/huppermage/5561.png"
+    },
+    "Lueur de l'aube": {
+      "iconId": "5563",
+      "icon": "assets/icons/huppermage/5563.png"
+    },
+    "Rayon crépusculaire": {
+      "iconId": "5591",
+      "icon": "assets/icons/huppermage/5591.png"
+    },
+    "Averse": {
+      "iconId": "5564",
+      "icon": "assets/icons/huppermage/5564.png"
+    },
+    "Débâcle": {
+      "iconId": "5565",
+      "icon": "assets/icons/huppermage/5565.png"
+    },
+    "Flèche de lumière": {
+      "iconId": "5594",
+      "icon": "assets/icons/huppermage/5594.png"
+    },
+    "Vestige": {
+      "iconId": "5566",
+      "icon": "assets/icons/huppermage/5566.png"
+    },
+    "Larmes scintillantes": {
+      "iconId": "5593",
+      "icon": "assets/icons/huppermage/5593.png"
+    },
+    "Éboulement": {
+      "iconId": "5567",
+      "icon": "assets/icons/huppermage/5567.png"
+    },
+    "Faille": {
+      "iconId": "6400",
+      "icon": "assets/icons/huppermage/6400.png"
+    },
+    "Faisceau de lune": {
+      "iconId": "5597",
+      "icon": "assets/icons/huppermage/5597.png"
+    },
+    "Feuillure": {
+      "iconId": "5568",
+      "icon": "assets/icons/huppermage/5568.png"
+    },
+    "Épée de lumière": {
+      "iconId": "5595",
+      "icon": "assets/icons/huppermage/5595.png"
+    },
+    "Papillons diurnes": {
+      "iconId": "5570",
+      "icon": "assets/icons/huppermage/5570.png"
+    },
+    "Ombres dansantes": {
+      "iconId": "5572",
+      "icon": "assets/icons/huppermage/5572.png"
+    },
+    "Orbes luisants": {
+      "iconId": "5590",
+      "icon": "assets/icons/huppermage/5590.png"
+    },
+    "Mirage": {
+      "iconId": "5596",
+      "icon": "assets/icons/huppermage/5596.png"
+    },
+    "Halo Chatoyant": {
+      "iconId": "5592",
+      "icon": "assets/icons/huppermage/5592.png"
+    },
+    "Forteresse solaire": {
+      "iconId": "5575",
+      "icon": "assets/icons/huppermage/5575.png"
+    },
+    "Surcharge runique": {
+      "iconId": "7755",
+      "icon": "assets/icons/huppermage/7755.png"
+    },
+    "Mur d'énergie": {
+      "iconId": "5576",
+      "icon": "assets/icons/huppermage/5576.png"
+    },
+    "Visio Imperum": {
+      "iconId": "7754",
+      "icon": "assets/icons/huppermage/7754.png"
+    },
+    "Principio Valere": {
+      "iconId": "5577",
+      "icon": "assets/icons/huppermage/5577.png"
+    },
+    "Runification": {
+      "iconId": "7809",
+      "icon": "assets/icons/huppermage/7809.png"
+    },
+    "Dynamo": {
+      "iconId": "5579",
+      "icon": "assets/icons/huppermage/5579.png"
+    },
+    "Antithèse": {
+      "iconId": "5581",
+      "icon": "assets/icons/huppermage/5581.png"
+    },
+    "Distension Élémentaire": {
+      "iconId": "5347",
+      "icon": "assets/icons/huppermage/5347.png"
+    },
+    "Liaison Lumineuse": {
+      "iconId": "7107",
+      "icon": "assets/icons/huppermage/7107.png"
+    },
+    "Plénitude": {
+      "iconId": "5585",
+      "icon": "assets/icons/huppermage/5585.png"
+    },
+    "Universalité": {
+      "iconId": "5583",
+      "icon": "assets/icons/huppermage/5583.png"
+    },
+    "Extension des sens": {
+      "iconId": "5584",
+      "icon": "assets/icons/huppermage/5584.png"
+    },
+    "Profusion Runique": {
+      "iconId": "5586",
+      "icon": "assets/icons/huppermage/5586.png"
+    },
+    "Absorption Quadramentale": {
+      "iconId": "7193",
+      "icon": "assets/icons/huppermage/7193.png"
+    },
+    "Réfraction Élémentaire": {
+      "iconId": "5588",
+      "icon": "assets/icons/huppermage/5588.png"
+    },
+    "Altruisme de l'âme": {
+      "iconId": "5455",
+      "icon": "assets/icons/huppermage/5455.png"
+    },
+    "Nouveau souffle": {
+      "iconId": "5582",
+      "icon": "assets/icons/huppermage/5582.png"
+    },
+    "Essor de l'âme": {
+      "iconId": "5454",
+      "icon": "assets/icons/huppermage/5454.png"
+    },
+    "Pulsation": {
+      "iconId": "7191",
+      "icon": "assets/icons/huppermage/7191.png"
+    },
+    "Sauvegarde Runique": {
+      "iconId": "4300",
+      "icon": "assets/icons/huppermage/4300.png"
+    },
+    "Initiative de l'âme": {
+      "iconId": "5132",
+      "icon": "assets/icons/huppermage/5132.png"
+    },
+    "Combinaison Élémentaire": {
+      "iconId": "5348",
+      "icon": "assets/icons/huppermage/5348.png"
+    },
+    "Transcendance Runique": {
+      "iconId": "5587",
+      "icon": "assets/icons/huppermage/5587.png"
+    },
+    "Cœur de Lumière": {
+      "iconId": "5573",
+      "icon": "assets/icons/huppermage/5573.png"
+    },
+    "Feu-follet": {
+      "iconId": "5574",
+      "icon": "assets/icons/huppermage/5574.png"
+    },
+    "Cycle élémentaire": {
+      "iconId": "5578",
+      "icon": "assets/icons/huppermage/5578.png"
+    }
+  }
+}

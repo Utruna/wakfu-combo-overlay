@@ -97,7 +97,9 @@ node tools/scrape_spell_icons.js
 
 Récupère le nom officiel et l'icône de chaque sort pour les 18 classes depuis l'encyclopédie Wakfu, et les stocke dans `assets/icons/<classe>/<id>.png` + `data/spellIcons.json` (table imbriquée par classe : `{classe: {nomDuSort: {iconId, icon}}}` — ça évite qu'un nom de sort partagé entre deux classes, comme "Rafale", n'écrase l'icône de l'autre). Volontairement lent (délai entre chaque requête) — un lancement à froid prend plusieurs dizaines de minutes, un relancement ne re-télécharge que ce qui manque.
 
-**Ni `assets/icons/` ni `data/spellIcons.json` ne sont versionnés dans git** (voir `.gitignore`) : les CGU de Wakfu interdisent explicitement le scraping/moissonnage de leur site (article 13.5) et la redistribution de leurs assets sans autorisation écrite. Chacun doit générer ces fichiers localement chez soi avec la commande ci-dessus plutôt que de les récupérer via le dépôt.
+`assets/icons/` et `data/spellIcons.json` **sont versionnés dans git et embarqués dans l'installeur** — l'overlay étant icône seule, l'app ne peut rien afficher sans eux. Relancer le scraper n'est donc utile que pour rattraper une mise à jour de jeu (nouveaux sorts, icônes retouchées).
+
+Les icônes restent la propriété d'Ankama, redistribuées ici à titre d'outil communautaire non commercial.
 
 L'overlay est actuellement **icône seule** : un sort sans icône connue n'affiche rien du tout (pas de texte de secours). Tous les sorts des 18 classes sont couverts, à l'exception des sorts d'**invocation** (créature Osamodas, poupée Sadida, etc.) : ils sont lancés sous le nom de l'invocation elle-même, pas du personnage, et ne figurent pas sur les pages classe de l'encyclopédie officielle que scrape `tools/scrape_spell_icons.js` — connu, non couvert pour l'instant (voir Dépannage).
 
