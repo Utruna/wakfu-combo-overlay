@@ -20,7 +20,11 @@ const { autoUpdater } = require('electron-updater');
 const { OverlayServer } = require('../overlay/server');
 const { WakfuCombatLogReader } = require('../src/wakfuCombatLogReader');
 const { CharacterMatcher } = require('../src/characterMatcher');
-const { SettingsStore } = require('../src/settingsStore');
+const {
+  SettingsStore,
+  DEFAULT_ICON_SIZE, MIN_ICON_SIZE, MAX_ICON_SIZE,
+  DEFAULT_CAST_LIFETIME_MS, MIN_CAST_LIFETIME_MS, MAX_CAST_LIFETIME_MS,
+} = require('../src/settingsStore');
 
 const DEFAULT_OVERLAY_PORT = 3457;
 
@@ -256,7 +260,12 @@ app.whenReady().then(async () => {
   settingsStore.ensureDefaults({
     heroes: seedHeroes,
     trackedCharacterNames: seedHeroes.map((h) => h.characterName),
-    comboLayout: { orientation: 'vertical', direction: 'top-to-bottom' },
+    comboLayout: {
+      orientation: 'vertical',
+      direction: 'top-to-bottom',
+      iconSize: DEFAULT_ICON_SIZE,
+      castLifetimeMs: DEFAULT_CAST_LIFETIME_MS,
+    },
     overlayPort: DEFAULT_OVERLAY_PORT,
     logsDir: WakfuCombatLogReader.DEFAULT_LOGS_DIR,
   });
@@ -328,6 +337,10 @@ app.whenReady().then(async () => {
     heroes: settingsStore.heroes,
     trackedCharacterNames: settingsStore.trackedCharacterNames,
     comboLayout: settingsStore.comboLayout,
+    iconSizeRange: { min: MIN_ICON_SIZE, max: MAX_ICON_SIZE, default: DEFAULT_ICON_SIZE },
+    castLifetimeRange: {
+      min: MIN_CAST_LIFETIME_MS, max: MAX_CAST_LIFETIME_MS, default: DEFAULT_CAST_LIFETIME_MS,
+    },
   }));
   ipcMain.handle('settings:setTrackedHeroes', (_e, characterNames) => settingsStore.setTrackedHeroes(characterNames));
   ipcMain.handle('settings:setComboLayout', (_e, layout) => settingsStore.setComboLayout(layout));

@@ -2,6 +2,7 @@
 
 :root {
   --text: #e8e8ec;
+  --icon-size: 32px; /* overridden by the `config` SSE event (comboLayout.iconSize) */
 }
 
 body {
@@ -24,12 +25,16 @@ body {
   gap: 6px;
 }
 
+/* No max-height/overflow here on purpose: clipping the column would cut off
+   the newest casts (they're appended at the end), which is exactly what must
+   stay visible. Fitting the list to the viewport is the client's job instead
+   — see visibleCapacity() in client.js, which caps how many entries are kept
+   based on the icon size and the window. */
 #combo-log[data-orientation="vertical"][data-direction="top-to-bottom"] { flex-direction: column; }
 #combo-log[data-orientation="vertical"][data-direction="bottom-to-top"] { flex-direction: column-reverse; }
 
 #combo-log[data-orientation="horizontal"] {
   width: auto;
-  max-width: 90vw;
   flex-wrap: nowrap;
 }
 #combo-log[data-orientation="horizontal"][data-direction="left-to-right"] { flex-direction: row; }
@@ -54,8 +59,8 @@ body {
 .cast-entry.fading  { opacity: 0; }
 
 .cast-icon {
-  width: 32px;
-  height: 32px;
+  width: var(--icon-size);
+  height: var(--icon-size);
   object-fit: contain;
   image-rendering: pixelated;
   flex-shrink: 0;

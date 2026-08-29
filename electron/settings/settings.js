@@ -23,6 +23,22 @@ const statusEl = document.getElementById('status');
 const orientationField = document.getElementById('orientation-field');
 const directionVertical = document.getElementById('direction-vertical');
 const directionHorizontal = document.getElementById('direction-horizontal');
+const iconSizeInput = document.getElementById('icon-size');
+const iconSizeValue = document.getElementById('icon-size-value');
+const castLifetimeInput = document.getElementById('cast-lifetime');
+const castLifetimeValue = document.getElementById('cast-lifetime-value');
+
+// Overwritten by the main process's authoritative ranges on init (see
+// `iconSizeRange` / `castLifetimeRange` in settings:getState); the markup
+// values are only the fallback for the brief moment before that resolves.
+let defaultIconSize = Number(iconSizeInput.value) || 32;
+let defaultCastLifetimeMs = Number(castLifetimeInput.value) * 1000 || 6000;
+
+// The slider is in seconds — milliseconds are an awkward thing to drag.
+function formatLifetime(ms) {
+  const seconds = ms / 1000;
+  return `${Number.isInteger(seconds) ? seconds : seconds.toFixed(1)} s`;
+}
 
 let showStatusTimer = null;
 function showStatus(text) {
@@ -132,16 +148,18 @@ function updateDirectionVisibility(orientation) {
   directionHorizontal.classList.toggle('active', orientation === 'horizontal');
 }
 
-// Mirrors overlay/style.css: .cast-icon (32px) + .cast-entry padding (4px * 2) + border (2px * 2).
-const CAST_ENTRY_BOX_PX = 32 + 4 * 2 + 2 * 2;
+// Mirrors overlay/style.css: .cast-entry padding (4px * 2) + border (2px * 2)
+// around the icon itself.
+const CAST_ENTRY_CHROME_PX = 4 * 2 + 2 * 2;
 const CAST_ENTRY_GAP_PX = 6;
 const MAX_VISIBLE_CASTS = 8; // mirrors electron/overlay/client.js
 
 const layoutSizeHint = document.getElementById('layout-size-hint');
 
-function updateLayoutSizeHint(orientation) {
-  const along = MAX_VISIBLE_CASTS * CAST_ENTRY_BOX_PX + (MAX_VISIBLE_CASTS - 1) * CAST_ENTRY_GAP_PX;
-  const across = CAST_ENTRY_BOX_PX;
+function updateLayoutSizeHint(orientation, iconSize) {
+  const box = iconSize + CAST_ENTRY_CHROME_PX;
+  const along = MAX_VISIBLE_CASTS * box + (MAX_VISIBLE_CASTS - 1) * CAST_ENTRY_GAP_PX;
+  const across = box;
   const [width, height] = orientation === 'horizontal' ? [along, across] : [across, along];
   layoutSizeHint.textContent =
     `Taille recommandée pour la source navigateur OBS : ${width} × ${height} px `
@@ -151,6 +169,8 @@ function updateLayoutSizeHint(orientation) {
 function renderLayout(layout) {
   const orientation = layout?.orientation || 'vertical';
   const direction = layout?.direction || 'top-to-bottom';
+  const iconSize = layout?.iconSize || defaultIconSize;
+  const castLifetimeMs = layout?.castLifetimeMs || defaultCastLifetimeMs;
 
   for (const input of orientationField.querySelectorAll('input[name="orientation"]')) {
     input.checked = input.value === orientation;
@@ -158,8 +178,12 @@ function renderLayout(layout) {
   for (const input of document.querySelectorAll('input[name="direction"]')) {
     input.checked = input.value === direction;
   }
+  iconSizeInput.value = iconSize;
+  iconSizeValue.textContent = `${iconSize} px`;
+  castLifetimeInput.value = castLifetimeMs / 1000;
+  castLifetimeValue.textContent = formatLifetime(castLifetimeMs);
   updateDirectionVisibility(orientation);
-  updateLayoutSizeHint(orientation);
+  updateLayoutSizeHint(orientation, iconSize);
 }
 
 function defaultDirectionFor(orientation) {
@@ -171,7 +195,14 @@ orientationField.addEventListener('change', (e) => {
   const orientation = e.target.value;
   const direction = defaultDirectionFor(orientation);
   updateDirectionVisibility(orientation);
-  renderLayout({ orientation, direction });
+  // Carry the current slider values through, so re-rendering doesn't snap
+  // them back to the defaults.
+  renderLayout({
+    orientation,
+    direction,
+    iconSize: Number(iconSizeInput.value),
+    castLifetimeMs: Number(castLifetimeInput.value) * 1000,
+  });
   window.settingsAPI.setComboLayout({ orientation, direction });
   showStatus('Réglages enregistrés');
 });
@@ -179,6 +210,30 @@ orientationField.addEventListener('change', (e) => {
 document.getElementById('direction-field').addEventListener('change', (e) => {
   if (e.target.name !== 'direction') return;
   window.settingsAPI.setComboLayout({ direction: e.target.value });
+  showStatus('Réglages enregistrés');
+});
+
+// `input` keeps the label and the OBS size hint live while dragging; the
+// setting itself is only persisted/broadcast on `change` (pointer release),
+// so a drag doesn't write the file once per pixel.
+iconSizeInput.addEventListener('input', () => {
+  const iconSize = Number(iconSizeInput.value);
+  const orientation = orientationField.querySelector('input[name="orientation"]:checked')?.value || 'vertical';
+  iconSizeValue.textContent = `${iconSize} px`;
+  updateLayoutSizeHint(orientation, iconSize);
+});
+
+iconSizeInput.addEventListener('change', () => {
+  window.settingsAPI.setComboLayout({ iconSize: Number(iconSizeInput.value) });
+  showStatus('Réglages enregistrés');
+});
+
+castLifetimeInput.addEventListener('input', () => {
+  castLifetimeValue.textContent = formatLifetime(Number(castLifetimeInput.value) * 1000);
+});
+
+castLifetimeInput.addEventListener('change', () => {
+  window.settingsAPI.setComboLayout({ castLifetimeMs: Number(castLifetimeInput.value) * 1000 });
   showStatus('Réglages enregistrés');
 });
 
@@ -313,9 +368,25 @@ function renderUpdateStatus(payload) {
 updateCheckBtn.addEventListener('click', () => window.settingsAPI.checkForUpdates());
 window.settingsAPI.onUpdateStatus(renderUpdateStatus);
 
+function applyIconSizeRange(range) {
+  if (!range) return;
+  iconSizeInput.min = range.min;
+  iconSizeInput.max = range.max;
+  defaultIconSize = range.default;
+}
+
+function applyCastLifetimeRange(range) {
+  if (!range) return;
+  castLifetimeInput.min = range.min / 1000;
+  castLifetimeInput.max = range.max / 1000;
+  defaultCastLifetimeMs = range.default;
+}
+
 async function init() {
   const state = await window.settingsAPI.getState();
   renderHeroes(state.heroes, state.trackedCharacterNames);
+  applyIconSizeRange(state.iconSizeRange);
+  applyCastLifetimeRange(state.castLifetimeRange);
   renderLayout(state.comboLayout);
   await loadDiagnostics();
   debugLog.innerHTML = '<div class="debug-empty">En attente d\'un sort détecté dans les logs…</div>';

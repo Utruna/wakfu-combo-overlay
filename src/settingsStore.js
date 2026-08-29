@@ -16,6 +16,18 @@ const fs = require('fs');
 const path = require('path');
 const { EventEmitter } = require('events');
 
+// Spell icons are 32x32 source PNGs; larger sizes upscale with
+// `image-rendering: pixelated` (see electron/overlay/style.css), which is the
+// intended crisp-pixel look rather than a blurry stretch.
+const DEFAULT_ICON_SIZE = 32;
+const MIN_ICON_SIZE = 16;
+const MAX_ICON_SIZE = 128;
+
+// How long a cast icon stays on the overlay before fading out.
+const DEFAULT_CAST_LIFETIME_MS = 6000;
+const MIN_CAST_LIFETIME_MS = 1000;
+const MAX_CAST_LIFETIME_MS = 60000;
+
 class SettingsStore extends EventEmitter {
   /** @param {string} filePath - Where to persist settings as JSON. */
   constructor(filePath) {
@@ -33,7 +45,7 @@ class SettingsStore extends EventEmitter {
    * @param {object} defaults
    * @param {{name: string, characterName: string, color: object}[]} defaults.heroes
    * @param {string[]} defaults.trackedCharacterNames
-   * @param {{orientation: string, direction: string}} defaults.comboLayout
+   * @param {{orientation: string, direction: string, iconSize: number, castLifetimeMs: number}} defaults.comboLayout
    * @param {number} defaults.overlayPort
    * @param {string} defaults.logsDir
    */
@@ -51,6 +63,17 @@ class SettingsStore extends EventEmitter {
     if (!this._state.comboLayout) {
       this._state.comboLayout = defaults.comboLayout;
       changed = true;
+    } else {
+      // Added after the first releases — settings files from those versions
+      // have a comboLayout without these.
+      if (!this._state.comboLayout.iconSize) {
+        this._state.comboLayout.iconSize = defaults.comboLayout.iconSize;
+        changed = true;
+      }
+      if (!this._state.comboLayout.castLifetimeMs) {
+        this._state.comboLayout.castLifetimeMs = defaults.comboLayout.castLifetimeMs;
+        changed = true;
+      }
     }
     if (!this._state.overlayPort) {
       this._state.overlayPort = defaults.overlayPort;
@@ -122,8 +145,23 @@ class SettingsStore extends EventEmitter {
     this.emit('trackedHeroesChanged', this.trackedCharacterNames);
   }
 
+  /**
+   * Merge a partial layout change into the stored one. Out-of-range numeric
+   * values are clamped rather than rejected, so a stray value can't leave the
+   * overlay with unreadable icons or casts that never disappear.
+   *
+   * @param {{orientation?: string, direction?: string, iconSize?: number, castLifetimeMs?: number}} layout
+   */
   setComboLayout(layout) {
-    this._state.comboLayout = { ...this._state.comboLayout, ...layout };
+    const merged = { ...this._state.comboLayout, ...layout };
+    if (layout.iconSize !== undefined) {
+      merged.iconSize = SettingsStore.clampIconSize(layout.iconSize, this._state.comboLayout?.iconSize);
+    }
+    if (layout.castLifetimeMs !== undefined) {
+      merged.castLifetimeMs = SettingsStore.clampCastLifetime(
+        layout.castLifetimeMs, this._state.comboLayout?.castLifetimeMs);
+    }
+    this._state.comboLayout = merged;
     this._persist();
     this.emit('comboLayoutChanged', this._state.comboLayout);
   }
@@ -165,6 +203,28 @@ class SettingsStore extends EventEmitter {
     this.emit('trackedHeroesChanged', this.trackedCharacterNames);
   }
 
+  /**
+   * @param {*} size - Candidate icon size in px.
+   * @param {number} [fallback] - Used when `size` isn't a number at all.
+   * @returns {number} An integer within [MIN_ICON_SIZE, MAX_ICON_SIZE].
+   */
+  static clampIconSize(size, fallback = DEFAULT_ICON_SIZE) {
+    const value = Math.round(Number(size));
+    if (!Number.isFinite(value)) return fallback;
+    return Math.min(MAX_ICON_SIZE, Math.max(MIN_ICON_SIZE, value));
+  }
+
+  /**
+   * @param {*} ms - Candidate cast lifetime in milliseconds.
+   * @param {number} [fallback] - Used when `ms` isn't a number at all.
+   * @returns {number} An integer within [MIN_CAST_LIFETIME_MS, MAX_CAST_LIFETIME_MS].
+   */
+  static clampCastLifetime(ms, fallback = DEFAULT_CAST_LIFETIME_MS) {
+    const value = Math.round(Number(ms));
+    if (!Number.isFinite(value)) return fallback;
+    return Math.min(MAX_CAST_LIFETIME_MS, Math.max(MIN_CAST_LIFETIME_MS, value));
+  }
+
   // ── Private ──────────────────────────────────────────────────────────────
 
   _persist() {
@@ -185,4 +245,8 @@ class SettingsStore extends EventEmitter {
   }
 }
 
-module.exports = { SettingsStore };
+module.exports = {
+  SettingsStore,
+  DEFAULT_ICON_SIZE, MIN_ICON_SIZE, MAX_ICON_SIZE,
+  DEFAULT_CAST_LIFETIME_MS, MIN_CAST_LIFETIME_MS, MAX_CAST_LIFETIME_MS,
+};

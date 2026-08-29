@@ -40,6 +40,24 @@
     </div>
   </fieldset>
 
+  <fieldset id="icon-size-field">
+    <legend>Taille des icônes</legend>
+    <div class="slider-row">
+      <input type="range" id="icon-size" min="16" max="128" step="4" value="32">
+      <span id="icon-size-value"></span>
+    </div>
+    <p class="hint">Les icônes sont en 32 px : au-delà, elles sont volontairement pixélisées.</p>
+  </fieldset>
+
+  <fieldset id="cast-lifetime-field">
+    <legend>Durée d'affichage</legend>
+    <div class="slider-row">
+      <input type="range" id="cast-lifetime" min="1" max="60" step="0.5" value="6">
+      <span id="cast-lifetime-value"></span>
+    </div>
+    <p class="hint">Temps pendant lequel un sort reste à l'écran avant de disparaître.</p>
+  </fieldset>
+
   <p class="hint" id="layout-size-hint"></p>
 
   <p class="status" id="status"></p>
