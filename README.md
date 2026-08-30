@@ -44,20 +44,90 @@ Le workflow `.github/workflows/release.yml` build l'installeur sur un runner Win
 
 1. Monte la version dans `package.json` (`npm version patch` / `minor` / `major`, ou modifie le champ `version` à la main) et pousse le commit.
 2. Sur GitHub : onglet **Actions** → workflow **Build & Release (Windows)** → **Run workflow**.
-3. Une fois terminé, la release `vX.Y.Z` apparaît dans l'onglet **Releases** avec l'installeur `.exe` en pièce jointe.
+3. Une fois terminé, la release `vX.Y.Z` apparaît dans l'onglet **Releases** avec l'installeur `.exe` et le fichier `latest.yml` en pièces jointes.
 
-Le tag et le nom de la release sont dérivés automatiquement de `package.json` — relancer le workflow sans avoir bumpé la version échoue (le tag existe déjà).
+Le tag et le nom de la release sont dérivés automatiquement de `package.json`. Le workflow ne crée pas de tag git et ne vérifie pas que la version a changé : le relancer sans avoir bumpé `version` crée une **seconde release pour la même version** au lieu d'échouer. Pense à supprimer les doublons dans l'onglet Releases.
+
+`latest.yml` est le fichier que lit l'auto-updater pour connaître la dernière version — une release sans lui casse la vérification de mise à jour côté client (voir Dépannage).
 
 ---
 
-## Configuration dans OBS
+## Guide d'installation
 
-1. Ajoute une source **Navigateur** dans ta scène.
-2. URL : `http://localhost:3457`
-3. La page a un fond transparent — elle se superpose directement à ta capture de jeu.
-4. Place-la **au-dessus** de la capture de jeu dans la liste des sources (l'ordre de la liste détermine l'ordre d'affichage).
+### 1. Installer l'application
 
-L'aperçu OBS affiche déjà la source en direct sans avoir besoin de démarrer le streaming ou l'enregistrement.
+Télécharge le fichier `Wakfu-Combo-Overlay-Setup-X.Y.Z.exe` depuis la [dernière release](https://github.com/utruna/wakfu-combo-overlay/releases/latest) et lance-le.
+
+Windows SmartScreen peut afficher un avertissement (l'installeur n'est pas signé numériquement) : **Informations complémentaires** → **Exécuter quand même**.
+
+Au premier lancement, la fenêtre de réglages s'ouvre automatiquement. L'appli vit ensuite dans le **tray Windows** — souvent rangée derrière la flèche `^` à côté de l'horloge.
+
+### 2. Ajouter tes personnages
+
+![Section Héros suivis](doc/app-1-heros.png)
+
+Pour chaque personnage à afficher :
+
+1. Saisis son **nom exact en jeu** (c'est la clé utilisée pour le reconnaître dans les logs — une faute et il ne sera jamais détecté).
+2. Choisis sa **classe** : elle départage les sorts portant le même nom chez plusieurs classes (ex. « Rafale » chez Iop et chez Cra).
+3. Choisis une **couleur** : c'est celle de la bordure autour de ses icônes.
+4. **Ajouter**.
+
+Les cases à cocher activent/désactivent chaque personnage sans le supprimer. Le bouton **Tester** envoie un faux sort à l'overlay — pratique pour vérifier l'affichage sans lancer de combat. Tout est enregistré immédiatement, il n'y a pas de bouton « Enregistrer ».
+
+### 3. Régler l'affichage
+
+![Disposition de la liste](doc/app-2-disposition.png)
+
+**Attention à la taille des icônes** : c'est le piège le plus courant. Plus les icônes sont grandes, plus la liste est longue — et si elle dépasse la source navigateur OBS, les sorts s'affichent hors du cadre visible. La ligne sous les réglages indique en direct la taille à donner à la source :
+
+| Taille icône | Source OBS verticale | Source OBS horizontale | Icônes visibles dans 600 px de haut |
+|---|---|---|---|
+| 32 px | 44 × 394 px | 394 × 44 px | 8 |
+| 48 px | 60 × 522 px | 522 × 60 px | 8 |
+| 64 px | 76 × 650 px | 650 × 76 px | 6 |
+| 96 px | 108 × 906 px | 906 × 108 px | 4 |
+| 128 px | 140 × 1162 px | 1162 × 140 px | 3 |
+
+L'overlay affiche au maximum 8 sorts. Si la source est trop petite, il n'en garde que ce qui tient — en privilégiant toujours **les plus récents**, jamais les plus anciens.
+
+### 4. Configurer OBS
+
+![Ajouter une source Navigateur dans OBS](doc/obs-1-ajouter-source.png)
+
+Dans la liste **Sources** de ta scène : **+** → **Navigateur**.
+
+![Propriétés de la source Navigateur](doc/obs-2-proprietes.png)
+
+Dans les propriétés de la source :
+
+- **URL** : `http://localhost:3457` (l'adresse exacte est affichée dans le panneau Diagnostic, un clic dessus la copie)
+- **Largeur** / **Hauteur** : les valeurs du tableau ci-dessus, selon ta taille d'icônes et ton orientation
+
+Les valeurs de Largeur et Hauteur sont celles que l'appli affiche sous les réglages de disposition — il suffit de les recopier :
+
+![Reporter la taille indiquée par les réglages](doc/obs-3-taille.png)
+
+Enfin, place la source **au-dessus** de ta capture de jeu dans la liste des sources — l'ordre de la liste détermine l'ordre d'affichage. La page a un fond transparent, elle se superpose directement.
+
+### 5. Tester sans jouer
+
+Clique **Tester** en face d'un personnage dans les réglages : son icône doit apparaître aussitôt dans l'aperçu OBS. L'aperçu affiche la source en direct, sans avoir besoin de lancer le streaming ou l'enregistrement.
+
+![L'overlay dans la scène OBS](doc/obs-4-resultat.png)
+
+### 6. Vérifier que tout tourne
+
+![Panneau Diagnostic](doc/app-3-diagnostic.png)
+
+Le panneau **Diagnostic** répond aux questions les plus utiles :
+
+- **Connectés sur l'overlay** : à zéro, OBS n'est pas connecté à la page (mauvaise URL, ou source pas encore chargée).
+- **État** du dossier de logs : « trouvé » signifie que l'appli surveille le bon dossier. Sinon, corrige-le avec **Parcourir…**.
+
+![Activité en temps réel et mises à jour](doc/app-4-activite.png)
+
+Le journal **Activité en temps réel** montre chaque sort détecté et son sort : envoyé à l'overlay, ignoré car le personnage n'est pas suivi, ou ignoré car il s'agit d'un autre joueur ou d'un mob. C'est l'outil à regarder en premier quand un sort n'apparaît pas.
 
 ---
 
@@ -70,7 +140,7 @@ L'aperçu OBS affiche déjà la source en direct sans avoir besoin de démarrer 
 
 Fermer la fenêtre (✕) la cache dans le tray mais **ne quitte pas l'appli** — le suivi continue en arrière-plan pendant le stream. Pour fermer complètement : clic droit sur l'icône du tray → **Quitter**, ou `Ctrl+C` dans le terminal si lancé en dev.
 
-- **Mises à jour** : l'appli (une fois installée via l'exécutable, pas en dev) vérifie automatiquement la présence d'une nouvelle version sur GitHub Releases quelques secondes après son lancement, et affiche une boîte de dialogue si une mise à jour est disponible — la mise à jour n'est ni téléchargée ni installée sans confirmation. Le panneau **Mises à jour** de la fenêtre de réglages (ou l'entrée **Vérifier les mises à jour** du menu du tray) permet de relancer la recherche manuellement à tout moment. Rien à faire côté publication : le workflow `release.yml` existant fournit déjà les fichiers nécessaires.
+- **Mises à jour** : l'appli (une fois installée via l'exécutable, pas en dev) vérifie automatiquement la présence d'une nouvelle version sur GitHub Releases quelques secondes après son lancement, et affiche une boîte de dialogue si une mise à jour est disponible — la mise à jour n'est ni téléchargée ni installée sans confirmation. Le panneau **Mises à jour** de la fenêtre de réglages (ou l'entrée **Vérifier les mises à jour** du menu du tray) permet de relancer la recherche manuellement à tout moment. Côté publication, la release doit être **publiée et non draft** : l'updater lit le flux public `releases.atom`, où les drafts n'apparaissent pas (ils restent visibles pour toi, connecté au dépôt). `build.publish.releaseType` est réglé sur `release` dans `package.json` pour que le workflow publie directement — sans ça, electron-builder crée un draft par défaut.
 
 ---
 
@@ -80,11 +150,11 @@ Fermer la fenêtre (✕) la cache dans le tray mais **ne quitte pas l'appli** �
 - `electron/preload.js` — pont IPC exposé à la fenêtre de réglages
 - `electron/settings/` — HTML/CSS/JS de la fenêtre de réglages
 - `electron/overlay/` — HTML/CSS/JS de la page servie à OBS
-- `../src/wakfuCombatLogReader.js` — lecture incrémentale de `wakfu.log`
-- `../src/characterMatcher.js` — filtrage joueur suivi vs. random/mob (option `strict`)
-- `../src/settingsStore.js` — persistance des réglages (héros suivis, disposition)
-- `../overlay/server.js` — petit serveur HTTP/SSE générique, réutilisé par cette appli
-- `../data/spellIcons.json` — table nom de sort → icône, générée par `../tools/scrape_spell_icons.js`
+- `src/wakfuCombatLogReader.js` — lecture incrémentale de `wakfu.log`
+- `src/characterMatcher.js` — filtrage joueur suivi vs. random/mob (option `strict`)
+- `src/settingsStore.js` — persistance des réglages (héros suivis, disposition, taille des icônes, durée d'affichage)
+- `overlay/server.js` — petit serveur HTTP/SSE générique, réutilisé par cette appli
+- `data/spellIcons.json` — table nom de sort → icône, générée par `tools/scrape_spell_icons.js`
 
 Les réglages sont sauvegardés dans `%APPDATA%\Wakfu Combo Overlay\settings.json` — indépendant du dossier du projet, ils survivent à une réinstallation.
 
@@ -115,12 +185,23 @@ L'overlay est actuellement **icône seule** : un sort sans icône connue n'affic
 → Vérifie le compteur "Connectés" dans le panneau Diagnostic. À zéro, OBS n'est pas connecté à la page (mauvaise URL, ou source pas encore chargée).
 → Vérifie l'ordre des sources dans OBS (la Source Navigateur doit être au-dessus de la capture de jeu).
 → Une page qui n'a jamais rien affiché peut ne pas se "peindre" dans OBS tant qu'un premier changement ne survient pas — le bouton **Tester** sert justement à déclencher ce premier rendu.
+→ À l'ouverture, l'overlay ne réaffiche pas les sorts déjà expirés (ils sont datés de leur lancement réel, pas de la connexion) : une page fraîchement chargée reste donc vide jusqu'au sort suivant, c'est normal.
+
+**Les sorts sont détectés mais seuls les premiers apparaissent dans OBS**
+→ Avec une grande taille d'icônes, la liste dépasse la hauteur (ou la largeur) de la source navigateur. L'overlay ne garde alors que ce qui tient réellement à l'écran, en privilégiant les sorts les plus récents. Soit agrandis la source navigateur à la taille indiquée sous les réglages de disposition, soit réduis la taille des icônes, soit passe en orientation horizontale.
+
+**"Cannot find latest.yml in the latest release artifacts" lors d'une recherche de mise à jour**
+→ La dernière release publiée ne contient pas `latest.yml`. Le plus souvent, la nouvelle release est encore en **draft** : l'updater ne la voit pas et retombe sur une release antérieure. Publie-la (Releases → Edit → Publish release), puis relance la vérification. Pour confirmer ce que voit l'updater :
+
+```bash
+curl -s https://github.com/utruna/wakfu-combo-overlay/releases.atom | grep -o 'releases/tag/[^"]*'
+```
 
 **Le dossier de logs est marqué "introuvable"**
 → Wakfu n'a peut-être jamais été lancé sur cette machine, ou est installé ailleurs que via Zaap. Utilise le champ + bouton **Parcourir…** dans le Diagnostic pour pointer vers le bon dossier.
 
 **Un sort lancé par une invocation (créature, poupée, etc.) n'affiche jamais d'icône**
-→ Normal pour l'instant : les invocations lancent leurs sorts sous leur propre nom, pas celui du personnage qui les a invoquées, et ces sorts ne figurent pas sur les pages classe de l'encyclopédie officielle, donc `tools/scrape_spell_icons.js` ne peut pas les trouver. Limitation connue, non résolue pour cette version alpha.
+→ Normal pour l'instant : les invocations lancent leurs sorts sous leur propre nom, pas celui du personnage qui les a invoquées, et ces sorts ne figurent pas sur les pages classe de l'encyclopédie officielle, donc `tools/scrape_spell_icons.js` ne peut pas les trouver. Limitation connue, non résolue à ce jour.
 
 **"address already in use" au lancement**
 → Une instance tourne déjà (souvent invisible : fermer la fenêtre ne quitte pas l'appli). Cherche "Wakfu Combo Overlay" dans le Gestionnaire des tâches, ou utilise "Quitter" depuis le tray avant de relancer.
