@@ -1017,6 +1017,46 @@
     "Relance": {
       "iconId": "7227",
       "icon": "assets/icons/ecaflip/7227.png"
+    },
+    "La Croquette": {
+      "iconId": "7938",
+      "icon": "assets/icons/ecaflip/7938.png"
+    },
+    "Le Dieu Ouginak": {
+      "iconId": "7939",
+      "icon": "assets/icons/ecaflip/7939.png"
+    },
+    "La Lune Poilue": {
+      "iconId": "7942",
+      "icon": "assets/icons/ecaflip/7942.png"
+    },
+    "Les Dés Capricieux": {
+      "iconId": "7943",
+      "icon": "assets/icons/ecaflip/7943.png"
+    },
+    "Le Chacha Noir": {
+      "iconId": "7944",
+      "icon": "assets/icons/ecaflip/7944.png"
+    },
+    "La Roue de la Fortune": {
+      "iconId": "7945",
+      "icon": "assets/icons/ecaflip/7945.png"
+    },
+    "Le Chacrifice": {
+      "iconId": "7946",
+      "icon": "assets/icons/ecaflip/7946.png"
+    },
+    "Le Dieu Ecaflip": {
+      "iconId": "7947",
+      "icon": "assets/icons/ecaflip/7947.png"
+    },
+    "Les Bébétards d'Ecaflip": {
+      "iconId": "7940",
+      "icon": "assets/icons/ecaflip/7940.png"
+    },
+    "L'Hermite Poilu": {
+      "iconId": "7941",
+      "icon": "assets/icons/ecaflip/7941.png"
     }
   },
   "eniripsa": {

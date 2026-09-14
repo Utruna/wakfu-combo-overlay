@@ -50,6 +50,34 @@ const CLASSES = [
   { slug: '19-huppermage', class: 'huppermage' },
 ];
 
+// Ecaflip's 10 tarot cards (its unique class mechanic, replacing normal
+// spells) aren't in the official encyclopedia page at all — scrapeClass()
+// finds nothing for them no matter the regex, the section simply isn't
+// server-rendered there. Their names/ids come from the community site
+// stratfu.fr (its ecaflip-cartes.js), cross-checked against Ankama's own
+// asset CDN: every id below resolves a real PNG at
+// static.ankama.com/wakfu/portal/game/spell/<id>.png, so only the (id, name)
+// mapping is borrowed from a third party — the images themselves are still
+// fetched from Ankama, same as every other spell here. Hardcoded rather than
+// scraped live from stratfu.fr each run: it's a fixed set of exactly 10 cards
+// that hasn't changed since the mechanic was introduced, not worth taking on
+// a second site's markup as an ongoing scrape dependency for. Names are
+// straight-apostrophe ('), not stratfu.fr's typographic ('/U+2019) — the icon
+// lookup is an exact string match against the real combat log, and the log
+// itself uses straight apostrophes (confirmed against a real Ecaflip fight).
+const ECAFLIP_CARDS = [
+  { id: '7938', name: 'La Croquette' },
+  { id: '7939', name: 'Le Dieu Ouginak' },
+  { id: '7940', name: "Les Bébétards d'Ecaflip" },
+  { id: '7941', name: "L'Hermite Poilu" },
+  { id: '7942', name: 'La Lune Poilue' },
+  { id: '7943', name: 'Les Dés Capricieux' },
+  { id: '7944', name: 'Le Chacha Noir' },
+  { id: '7945', name: 'La Roue de la Fortune' },
+  { id: '7946', name: 'Le Chacrifice' },
+  { id: '7947', name: 'Le Dieu Ecaflip' },
+];
+
 const PAGE_DELAY_MS = 3000;
 const ICON_DELAY_MS = 2000;
 
@@ -185,6 +213,11 @@ async function main() {
     allSpells.push(...spells);
     await sleep(PAGE_DELAY_MS);
   }
+
+  for (const card of ECAFLIP_CARDS) {
+    allSpells.push({ name: card.name, iconId: card.id, class: 'ecaflip' });
+  }
+  console.log(`[scrape] ecaflip: +${ECAFLIP_CARDS.length} carte(s) (hors encyclopédie officielle, voir ECAFLIP_CARDS).`);
 
   console.log(`\n[scrape] ${allSpells.length} sort(s) au total. Téléchargement des icônes (doux, ~${ICON_DELAY_MS}ms entre chaque)...\n`);
 
