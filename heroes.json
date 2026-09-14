@@ -10,39 +10,6 @@
         "g": 50,
         "b": 50
       }
-    },
-    {
-      "heroNumber": 2,
-      "name": "Héros 2 — Eniripsa",
-      "profile": "profiles/eniripsa.json",
-      "characterName": "Lueur Grenat",
-      "color": {
-        "r": 50,
-        "g": 180,
-        "b": 50
-      }
-    },
-    {
-      "heroNumber": 3,
-      "name": "Héros 3 — Cra",
-      "profile": "profiles/cra.json",
-      "characterName": "Lueur Acérée",
-      "color": {
-        "r": 50,
-        "g": 120,
-        "b": 220
-      }
-    },
-    {
-      "heroNumber": 4,
-      "name": "Héros 4 — Huppermage",
-      "profile": "profiles/hupper.json",
-      "characterName": "Lueur Etherique",
-      "color": {
-        "r": 50,
-        "g": 120,
-        "b": 220
-      }
     }
   ],
   "settings": {
@@ -50,9 +17,7 @@
     "defaultHeroIndex": 0,
     "streamDeckModel": "standard",
     "characterMap": {
-      "Lueur Pourpre": 0,
-      "Lueur Grenat": 1,
-      "Lueur Acérée": 2
+      "Lueur Pourpre": 0
     }
   }
 }
