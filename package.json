@@ -1,6 +1,6 @@
 {
   "name": "wakfu-combo-overlay",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Overlay OBS qui affiche en temps réel les sorts lancés par tes personnages dans Wakfu, à partir des logs de combat.",
   "main": "electron/main.js",
   "repository": {
