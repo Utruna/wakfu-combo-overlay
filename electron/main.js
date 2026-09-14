@@ -91,12 +91,17 @@ function findSpellIcon(spellIcons, heroClass, spellName) {
   return null;
 }
 
-/** (Re)creates the overlay HTTP/SSE server on the given port, preserving the current layout. */
-function startOverlay(port, comboLayout) {
+/**
+ * (Re)creates the overlay HTTP/SSE server on the given port, preserving the current layout.
+ *
+ * @returns {Promise<{server: OverlayServer, ok: boolean, error?: string}>} `server` is
+ *   returned even on failure so the caller can dispose of it — it just never bound.
+ */
+async function startOverlay(port, comboLayout) {
   const server = new OverlayServer({ rootDir: ROOT_DIR, staticDir: path.join(__dirname, 'overlay') });
-  server.start(port);
-  server.broadcastConfig(comboLayout);
-  return server;
+  const result = await server.start(port);
+  if (result.ok) server.broadcastConfig(comboLayout);
+  return { server, ok: result.ok, error: result.error };
 }
 
 function pushDebugEvent(entry) {
@@ -270,7 +275,16 @@ app.whenReady().then(async () => {
     logsDir: WakfuCombatLogReader.DEFAULT_LOGS_DIR,
   });
 
-  overlay = startOverlay(settingsStore.overlayPort, settingsStore.comboLayout);
+  const overlayStart = await startOverlay(settingsStore.overlayPort, settingsStore.comboLayout);
+  overlay = overlayStart.server;
+  if (!overlayStart.ok) {
+    console.error('[main] Overlay server failed to start:', overlayStart.error);
+    dialog.showErrorBox(
+      'Port de l\'overlay indisponible',
+      `Impossible de démarrer le serveur overlay sur le port ${settingsStore.overlayPort} (${overlayStart.error}).\n`
+      + 'Change le port dans les réglages, panneau Diagnostic.'
+    );
+  }
 
   settingsStore.on('comboLayoutChanged', (layout) => overlay.broadcastConfig(layout));
 
@@ -380,19 +394,28 @@ app.whenReady().then(async () => {
     return result.filePaths[0];
   });
 
-  ipcMain.handle('settings:setOverlayPort', (_e, port) => {
+  ipcMain.handle('settings:setOverlayPort', async (_e, port) => {
     if (Number(port) === settingsStore.overlayPort) {
       return { ok: true, overlayUrl: `http://localhost:${settingsStore.overlayPort}` };
     }
-
-    const applied = settingsStore.setOverlayPort(port);
-    if (!applied) {
+    if (!SettingsStore.isValidPort(port)) {
       return { ok: false, error: 'Port invalide (doit être entre 1024 et 65535).' };
     }
 
+    // Bind the new port BEFORE touching the old server or persisting anything:
+    // if it's already taken, the current overlay keeps running untouched and
+    // settings.json still points at the port that actually works.
+    const value = Number(port);
+    const attempt = await startOverlay(value, settingsStore.comboLayout);
+    if (!attempt.ok) {
+      attempt.server.stop();
+      return { ok: false, error: attempt.error };
+    }
+
     overlay.stop();
-    overlay = startOverlay(settingsStore.overlayPort, settingsStore.comboLayout);
-    return { ok: true, overlayUrl: `http://localhost:${settingsStore.overlayPort}` };
+    overlay = attempt.server;
+    settingsStore.setOverlayPort(value);
+    return { ok: true, overlayUrl: `http://localhost:${value}` };
   });
 
   ipcMain.handle('settings:sendTestCast', (_e, characterName) => {

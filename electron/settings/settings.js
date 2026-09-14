@@ -319,6 +319,8 @@ document.getElementById('logs-dir-apply').addEventListener('click', async () => 
   await loadDiagnostics();
 });
 
+const MAX_DEBUG_ENTRIES = 50;
+
 const DEBUG_LABELS = {
   broadcast: 'Envoyé à l\'overlay',
   'ignored-untracked': 'Ignoré (héros non suivi)',
@@ -337,7 +339,7 @@ function addDebugEntry(entry) {
   el.textContent = `[${time}] ${DEBUG_LABELS[entry.status] ?? entry.status} — ${who}${entry.spellName ? ' : ' + entry.spellName : ''}`;
   debugLog.prepend(el);
 
-  while (debugLog.children.length > 50) debugLog.removeChild(debugLog.lastChild);
+  while (debugLog.children.length > MAX_DEBUG_ENTRIES) debugLog.removeChild(debugLog.lastChild);
 }
 
 document.getElementById('clear-debug-log').addEventListener('click', () => {

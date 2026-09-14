@@ -18,6 +18,18 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Ensure this version hasn't already been released
+        shell: bash
+        run: |
+          VERSION="v$(node -p "require('./package.json').version")"
+          if gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::Release $VERSION already exists. Bump the version in package.json before re-running this workflow."
+            exit 1
+          fi
+          echo "No existing release for $VERSION — proceeding."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Install dependencies
         run: npm ci
 

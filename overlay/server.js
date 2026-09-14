@@ -33,11 +33,38 @@ class OverlayServer {
     this._castBuffer = [];
     this._lastConfig = null;
     this._server = http.createServer((req, res) => this._handle(req, res));
+    // Without a listener, an error here (e.g. EADDRINUSE) would be an uncaught
+    // exception that crashes the whole Electron main process — this permanent
+    // listener keeps that from happening even after start() has resolved.
+    this._server.on('error', (err) => {
+      console.error('[OverlayServer] Server error:', err.message);
+    });
   }
 
+  /**
+   * @param {number} port
+   * @returns {Promise<{ok: boolean, error?: string}>} Never rejects — a bind
+   *   failure (e.g. port already in use) resolves with ok:false instead, so
+   *   callers can report it rather than crash.
+   */
   start(port = PORT) {
-    this._server.listen(port, '127.0.0.1', () => {
-      console.log(`[OverlayServer] http://localhost:${port}`);
+    return new Promise((resolve) => {
+      const onError = (err) => {
+        cleanup();
+        resolve({ ok: false, error: err.code === 'EADDRINUSE' ? 'Port déjà utilisé par un autre programme.' : err.message });
+      };
+      const onListening = () => {
+        cleanup();
+        console.log(`[OverlayServer] http://localhost:${port}`);
+        resolve({ ok: true });
+      };
+      const cleanup = () => {
+        this._server.removeListener('error', onError);
+        this._server.removeListener('listening', onListening);
+      };
+      this._server.once('error', onError);
+      this._server.once('listening', onListening);
+      this._server.listen(port, '127.0.0.1');
     });
   }
 

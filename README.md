@@ -46,7 +46,7 @@ Le workflow `.github/workflows/release.yml` build l'installeur sur un runner Win
 2. Sur GitHub : onglet **Actions** → workflow **Build & Release (Windows)** → **Run workflow**.
 3. Une fois terminé, la release `vX.Y.Z` apparaît dans l'onglet **Releases** avec l'installeur `.exe` et le fichier `latest.yml` en pièces jointes.
 
-Le tag et le nom de la release sont dérivés automatiquement de `package.json`. Le workflow ne crée pas de tag git et ne vérifie pas que la version a changé : le relancer sans avoir bumpé `version` crée une **seconde release pour la même version** au lieu d'échouer. Pense à supprimer les doublons dans l'onglet Releases.
+Le tag et le nom de la release sont dérivés automatiquement de `package.json`. Le workflow vérifie qu'une release pour cette version n'existe pas déjà (via `gh release view`) et **échoue explicitement** si c'est le cas, plutôt que de créer un doublon — relance-le après avoir bumpé `version` si ça arrive.
 
 `latest.yml` est le fichier que lit l'auto-updater pour connaître la dernière version — une release sans lui casse la vérification de mise à jour côté client (voir Dépannage).
 
@@ -200,8 +200,12 @@ curl -s https://github.com/utruna/wakfu-combo-overlay/releases.atom | grep -o 'r
 **Le dossier de logs est marqué "introuvable"**
 → Wakfu n'a peut-être jamais été lancé sur cette machine, ou est installé ailleurs que via Zaap. Utilise le champ + bouton **Parcourir…** dans le Diagnostic pour pointer vers le bon dossier.
 
-**Un sort lancé par une invocation (créature, poupée, etc.) n'affiche jamais d'icône**
-→ Normal pour l'instant : les invocations lancent leurs sorts sous leur propre nom, pas celui du personnage qui les a invoquées, et ces sorts ne figurent pas sur les pages classe de l'encyclopédie officielle, donc `tools/scrape_spell_icons.js` ne peut pas les trouver. Limitation connue, non résolue à ce jour.
+**Un sort lancé par une invocation (créature, poupée, etc.) n'apparaît pas du tout sur l'overlay**
+→ Normal pour l'instant, et confirmé sur un vrai combat Osamodas (logs avec 2 invocs, ex. "Chafer Elite lance le sort Sabre d'élite", "Piou Rouge lance le sort Picorage ardent") : les invocations lancent leurs sorts sous leur propre nom, jamais celui du personnage qui les a invoquées. Le journal de diagnostic classe donc ces sorts en **ignoré (joueur/mob inconnu)** — exactement comme un joueur random — pas juste "sans icône". Deux briques manquent pour les afficher un jour, indépendantes l'une de l'autre :
+1. Rattacher le nom de l'invoc au héros invocateur : le mécanisme existe déjà côté code (`characterAliases` dans `src/characterMatcher.js`) mais n'est pas exposé dans l'UI des réglages — il faudrait l'ajouter, et le nom de l'invoc changeant selon le sort d'invocation lancé, l'alias serait à définir manuellement par héros.
+2. Les icônes des sorts d'invocation elles-mêmes (ex. "Sabre d'élite") : ce sont les sorts propres à la créature invoquée, pas des sorts de classe Osamodas, donc absents de `data/spellIcons.json`. Il faudrait scraper une source différente des pages classe de l'encyclopédie.
+
+Limitation connue, non résolue à ce jour.
 
 **"address already in use" au lancement**
 → Une instance tourne déjà (souvent invisible : fermer la fenêtre ne quitte pas l'appli). Cherche "Wakfu Combo Overlay" dans le Gestionnaire des tâches, ou utilise "Quitter" depuis le tray avant de relancer.

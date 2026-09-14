@@ -102,16 +102,21 @@ class SettingsStore extends EventEmitter {
     return this._state.overlayPort;
   }
 
+  /** @param {*} port @returns {boolean} true if `port` is an integer in the unprivileged TCP range. */
+  static isValidPort(port) {
+    const value = Number(port);
+    return Number.isInteger(value) && value >= 1024 && value <= 65535;
+  }
+
   /**
    * @param {number} port - Must be an integer in the unprivileged TCP range.
    * @returns {boolean} true if valid and applied, false otherwise (caller keeps the old port).
    */
   setOverlayPort(port) {
-    const value = Number(port);
-    if (!Number.isInteger(value) || value < 1024 || value > 65535) return false;
-    this._state.overlayPort = value;
+    if (!SettingsStore.isValidPort(port)) return false;
+    this._state.overlayPort = Number(port);
     this._persist();
-    this.emit('overlayPortChanged', value);
+    this.emit('overlayPortChanged', this._state.overlayPort);
     return true;
   }
 
