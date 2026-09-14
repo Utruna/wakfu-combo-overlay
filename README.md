@@ -46,7 +46,7 @@ Le workflow `.github/workflows/release.yml` build l'installeur sur un runner Win
 2. Sur GitHub : onglet **Actions** → workflow **Build & Release (Windows)** → **Run workflow**.
 3. Une fois terminé, la release `vX.Y.Z` apparaît dans l'onglet **Releases** avec l'installeur `.exe` et le fichier `latest.yml` en pièces jointes.
 
-Le tag et le nom de la release sont dérivés automatiquement de `package.json`. Le workflow vérifie qu'une release pour cette version n'existe pas déjà (via `gh release view`) et **échoue explicitement** si c'est le cas, plutôt que de créer un doublon — relance-le après avoir bumpé `version` si ça arrive.
+Le tag et le nom de la release sont dérivés automatiquement de `package.json`. Le workflow vérifie qu'une release pour cette version n'existe pas déjà (via `gh release view`) et **échoue explicitement** si c'est le cas, plutôt que de créer un doublon — relance-le après avoir bumpé `version` si ça arrive. Il crée aussi et pousse le tag git `vX.Y.Z` correspondant avant de builder : `build.publish.releaseType: "release"` (voir plus bas) fait publier la release directement par electron-builder plutôt qu'en brouillon, et GitHub refuse de publier une release dont le tag n'existe pas encore dans le dépôt.
 
 `latest.yml` est le fichier que lit l'auto-updater pour connaître la dernière version — une release sans lui casse la vérification de mise à jour côté client (voir Dépannage).
 

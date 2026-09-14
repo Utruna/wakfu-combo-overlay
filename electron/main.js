@@ -359,6 +359,7 @@ app.whenReady().then(async () => {
   ipcMain.handle('settings:setTrackedHeroes', (_e, characterNames) => settingsStore.setTrackedHeroes(characterNames));
   ipcMain.handle('settings:setComboLayout', (_e, layout) => settingsStore.setComboLayout(layout));
   ipcMain.handle('settings:addHero', (_e, hero) => settingsStore.addHero(hero));
+  ipcMain.handle('settings:setHeroColor', (_e, characterName, color) => settingsStore.setHeroColor(characterName, color));
   ipcMain.handle('settings:removeHero', (_e, characterName) => settingsStore.removeHero(characterName));
 
   ipcMain.handle('settings:getDiagnostics', () => ({

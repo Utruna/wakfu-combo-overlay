@@ -52,7 +52,12 @@ function renderHeroes(heroes, trackedCharacterNames) {
   const tracked = new Set(trackedCharacterNames);
 
   heroes.forEach((hero) => {
-    const row = document.createElement('label');
+    // A plain div, not a <label> — wrapping the whole row in a label makes
+    // ANY click inside it (padding, the color swatch, gaps between buttons)
+    // toggle the checkbox. Only the checkbox itself and the name text should
+    // do that, so the checkbox stays natively clickable and the name gets an
+    // explicit click handler below instead of relying on label-forwarding.
+    const row = document.createElement('div');
     row.className = 'hero-row';
 
     const checkbox = document.createElement('input');
@@ -64,24 +69,33 @@ function renderHeroes(heroes, trackedCharacterNames) {
       showStatus('Réglages enregistrés');
     });
 
-    const swatch = document.createElement('span');
+    const swatch = document.createElement('input');
+    swatch.type = 'color';
     swatch.className = 'hero-swatch';
-    const { r = 120, g = 120, b = 120 } = hero.color || {};
-    swatch.style.background = `rgb(${r}, ${g}, ${b})`;
+    swatch.title = 'Changer la couleur';
+    swatch.value = rgbToHex(hero.color);
+    swatch.addEventListener('change', async () => {
+      await window.settingsAPI.setHeroColor(hero.characterName, hexToRgb(swatch.value));
+      showStatus('Couleur mise à jour');
+    });
 
     const label = document.createElement('span');
+    label.className = 'hero-label';
     const baseLabel = hero.name && hero.name !== hero.characterName
       ? `${hero.name} (${hero.characterName})`
       : hero.characterName;
     const classLabel = CLASS_LABELS.get(hero.class);
     label.textContent = classLabel ? `${baseLabel} — ${classLabel}` : baseLabel;
+    label.addEventListener('click', () => {
+      checkbox.checked = !checkbox.checked;
+      checkbox.dispatchEvent(new Event('change'));
+    });
 
     const testBtn = document.createElement('button');
     testBtn.type = 'button';
     testBtn.className = 'test-btn';
     testBtn.textContent = 'Tester';
-    testBtn.addEventListener('click', (e) => {
-      e.preventDefault();
+    testBtn.addEventListener('click', () => {
       window.settingsAPI.sendTestCast(hero.characterName);
     });
 
@@ -90,8 +104,7 @@ function renderHeroes(heroes, trackedCharacterNames) {
     removeBtn.className = 'remove-btn';
     removeBtn.textContent = '✕';
     removeBtn.title = 'Retirer ce héros';
-    removeBtn.addEventListener('click', async (e) => {
-      e.preventDefault();
+    removeBtn.addEventListener('click', async () => {
       await window.settingsAPI.removeHero(hero.characterName);
       await refreshHeroes();
       showStatus('Héros retiré');
@@ -113,6 +126,11 @@ function hexToRgb(hex) {
   const match = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
   if (!match) return { r: 120, g: 120, b: 120 };
   return { r: parseInt(match[1], 16), g: parseInt(match[2], 16), b: parseInt(match[3], 16) };
+}
+
+function rgbToHex({ r = 120, g = 120, b = 120 } = {}) {
+  const toHex = (n) => Math.max(0, Math.min(255, Number(n) || 0)).toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
 const addHeroForm = document.getElementById('add-hero-form');

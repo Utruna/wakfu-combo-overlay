@@ -197,6 +197,26 @@ class SettingsStore extends EventEmitter {
     return true;
   }
 
+  /**
+   * Update an existing hero's overlay color.
+   *
+   * @param {string} characterName
+   * @param {{r:number,g:number,b:number}} color
+   * @returns {boolean} true if the hero was found and updated, false otherwise.
+   */
+  setHeroColor(characterName, color) {
+    const index = this.heroes.findIndex((h) => h.characterName === characterName);
+    if (index === -1) return false;
+
+    const heroes = [...this.heroes];
+    heroes[index] = { ...heroes[index], color };
+    this._state.heroes = heroes;
+
+    this._persist();
+    this.emit('heroesChanged', this.heroes);
+    return true;
+  }
+
   /** Remove a tracked character by characterName. */
   removeHero(characterName) {
     this._state.heroes = this.heroes.filter((h) => h.characterName !== characterName);

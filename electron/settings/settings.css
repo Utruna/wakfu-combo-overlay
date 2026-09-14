@@ -48,12 +48,22 @@ h1:first-child { margin-top: 0; }
   gap: 8px;
 }
 
+.hero-label { cursor: pointer; }
+
 .hero-swatch {
-  width: 10px;
-  height: 10px;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: none;
   border-radius: 50%;
   flex-shrink: 0;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  overflow: hidden;
 }
+.hero-swatch::-webkit-color-swatch-wrapper { padding: 0; }
+.hero-swatch::-webkit-color-swatch { border: none; border-radius: 50%; }
 
 fieldset {
   border: 1px solid var(--border);
