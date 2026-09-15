@@ -27,12 +27,21 @@ const iconSizeInput = document.getElementById('icon-size');
 const iconSizeValue = document.getElementById('icon-size-value');
 const castLifetimeInput = document.getElementById('cast-lifetime');
 const castLifetimeValue = document.getElementById('cast-lifetime-value');
+const maxVisibleCastsInput = document.getElementById('max-visible-casts');
+const maxVisibleCastsValue = document.getElementById('max-visible-casts-value');
+const maxVisibleCastsError = document.getElementById('max-visible-casts-error');
+const previewEnabledInput = document.getElementById('preview-enabled');
 
 // Overwritten by the main process's authoritative ranges on init (see
 // `iconSizeRange` / `castLifetimeRange` in settings:getState); the markup
 // values are only the fallback for the brief moment before that resolves.
 let defaultIconSize = Number(iconSizeInput.value) || 32;
 let defaultCastLifetimeMs = Number(castLifetimeInput.value) * 1000 || 6000;
+let defaultMaxVisibleCasts = Number(maxVisibleCastsInput.value) || 8;
+let maxVisibleCastsRange = {
+  min: Number(maxVisibleCastsInput.min) || 1,
+  max: Number(maxVisibleCastsInput.max) || 20,
+};
 
 // The slider is in seconds — milliseconds are an awkward thing to drag.
 function formatLifetime(ms) {
@@ -170,13 +179,13 @@ function updateDirectionVisibility(orientation) {
 // around the icon itself.
 const CAST_ENTRY_CHROME_PX = 4 * 2 + 2 * 2;
 const CAST_ENTRY_GAP_PX = 6;
-const MAX_VISIBLE_CASTS = 8; // mirrors electron/overlay/client.js
 
 const layoutSizeHint = document.getElementById('layout-size-hint');
 
-function updateLayoutSizeHint(orientation, iconSize) {
+function updateLayoutSizeHint(orientation, iconSize, maxVisibleCasts) {
   const box = iconSize + CAST_ENTRY_CHROME_PX;
-  const along = MAX_VISIBLE_CASTS * box + (MAX_VISIBLE_CASTS - 1) * CAST_ENTRY_GAP_PX;
+  const count = Math.max(1, Number(maxVisibleCasts) || defaultMaxVisibleCasts);
+  const along = count * box + (count - 1) * CAST_ENTRY_GAP_PX;
   const across = box;
   const [width, height] = orientation === 'horizontal' ? [along, across] : [across, along];
   layoutSizeHint.textContent =
@@ -189,6 +198,9 @@ function renderLayout(layout) {
   const direction = layout?.direction || 'top-to-bottom';
   const iconSize = layout?.iconSize || defaultIconSize;
   const castLifetimeMs = layout?.castLifetimeMs || defaultCastLifetimeMs;
+  const maxVisibleCasts = layout?.maxVisibleCasts || defaultMaxVisibleCasts;
+  const previewEnabled = Boolean(layout?.previewEnabled);
+  defaultMaxVisibleCasts = maxVisibleCasts;
 
   for (const input of orientationField.querySelectorAll('input[name="orientation"]')) {
     input.checked = input.value === orientation;
@@ -200,8 +212,11 @@ function renderLayout(layout) {
   iconSizeValue.textContent = `${iconSize} px`;
   castLifetimeInput.value = castLifetimeMs / 1000;
   castLifetimeValue.textContent = formatLifetime(castLifetimeMs);
+  maxVisibleCastsInput.value = maxVisibleCasts;
+  maxVisibleCastsValue.textContent = `${maxVisibleCasts}`;
+  previewEnabledInput.checked = previewEnabled;
   updateDirectionVisibility(orientation);
-  updateLayoutSizeHint(orientation, iconSize);
+  updateLayoutSizeHint(orientation, iconSize, maxVisibleCasts);
 }
 
 function defaultDirectionFor(orientation) {
@@ -220,6 +235,8 @@ orientationField.addEventListener('change', (e) => {
     direction,
     iconSize: Number(iconSizeInput.value),
     castLifetimeMs: Number(castLifetimeInput.value) * 1000,
+    maxVisibleCasts: Number(maxVisibleCastsInput.value),
+    previewEnabled: previewEnabledInput.checked,
   });
   window.settingsAPI.setComboLayout({ orientation, direction });
   showStatus('Réglages enregistrés');
@@ -238,7 +255,7 @@ iconSizeInput.addEventListener('input', () => {
   const iconSize = Number(iconSizeInput.value);
   const orientation = orientationField.querySelector('input[name="orientation"]:checked')?.value || 'vertical';
   iconSizeValue.textContent = `${iconSize} px`;
-  updateLayoutSizeHint(orientation, iconSize);
+  updateLayoutSizeHint(orientation, iconSize, Number(maxVisibleCastsInput.value));
 });
 
 iconSizeInput.addEventListener('change', () => {
@@ -252,6 +269,46 @@ castLifetimeInput.addEventListener('input', () => {
 
 castLifetimeInput.addEventListener('change', () => {
   window.settingsAPI.setComboLayout({ castLifetimeMs: Number(castLifetimeInput.value) * 1000 });
+  showStatus('Réglages enregistrés');
+});
+
+function parseValidMaxVisibleCasts(rawValue) {
+  const value = Number(rawValue);
+  if (!Number.isInteger(value)) return null;
+  if (value < maxVisibleCastsRange.min || value > maxVisibleCastsRange.max) return null;
+  return value;
+}
+
+maxVisibleCastsInput.addEventListener('input', () => {
+  maxVisibleCastsError.textContent = '';
+  maxVisibleCastsValue.textContent = `${maxVisibleCastsInput.value || ''}`;
+  const iconSize = Number(iconSizeInput.value);
+  const orientation = orientationField.querySelector('input[name="orientation"]:checked')?.value || 'vertical';
+  const value = parseValidMaxVisibleCasts(maxVisibleCastsInput.value) ?? defaultMaxVisibleCasts;
+  updateLayoutSizeHint(orientation, iconSize, value);
+});
+
+maxVisibleCastsInput.addEventListener('change', () => {
+  const parsed = parseValidMaxVisibleCasts(maxVisibleCastsInput.value);
+  if (parsed === null) {
+    maxVisibleCastsError.textContent =
+      `Valeur invalide : entier entre ${maxVisibleCastsRange.min} et ${maxVisibleCastsRange.max}.`;
+    maxVisibleCastsInput.value = defaultMaxVisibleCasts;
+    maxVisibleCastsValue.textContent = `${defaultMaxVisibleCasts}`;
+    const iconSize = Number(iconSizeInput.value);
+    const orientation = orientationField.querySelector('input[name="orientation"]:checked')?.value || 'vertical';
+    updateLayoutSizeHint(orientation, iconSize, defaultMaxVisibleCasts);
+    return;
+  }
+  maxVisibleCastsError.textContent = '';
+  defaultMaxVisibleCasts = parsed;
+  maxVisibleCastsValue.textContent = `${parsed}`;
+  window.settingsAPI.setComboLayout({ maxVisibleCasts: parsed });
+  showStatus('Réglages enregistrés');
+});
+
+previewEnabledInput.addEventListener('change', () => {
+  window.settingsAPI.setComboLayout({ previewEnabled: previewEnabledInput.checked });
   showStatus('Réglages enregistrés');
 });
 
@@ -402,11 +459,20 @@ function applyCastLifetimeRange(range) {
   defaultCastLifetimeMs = range.default;
 }
 
+function applyMaxVisibleCastsRange(range) {
+  if (!range) return;
+  maxVisibleCastsInput.min = range.min;
+  maxVisibleCastsInput.max = range.max;
+  defaultMaxVisibleCasts = range.default;
+  maxVisibleCastsRange = { min: range.min, max: range.max };
+}
+
 async function init() {
   const state = await window.settingsAPI.getState();
   renderHeroes(state.heroes, state.trackedCharacterNames);
   applyIconSizeRange(state.iconSizeRange);
   applyCastLifetimeRange(state.castLifetimeRange);
+  applyMaxVisibleCastsRange(state.maxVisibleCastsRange);
   renderLayout(state.comboLayout);
   await loadDiagnostics();
   debugLog.innerHTML = '<div class="debug-empty">En attente d\'un sort détecté dans les logs…</div>';

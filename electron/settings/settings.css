@@ -104,8 +104,26 @@ fieldset label {
   cursor: pointer;
 }
 
+.inline-number-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 0 6px;
+}
+
+.inline-number-row input[type="number"] {
+  width: 78px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 5px;
+  padding: 4px 6px;
+  font-size: 12px;
+}
+
 #icon-size-value,
-#cast-lifetime-value {
+#cast-lifetime-value,
+#max-visible-casts-value {
   color: var(--text-dim);
   font-size: 12px;
   min-width: 46px; /* keeps the slider from shifting as the label grows */
@@ -114,6 +132,11 @@ fieldset label {
 /* Each slider's own explanatory hint sits inside its fieldset. */
 #icon-size-field .hint,
 #cast-lifetime-field .hint { margin-bottom: 0; }
+
+#max-visible-casts-field .error {
+  margin-top: 0;
+  min-height: 1em;
+}
 
 .status {
   margin-top: 14px;

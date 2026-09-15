@@ -28,6 +28,10 @@ const DEFAULT_CAST_LIFETIME_MS = 6000;
 const MIN_CAST_LIFETIME_MS = 1000;
 const MAX_CAST_LIFETIME_MS = 60000;
 
+const DEFAULT_MAX_VISIBLE_CASTS = 8;
+const MIN_MAX_VISIBLE_CASTS = 1;
+const MAX_MAX_VISIBLE_CASTS = 20;
+
 class SettingsStore extends EventEmitter {
   /** @param {string} filePath - Where to persist settings as JSON. */
   constructor(filePath) {
@@ -45,7 +49,7 @@ class SettingsStore extends EventEmitter {
    * @param {object} defaults
    * @param {{name: string, characterName: string, color: object}[]} defaults.heroes
    * @param {string[]} defaults.trackedCharacterNames
-   * @param {{orientation: string, direction: string, iconSize: number, castLifetimeMs: number}} defaults.comboLayout
+   * @param {{orientation: string, direction: string, iconSize: number, castLifetimeMs: number, maxVisibleCasts: number, previewEnabled: boolean}} defaults.comboLayout
    * @param {number} defaults.overlayPort
    * @param {string} defaults.logsDir
    */
@@ -72,6 +76,14 @@ class SettingsStore extends EventEmitter {
       }
       if (!this._state.comboLayout.castLifetimeMs) {
         this._state.comboLayout.castLifetimeMs = defaults.comboLayout.castLifetimeMs;
+        changed = true;
+      }
+      if (!this._state.comboLayout.maxVisibleCasts) {
+        this._state.comboLayout.maxVisibleCasts = defaults.comboLayout.maxVisibleCasts;
+        changed = true;
+      }
+      if (this._state.comboLayout.previewEnabled === undefined) {
+        this._state.comboLayout.previewEnabled = defaults.comboLayout.previewEnabled;
         changed = true;
       }
     }
@@ -155,7 +167,7 @@ class SettingsStore extends EventEmitter {
    * values are clamped rather than rejected, so a stray value can't leave the
    * overlay with unreadable icons or casts that never disappear.
    *
-   * @param {{orientation?: string, direction?: string, iconSize?: number, castLifetimeMs?: number}} layout
+   * @param {{orientation?: string, direction?: string, iconSize?: number, castLifetimeMs?: number, maxVisibleCasts?: number, previewEnabled?: boolean}} layout
    */
   setComboLayout(layout) {
     const merged = { ...this._state.comboLayout, ...layout };
@@ -165,6 +177,13 @@ class SettingsStore extends EventEmitter {
     if (layout.castLifetimeMs !== undefined) {
       merged.castLifetimeMs = SettingsStore.clampCastLifetime(
         layout.castLifetimeMs, this._state.comboLayout?.castLifetimeMs);
+    }
+    if (layout.maxVisibleCasts !== undefined) {
+      merged.maxVisibleCasts = SettingsStore.clampMaxVisibleCasts(
+        layout.maxVisibleCasts, this._state.comboLayout?.maxVisibleCasts);
+    }
+    if (layout.previewEnabled !== undefined) {
+      merged.previewEnabled = Boolean(layout.previewEnabled);
     }
     this._state.comboLayout = merged;
     this._persist();
@@ -250,6 +269,17 @@ class SettingsStore extends EventEmitter {
     return Math.min(MAX_CAST_LIFETIME_MS, Math.max(MIN_CAST_LIFETIME_MS, value));
   }
 
+  /**
+   * @param {*} value - Candidate max visible casts.
+   * @param {number} [fallback] - Used when `value` isn't a number at all.
+   * @returns {number} An integer within [MIN_MAX_VISIBLE_CASTS, MAX_MAX_VISIBLE_CASTS].
+   */
+  static clampMaxVisibleCasts(value, fallback = DEFAULT_MAX_VISIBLE_CASTS) {
+    const parsed = Math.round(Number(value));
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.min(MAX_MAX_VISIBLE_CASTS, Math.max(MIN_MAX_VISIBLE_CASTS, parsed));
+  }
+
   // ── Private ──────────────────────────────────────────────────────────────
 
   _persist() {
@@ -274,4 +304,5 @@ module.exports = {
   SettingsStore,
   DEFAULT_ICON_SIZE, MIN_ICON_SIZE, MAX_ICON_SIZE,
   DEFAULT_CAST_LIFETIME_MS, MIN_CAST_LIFETIME_MS, MAX_CAST_LIFETIME_MS,
+  DEFAULT_MAX_VISIBLE_CASTS, MIN_MAX_VISIBLE_CASTS, MAX_MAX_VISIBLE_CASTS,
 };
