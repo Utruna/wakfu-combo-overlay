@@ -114,8 +114,14 @@ function buildPreviewCasts() {
 
 function updateClassLeadIcon() {
   const list = activeCasts();
-  const latestClass = list.length ? list[list.length - 1].cast.class : null;
-  const explicitClassIcon = list.length ? list[list.length - 1].cast.classIcon : null;
+  if (!list.length) {
+    classLeadIcon.classList.remove('visible');
+    classLeadIcon.innerHTML = '';
+    return;
+  }
+
+  const latestClass = list[list.length - 1].cast.class;
+  const explicitClassIcon = list[list.length - 1].cast.classIcon;
   const icon = explicitClassIcon || (latestClass ? classIcons[latestClass] : null);
 
   classLeadIcon.innerHTML = '';

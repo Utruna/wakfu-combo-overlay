@@ -23,6 +23,7 @@ const path = require('path');
 
 const ROOT_DIR = path.resolve(__dirname, '..');
 const OUTPUT_PATH = path.join(ROOT_DIR, 'data', 'spellIcons.json');
+const CLASS_LOGOS_DIR = path.join(ROOT_DIR, 'assets', 'icons', 'classes');
 
 const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
@@ -204,6 +205,36 @@ async function downloadIcon(spell) {
   return true;
 }
 
+/**
+ * Downloads the official per-class emblem (the "god" logo shown on the class's
+ * encyclopedia page, e.g. "LE MASQUE DU ZOBAL") from Ankama's static CDN. Unlike
+ * scrapeClass(), this needs no session cookie — it's a plain static asset, one
+ * file per class, not a sprite.
+ *
+ * @returns {boolean} true if an actual network request was made (caller uses this to decide whether to sleep).
+ */
+async function downloadClassLogo(entry) {
+  const destPath = path.join(CLASS_LOGOS_DIR, `${entry.class}.png`);
+
+  if (fs.existsSync(destPath)) {
+    console.log(`[logo] ${entry.class}.png déjà présent — skip.`);
+    return false;
+  }
+
+  const url = `https://static.ankama.com/wakfu/ng/modules/mmorpg/encyclopedia/breeds/assets/logo-${entry.class}.png`;
+  const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
+  if (!res.ok) {
+    console.warn(`[logo] ${entry.class}: HTTP ${res.status} pour ${url}`);
+    return true;
+  }
+
+  fs.mkdirSync(CLASS_LOGOS_DIR, { recursive: true });
+  const buffer = Buffer.from(await res.arrayBuffer());
+  fs.writeFileSync(destPath, buffer);
+  console.log(`[logo] ${entry.class} -> assets/icons/classes/${entry.class}.png`);
+  return true;
+}
+
 async function main() {
   const jar = new Map();
   const allSpells = [];
@@ -223,6 +254,13 @@ async function main() {
 
   for (const spell of allSpells) {
     const didNetworkRequest = await downloadIcon(spell);
+    if (didNetworkRequest) await sleep(ICON_DELAY_MS);
+  }
+
+  console.log(`\n[scrape] Téléchargement des ${CLASSES.length} logo(s) de classe (doux, ~${ICON_DELAY_MS}ms entre chaque)...\n`);
+
+  for (const entry of CLASSES) {
+    const didNetworkRequest = await downloadClassLogo(entry);
     if (didNetworkRequest) await sleep(ICON_DELAY_MS);
   }
 

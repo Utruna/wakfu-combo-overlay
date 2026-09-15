@@ -92,11 +92,20 @@ function findSpellIcon(spellIcons, heroClass, spellName) {
   return null;
 }
 
-function buildClassIconMap(spellIcons) {
+const CLASS_LOGOS_DIR = path.join(ROOT_DIR, 'assets', 'icons', 'classes');
+
+/** class -> official class/god emblem path (assets/icons/classes/<class>.png), scraped by tools/scrape_spell_icons.js from wakfu.com. */
+function buildClassIconMap() {
   const classIcons = {};
-  for (const [heroClass, spells] of Object.entries(spellIcons || {})) {
-    const first = Object.values(spells || {})[0];
-    if (first?.icon) classIcons[heroClass] = first.icon;
+  let files = [];
+  try {
+    files = fs.readdirSync(CLASS_LOGOS_DIR);
+  } catch {
+    return classIcons;
+  }
+  for (const file of files) {
+    if (!file.endsWith('.png')) continue;
+    classIcons[path.basename(file, '.png')] = `assets/icons/classes/${file}`;
   }
   return classIcons;
 }
@@ -294,7 +303,7 @@ function createTray() {
 
 app.whenReady().then(async () => {
   const spellIcons = loadSpellIcons();
-  const classIcons = buildClassIconMap(spellIcons);
+  const classIcons = buildClassIconMap();
   const previewPool = buildPreviewPool(spellIcons);
 
   const settingsStore = new SettingsStore(path.join(app.getPath('userData'), 'settings.json'));
