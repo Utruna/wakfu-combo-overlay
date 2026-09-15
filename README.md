@@ -1,6 +1,7 @@
 # Wakfu Combo Overlay
 
 [![Téléchargements totaux](https://img.shields.io/github/downloads/utruna/wakfu-combo-overlay/total?label=T%C3%A9l%C3%A9chargements%20totaux&color=4a90e2)](https://github.com/utruna/wakfu-combo-overlay/releases)
+[![Dernière release](https://img.shields.io/github/v/release/utruna/wakfu-combo-overlay?label=Derni%C3%A8re%20release&color=7c4dff)](https://github.com/utruna/wakfu-combo-overlay/releases/latest)
 
 Application de bureau autonome (Electron) qui lit les logs de combat Wakfu en temps réel et affiche les sorts lancés par tes personnages sur un overlay OBS, sous forme d'icônes qui défilent.
 
