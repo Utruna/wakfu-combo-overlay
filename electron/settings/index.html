@@ -58,6 +58,20 @@
     <p class="hint">Temps pendant lequel un sort reste à l'écran avant de disparaître.</p>
   </fieldset>
 
+  <fieldset id="max-visible-casts-field">
+    <legend>Nombre max visible</legend>
+    <div class="inline-number-row">
+      <input type="number" id="max-visible-casts" step="1" min="1" max="20" value="8">
+      <span id="max-visible-casts-value"></span>
+    </div>
+    <p class="error" id="max-visible-casts-error"></p>
+  </fieldset>
+
+  <fieldset id="preview-field">
+    <legend>Preview</legend>
+    <label><input type="checkbox" id="preview-enabled"> Afficher des sorts factices pour caler l'overlay</label>
+  </fieldset>
+
   <p class="hint" id="layout-size-hint"></p>
 
   <p class="status" id="status"></p>

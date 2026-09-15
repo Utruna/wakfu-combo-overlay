@@ -24,6 +24,7 @@ const {
   SettingsStore,
   DEFAULT_ICON_SIZE, MIN_ICON_SIZE, MAX_ICON_SIZE,
   DEFAULT_CAST_LIFETIME_MS, MIN_CAST_LIFETIME_MS, MAX_CAST_LIFETIME_MS,
+  DEFAULT_MAX_VISIBLE_CASTS, MIN_MAX_VISIBLE_CASTS, MAX_MAX_VISIBLE_CASTS,
 } = require('../src/settingsStore');
 
 const DEFAULT_OVERLAY_PORT = 3457;
@@ -89,6 +90,40 @@ function findSpellIcon(spellIcons, heroClass, spellName) {
     if (classSpells[spellName]) return classSpells[spellName];
   }
   return null;
+}
+
+function buildClassIconMap(spellIcons) {
+  const classIcons = {};
+  for (const [heroClass, spells] of Object.entries(spellIcons || {})) {
+    const first = Object.values(spells || {})[0];
+    if (first?.icon) classIcons[heroClass] = first.icon;
+  }
+  return classIcons;
+}
+
+function buildPreviewPool(spellIcons) {
+  const colors = [
+    { r: 74, g: 144, b: 226 },
+    { r: 220, g: 50, b: 50 },
+    { r: 76, g: 175, b: 80 },
+    { r: 171, g: 71, b: 188 },
+    { r: 255, g: 167, b: 38 },
+    { r: 38, g: 198, b: 218 },
+  ];
+  const pool = [];
+  let colorIndex = 0;
+  for (const [heroClass, spells] of Object.entries(spellIcons || {})) {
+    const [spellName, iconEntry] = Object.entries(spells || {})[0] || [];
+    if (!spellName || !iconEntry?.icon) continue;
+    pool.push({
+      class: heroClass,
+      spellName,
+      icon: iconEntry.icon,
+      color: colors[colorIndex % colors.length],
+    });
+    colorIndex += 1;
+  }
+  return pool;
 }
 
 /**
@@ -259,6 +294,8 @@ function createTray() {
 
 app.whenReady().then(async () => {
   const spellIcons = loadSpellIcons();
+  const classIcons = buildClassIconMap(spellIcons);
+  const previewPool = buildPreviewPool(spellIcons);
 
   const settingsStore = new SettingsStore(path.join(app.getPath('userData'), 'settings.json'));
   const seedHeroes = loadHeroesJsonSeed();
@@ -270,12 +307,18 @@ app.whenReady().then(async () => {
       direction: 'top-to-bottom',
       iconSize: DEFAULT_ICON_SIZE,
       castLifetimeMs: DEFAULT_CAST_LIFETIME_MS,
+      maxVisibleCasts: DEFAULT_MAX_VISIBLE_CASTS,
+      previewEnabled: false,
     },
     overlayPort: DEFAULT_OVERLAY_PORT,
     logsDir: WakfuCombatLogReader.DEFAULT_LOGS_DIR,
   });
 
-  const overlayStart = await startOverlay(settingsStore.overlayPort, settingsStore.comboLayout);
+  const overlayStart = await startOverlay(settingsStore.overlayPort, {
+    ...settingsStore.comboLayout,
+    classIcons,
+    previewPool,
+  });
   overlay = overlayStart.server;
   if (!overlayStart.ok) {
     console.error('[main] Overlay server failed to start:', overlayStart.error);
@@ -286,7 +329,8 @@ app.whenReady().then(async () => {
     );
   }
 
-  settingsStore.on('comboLayoutChanged', (layout) => overlay.broadcastConfig(layout));
+  const pushOverlayConfig = (layout) => overlay.broadcastConfig({ ...layout, classIcons, previewPool });
+  settingsStore.on('comboLayoutChanged', (layout) => pushOverlayConfig(layout));
 
   function handleCastEvent(castEvent) {
     // Read the roster live on every event — it can change at runtime via add/remove.
@@ -332,6 +376,8 @@ app.whenReady().then(async () => {
     overlay.broadcastCast({
       characterName: castEvent.characterName,
       heroName: hero.name,
+      class: hero.class,
+      classIcon: classIcons[hero.class] ?? null,
       spellName: castEvent.spellName,
       color: hero.color,
       timestamp: castEvent.timestamp,
@@ -354,6 +400,9 @@ app.whenReady().then(async () => {
     iconSizeRange: { min: MIN_ICON_SIZE, max: MAX_ICON_SIZE, default: DEFAULT_ICON_SIZE },
     castLifetimeRange: {
       min: MIN_CAST_LIFETIME_MS, max: MAX_CAST_LIFETIME_MS, default: DEFAULT_CAST_LIFETIME_MS,
+    },
+    maxVisibleCastsRange: {
+      min: MIN_MAX_VISIBLE_CASTS, max: MAX_MAX_VISIBLE_CASTS, default: DEFAULT_MAX_VISIBLE_CASTS,
     },
   }));
   ipcMain.handle('settings:setTrackedHeroes', (_e, characterNames) => settingsStore.setTrackedHeroes(characterNames));
@@ -407,7 +456,7 @@ app.whenReady().then(async () => {
     // if it's already taken, the current overlay keeps running untouched and
     // settings.json still points at the port that actually works.
     const value = Number(port);
-    const attempt = await startOverlay(value, settingsStore.comboLayout);
+    const attempt = await startOverlay(value, { ...settingsStore.comboLayout, classIcons, previewPool });
     if (!attempt.ok) {
       attempt.server.stop();
       return { ok: false, error: attempt.error };
@@ -437,6 +486,8 @@ app.whenReady().then(async () => {
     const testEvent = {
       characterName: hero.characterName,
       heroName: hero.name,
+      class: hero.class,
+      classIcon: classIcons[hero.class] ?? null,
       spellName,
       color: hero.color,
       timestamp: Date.now(),

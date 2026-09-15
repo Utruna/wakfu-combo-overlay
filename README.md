@@ -89,7 +89,7 @@ Les cases à cocher activent/désactivent chaque personnage sans le supprimer. L
 | 96 px | 108 × 906 px | 906 × 108 px | 4 |
 | 128 px | 140 × 1162 px | 1162 × 140 px | 3 |
 
-L'overlay affiche au maximum 8 sorts. Si la source est trop petite, il n'en garde que ce qui tient — en privilégiant toujours **les plus récents**, jamais les plus anciens.
+Le nombre max de sorts visibles est configurable dans les réglages (entier, min/max). Si la limite est atteinte, le plus ancien est retiré et les plus récents restent affichés. Si la source est trop petite, l'overlay garde ce qui tient réellement à l'écran, toujours en priorisant les plus récents.
 
 ### 4. Configurer OBS
 
@@ -134,8 +134,10 @@ Le journal **Activité en temps réel** montre chaque sort détecté et son sort
 ## Fenêtre de réglages
 
 - **Héros suivis** : coche/décoche qui doit apparaître sur l'overlay. Un formulaire permet d'**ajouter** un personnage (nom exact du personnage en jeu, classe, couleur) et un bouton **✕** permet d'en **retirer** un. La classe sert à choisir la bonne icône quand un nom de sort existe pour plusieurs classes (ex: "Rafale" chez Iop et chez Cra). Le **point de couleur** à côté de chaque héros existant est cliquable et permet de changer sa couleur sans avoir à le retirer/ré-ajouter. Cocher/décocher ne réagit qu'au clic sur la case ou sur le nom — pas sur le reste de la ligne. Tout est sauvegardé immédiatement, pas de bouton "Enregistrer".
-- **Disposition de la liste** : orientation (verticale/horizontale), sens d'apparition des nouvelles entrées, et **taille des icônes** (16 à 128 px, 32 par défaut). Les icônes sources font 32 px : au-delà elles sont agrandies en pixel art volontairement pixélisé (`image-rendering: pixelated`), sans flou. La taille recommandée pour la source navigateur OBS, affichée juste en dessous, se met à jour en conséquence.
+- **Disposition de la liste** : orientation (verticale/horizontale), sens d'apparition des nouvelles entrées, **taille des icônes** (16 à 128 px, 32 par défaut) et **nombre max visible** (entier, borné, appliqué à chaud). Les icônes sources font 32 px : au-delà elles sont agrandies en pixel art volontairement pixélisé (`image-rendering: pixelated`), sans flou. La taille recommandée pour la source navigateur OBS, affichée juste en dessous, se met à jour en conséquence.
+- **Icône de classe en tête** : l'overlay affiche une icône de classe au début de la ligne, côté automatiquement inversé selon le sens choisi. Elle reflète la classe du dernier sort affiché, avec fallback neutre si indisponible.
 - **Durée d'affichage** : combien de temps un sort reste à l'écran avant de disparaître (1 à 60 s, 6 s par défaut). Le changement s'applique aussi aux icônes déjà affichées — raccourcir la durée fait disparaître tout de suite celles qui ont dépassé le nouveau délai.
+- **Preview** : affiche en continu des sorts factices pour positionner précisément la source OBS. Ils utilisent le même rendu que les vrais sorts, remplissent la capacité visible actuelle et ne consomment pas le cycle de vie normal (pas de timer / fade-out).
 - **Diagnostic** : URL de l'overlay (**cliquer dessus la copie** dans le presse-papier) avec un champ pour changer son **port**, chemin du dossier de logs surveillé (modifiable via un champ + bouton **Parcourir…**) et son état (trouvé/introuvable), nombre de clients connectés à l'overlay (OBS ou navigateur), et un journal d'activité en temps réel qui montre chaque sort détecté et ce qu'il en advient (envoyé / ignoré car non suivi / ignoré car joueur ou mob inconnu). Chaque héros a aussi un bouton **Tester** qui envoie un faux sort à l'overlay, pour vérifier l'affichage sans avoir à jouer. Changer le port ou le dossier de logs redémarre le service concerné à la volée, sans relancer toute l'appli.
 
 Fermer la fenêtre (✕) la cache dans le tray mais **ne quitte pas l'appli** — le suivi continue en arrière-plan pendant le stream. Pour fermer complètement : clic droit sur l'icône du tray → **Quitter**, ou `Ctrl+C` dans le terminal si lancé en dev.
@@ -168,20 +170,20 @@ node tools/scrape_spell_icons.js
 
 Récupère le nom officiel et l'icône de chaque sort pour les 18 classes depuis l'encyclopédie Wakfu, et les stocke dans `assets/icons/<classe>/<id>.png` + `data/spellIcons.json` (table imbriquée par classe : `{classe: {nomDuSort: {iconId, icon}}}` — ça évite qu'un nom de sort partagé entre deux classes, comme "Rafale", n'écrase l'icône de l'autre). Volontairement lent (délai entre chaque requête) — un lancement à froid prend plusieurs dizaines de minutes, un relancement ne re-télécharge que ce qui manque.
 
-`assets/icons/` et `data/spellIcons.json` **sont versionnés dans git et embarqués dans l'installeur** — l'overlay étant icône seule, l'app ne peut rien afficher sans eux. Relancer le scraper n'est donc utile que pour rattraper une mise à jour de jeu (nouveaux sorts, icônes retouchées).
+`assets/icons/` et `data/spellIcons.json` **sont versionnés dans git et embarqués dans l'installeur** — l'overlay étant basé sur des icônes, l'app ne peut pas afficher les sorts correctement sans eux. Relancer le scraper n'est donc utile que pour rattraper une mise à jour de jeu (nouveaux sorts, icônes retouchées).
 
 Les 10 **cartes de l'Écaflip** (son mécanisme de classe propre, qui remplace une partie de ses sorts) font aussi partie de la table : l'encyclopédie officielle ne les documente pas du tout (testé — absentes du HTML même avec la session SSO), donc leurs noms/ids sont figés en dur dans `ECAFLIP_CARDS` (`tools/scrape_spell_icons.js`), sourcés depuis le site communautaire stratfu.fr puis vérifiés un par un contre un vrai combat (apostrophes comprises — droites en jeu, pas les typographiques utilisées par le site source). Les images elles-mêmes restent téléchargées depuis Ankama, comme tout le reste.
 
 Les icônes restent la propriété d'Ankama, redistribuées ici à titre d'outil communautaire non commercial.
 
-L'overlay est actuellement **icône seule** : un sort sans icône connue n'affiche rien du tout (pas de texte de secours). Tous les sorts des 18 classes sont couverts, à l'exception des sorts d'**invocation** (créature Osamodas, poupée Sadida, etc.) : ils sont lancés sous le nom de l'invocation elle-même, pas du personnage, et ne figurent pas sur les pages classe de l'encyclopédie officielle que scrape `tools/scrape_spell_icons.js` — connu, non couvert pour l'instant (voir Dépannage).
+L'overlay affiche les sorts sous forme d'icônes, avec un fallback visuel neutre si une icône manque ou ne charge pas. Tous les sorts des 18 classes sont couverts, à l'exception des sorts d'**invocation** (créature Osamodas, poupée Sadida, etc.) : ils sont lancés sous le nom de l'invocation elle-même, pas du personnage, et ne figurent pas sur les pages classe de l'encyclopédie officielle que scrape `tools/scrape_spell_icons.js` — connu, non couvert pour l'instant (voir Dépannage).
 
 ---
 
 ## Dépannage
 
 **Un sort est bien détecté (visible dans le journal de diagnostic) mais n'apparaît pas sur l'overlay**
-→ Vérifie que le sort a une icône dans `data/spellIcons.json` (l'affichage est icône seule, pas de texte de secours). Sinon, relance `node tools/scrape_spell_icons.js`.
+→ Vérifie que le sort a une icône dans `data/spellIcons.json`. Sinon, relance `node tools/scrape_spell_icons.js`.
 
 **Rien ne s'affiche du tout dans OBS**
 → Vérifie le compteur "Connectés" dans le panneau Diagnostic. À zéro, OBS n'est pas connecté à la page (mauvaise URL, ou source pas encore chargée).
