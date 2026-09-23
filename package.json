@@ -9,6 +9,7 @@
   },
   "scripts": {
     "lint": "eslint .",
+    "test": "node --test test/*.test.js",
     "electron:dev": "electron .",
     "dist": "electron-builder --win --publish never"
   },
@@ -42,8 +43,8 @@
       "src/wakfuCombatLogReader.js",
       "src/characterMatcher.js",
       "src/settingsStore.js",
+      "src/obsLoaderPage.js",
       "overlay/server.js",
-      "heroes.json",
       "assets/tray-icon.png",
       "assets/icons/**/*",
       "data/spellIcons.json",

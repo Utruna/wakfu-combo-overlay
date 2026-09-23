@@ -74,6 +74,12 @@
 
   <p class="hint" id="layout-size-hint"></p>
 
+  <fieldset id="startup-field">
+    <legend>Démarrage</legend>
+    <label><input type="checkbox" id="launch-at-login"> Lancer au démarrage de Windows (dans le tray)</label>
+    <p class="hint" id="launch-at-login-hint">Recommandé si OBS est lancé avant l'application : sinon la source navigateur reste vide tant qu'elle n'est pas actualisée.</p>
+  </fieldset>
+
   <p class="status" id="status"></p>
 
   <h1>Diagnostic</h1>
@@ -82,6 +88,9 @@
       <span>Overlay OBS :</span>
       <code id="diag-overlay-url" title="Cliquer pour copier">—</code>
     </div>
+    <div class="diag-row"><span>Fichier local pour OBS (recommandé) :</span></div>
+    <code id="diag-obs-loader" class="diag-path" title="Cliquer pour copier">—</code>
+    <p class="hint">Dans la source navigateur OBS, coche « Fichier local » et choisis ce fichier : l'overlay s'affiche même si OBS est lancé avant l'application.</p>
     <div class="diag-row">
       <span>Port de l'overlay :</span>
       <span class="port-edit">

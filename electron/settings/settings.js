@@ -60,6 +60,14 @@ function renderHeroes(heroes, trackedCharacterNames) {
   heroList.innerHTML = '';
   const tracked = new Set(trackedCharacterNames);
 
+  if (!heroes.length) {
+    const empty = document.createElement('p');
+    empty.className = 'hint';
+    empty.textContent = 'Aucun personnage pour l\'instant — ajoute le tien ci-dessous (nom exact en jeu).';
+    heroList.appendChild(empty);
+    return;
+  }
+
   heroes.forEach((hero) => {
     // A plain div, not a <label> — wrapping the whole row in a label makes
     // ANY click inside it (padding, the color swatch, gaps between buttons)
@@ -315,17 +323,24 @@ previewEnabledInput.addEventListener('change', () => {
 // ── Diagnostics ────────────────────────────────────────────────────────────
 
 const diagOverlayUrl = document.getElementById('diag-overlay-url');
+const diagObsLoader = document.getElementById('diag-obs-loader');
 const diagLogsDir = document.getElementById('diag-logs-dir');
 const diagLogsStatus = document.getElementById('diag-logs-status');
 const diagClients = document.getElementById('diag-clients');
 const debugLog = document.getElementById('debug-log');
 
 let currentOverlayUrl = '';
+let currentObsLoaderPath = '';
 
 async function loadDiagnostics() {
   const diag = await window.settingsAPI.getDiagnostics();
   currentOverlayUrl = diag.overlayUrl;
-  diagOverlayUrl.textContent = diag.overlayUrl;
+  diagOverlayUrl.textContent = diag.overlayError
+    ? `${diag.overlayUrl} — HORS LIGNE : ${diag.overlayError}`
+    : diag.overlayUrl;
+  diagOverlayUrl.className = diag.overlayError ? 'diag-bad' : '';
+  currentObsLoaderPath = diag.obsLoaderPath || '';
+  diagObsLoader.textContent = currentObsLoaderPath || 'indisponible (écriture impossible)';
   diagLogsDir.textContent = diag.logsDir;
   diagLogsStatus.textContent = diag.logsDirExists ? 'trouvé' : 'introuvable';
   diagLogsStatus.className = diag.logsDirExists ? 'diag-ok' : 'diag-bad';
@@ -352,6 +367,16 @@ diagOverlayUrl.addEventListener('click', async () => {
   try {
     await navigator.clipboard.writeText(currentOverlayUrl);
     showStatus('URL copiée');
+  } catch {
+    showStatus('Impossible de copier');
+  }
+});
+
+diagObsLoader.addEventListener('click', async () => {
+  if (!currentObsLoaderPath) return;
+  try {
+    await navigator.clipboard.writeText(currentObsLoaderPath);
+    showStatus('Chemin copié');
   } catch {
     showStatus('Impossible de copier');
   }
@@ -445,6 +470,22 @@ function renderUpdateStatus(payload) {
 updateCheckBtn.addEventListener('click', () => window.settingsAPI.checkForUpdates());
 window.settingsAPI.onUpdateStatus(renderUpdateStatus);
 
+// ── Démarrage ────────────────────────────────────────────────────────────
+
+const launchAtLoginInput = document.getElementById('launch-at-login');
+const launchAtLoginHint = document.getElementById('launch-at-login-hint');
+
+function renderLaunchAtLogin({ available, enabled }) {
+  launchAtLoginInput.checked = enabled;
+  launchAtLoginInput.disabled = !available;
+  if (!available) launchAtLoginHint.textContent = 'Indisponible en développement (build non packagé).';
+}
+
+launchAtLoginInput.addEventListener('change', async () => {
+  renderLaunchAtLogin(await window.settingsAPI.setLaunchAtLogin(launchAtLoginInput.checked));
+  showStatus('Réglages enregistrés');
+});
+
 function applyIconSizeRange(range) {
   if (!range) return;
   iconSizeInput.min = range.min;
@@ -474,6 +515,7 @@ async function init() {
   applyCastLifetimeRange(state.castLifetimeRange);
   applyMaxVisibleCastsRange(state.maxVisibleCastsRange);
   renderLayout(state.comboLayout);
+  renderLaunchAtLogin(await window.settingsAPI.getLaunchAtLogin());
   await loadDiagnostics();
   debugLog.innerHTML = '<div class="debug-empty">En attente d\'un sort détecté dans les logs…</div>';
   window.settingsAPI.onDebugEvent(addDebugEntry);

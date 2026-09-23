@@ -5,9 +5,7 @@
  * the tracked heroes, and serves a live combo-list overlay for OBS. Has
  * nothing to do with the Stream Deck tool (index.js) — no shared runtime
  * state. The tracked-character roster lives entirely in this app's own
- * settings (SettingsStore), keyed by characterName; heroes.json is only
- * consulted once, on first run, to seed that roster so nothing already
- * configured for the Stream Deck tool is lost.
+ * settings (SettingsStore), keyed by characterName, and starts empty.
  */
 
 'use strict';
@@ -20,6 +18,7 @@ const { autoUpdater } = require('electron-updater');
 const { OverlayServer } = require('../overlay/server');
 const { WakfuCombatLogReader } = require('../src/wakfuCombatLogReader');
 const { CharacterMatcher } = require('../src/characterMatcher');
+const { writeLoaderPage } = require('../src/obsLoaderPage');
 const {
   SettingsStore,
   DEFAULT_ICON_SIZE, MIN_ICON_SIZE, MAX_ICON_SIZE,
@@ -30,6 +29,10 @@ const {
 const DEFAULT_OVERLAY_PORT = 3457;
 
 app.setName('Wakfu Combo Overlay'); // keeps userData path consistent between dev and packaged runs
+
+// The only UI is a plain settings form, so the dedicated GPU process
+// Chromium spawns for hardware acceleration is pure memory overhead here.
+app.disableHardwareAcceleration();
 
 // Only one instance may run at a time — a second launch (e.g. double-clicking the
 // exe while it's already running in the tray) would otherwise crash trying to bind
@@ -46,26 +49,35 @@ let tray = null;
 let settingsWindow = null;
 let combatLogReader = null;
 let overlay = null;
+let overlayError = null; // why the overlay server isn't listening, or null when it is
+
+// Passed by the Windows login item (see setLaunchAtLogin): starts straight in
+// the tray instead of popping the settings window at every session start.
+const LAUNCHED_AT_LOGIN_ARG = '--hidden';
+const launchedAtLogin = process.argv.includes(LAUNCHED_AT_LOGIN_ARG);
+
+/**
+ * Starting with Windows is what keeps the overlay reachable when OBS opens
+ * first: a browser source whose first load fails shows an error page and
+ * never retries by itself, so the server has to be up before OBS is.
+ */
+function getLaunchAtLogin() {
+  if (!app.isPackaged) return { available: false, enabled: false };
+  const { openAtLogin } = app.getLoginItemSettings({ args: [LAUNCHED_AT_LOGIN_ARG] });
+  return { available: true, enabled: openAtLogin };
+}
+
+function setLaunchAtLogin(enabled) {
+  if (!app.isPackaged) return getLaunchAtLogin();
+  app.setLoginItemSettings({ openAtLogin: Boolean(enabled), args: [LAUNCHED_AT_LOGIN_ARG] });
+  return getLaunchAtLogin();
+}
 
 app.on('second-instance', () => {
-  showSettingsWindow();
+  // A second launch during our own startup would otherwise try to create a
+  // BrowserWindow before the app is ready, which throws.
+  if (app.isReady()) showSettingsWindow();
 });
-
-/** One-time seed for first run only — heroes.json stays the Stream Deck tool's own file. */
-function loadHeroesJsonSeed() {
-  try {
-    const raw = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'heroes.json'), 'utf-8'));
-    return (raw.heroes || []).map((h) => ({
-      name: h.name,
-      characterName: h.characterName,
-      color: h.color,
-      // heroes.json's profile path doubles as the class slug (e.g. "profiles/sram.json" -> "sram").
-      class: h.profile ? path.basename(h.profile, '.json') : null,
-    }));
-  } catch {
-    return [];
-  }
-}
 
 /** class -> {spellName -> {iconId, icon}} table built by tools/scrape_spell_icons.js. Missing file = no icons, nothing displayed. */
 function loadSpellIcons() {
@@ -167,17 +179,29 @@ autoUpdater.autoDownload = false;
 // stay silent when there's nothing new.
 let manualUpdateCheckPending = false;
 
+// Kept so a settings window opened later (it's destroyed when closed, see
+// createSettingsWindow) still shows the result of the last check.
+let lastUpdateStatus = null;
+
 function pushUpdateStatus(status, extra = {}) {
+  lastUpdateStatus = { status, ...extra };
   if (settingsWindow && !settingsWindow.isDestroyed()) {
-    settingsWindow.webContents.send('update:status', { status, ...extra });
+    settingsWindow.webContents.send('update:status', lastUpdateStatus);
   }
+}
+
+/** Attached to the settings window when it's open, standalone otherwise (it may not exist). */
+function showMessageBox(options) {
+  return settingsWindow && !settingsWindow.isDestroyed()
+    ? dialog.showMessageBox(settingsWindow, options)
+    : dialog.showMessageBox(options);
 }
 
 autoUpdater.on('checking-for-update', () => pushUpdateStatus('checking'));
 
 autoUpdater.on('update-available', (info) => {
   pushUpdateStatus('available', { version: info.version });
-  dialog.showMessageBox(settingsWindow, {
+  showMessageBox({
     type: 'info',
     buttons: ['Télécharger', 'Plus tard'],
     defaultId: 0,
@@ -193,7 +217,7 @@ autoUpdater.on('update-available', (info) => {
 autoUpdater.on('update-not-available', () => {
   pushUpdateStatus('not-available');
   if (manualUpdateCheckPending) {
-    dialog.showMessageBox(settingsWindow, {
+    showMessageBox({
       type: 'info',
       title: 'Mises à jour',
       message: `Tu es déjà à jour (v${app.getVersion()}).`,
@@ -205,7 +229,7 @@ autoUpdater.on('update-not-available', () => {
 autoUpdater.on('error', (err) => {
   pushUpdateStatus('error', { message: err?.message });
   if (manualUpdateCheckPending) {
-    dialog.showMessageBox(settingsWindow, {
+    showMessageBox({
       type: 'error',
       title: 'Mises à jour',
       message: 'Erreur lors de la recherche de mise à jour.',
@@ -219,7 +243,7 @@ autoUpdater.on('download-progress', (progress) => pushUpdateStatus('downloading'
 
 autoUpdater.on('update-downloaded', (info) => {
   pushUpdateStatus('downloaded', { version: info.version });
-  dialog.showMessageBox(settingsWindow, {
+  showMessageBox({
     type: 'info',
     buttons: ['Redémarrer maintenant', 'Plus tard'],
     defaultId: 0,
@@ -238,7 +262,7 @@ autoUpdater.on('update-downloaded', (info) => {
 function checkForUpdates({ manual = false } = {}) {
   if (!app.isPackaged) {
     if (manual) {
-      dialog.showMessageBox(settingsWindow, {
+      showMessageBox({
         type: 'info',
         title: 'Mises à jour',
         message: 'Recherche de mise à jour indisponible en développement (build non packagé).',
@@ -251,7 +275,7 @@ function checkForUpdates({ manual = false } = {}) {
   autoUpdater.checkForUpdates().catch((err) => {
     pushUpdateStatus('error', { message: err?.message });
     if (manualUpdateCheckPending) {
-      dialog.showMessageBox(settingsWindow, {
+      showMessageBox({
         type: 'error',
         title: 'Mises à jour',
         message: 'Erreur lors de la recherche de mise à jour.',
@@ -274,17 +298,23 @@ function createSettingsWindow() {
       nodeIntegration: false,
     },
   });
-  settingsWindow.loadFile(path.join(__dirname, 'settings', 'index.html'));
-  settingsWindow.on('close', (e) => {
-    if (!app.isQuitting) {
-      e.preventDefault();
-      settingsWindow.hide();
-    }
+  const win = settingsWindow;
+  win.loadFile(path.join(__dirname, 'settings', 'index.html'));
+  win.webContents.on('did-finish-load', () => {
+    if (lastUpdateStatus) win.webContents.send('update:status', lastUpdateStatus);
+  });
+  // Closing really destroys the window (instead of hiding it) so its renderer
+  // process — the biggest share of the app's RAM — is freed while the app
+  // sits in the tray. It's rebuilt from the persisted settings on reopen;
+  // 'window-all-closed' below keeps the app itself alive.
+  win.on('closed', () => {
+    if (settingsWindow === win) settingsWindow = null;
   });
 }
 
 function showSettingsWindow() {
   if (!settingsWindow || settingsWindow.isDestroyed()) createSettingsWindow();
+  if (settingsWindow.isMinimized()) settingsWindow.restore();
   settingsWindow.show();
   settingsWindow.focus();
 }
@@ -307,10 +337,9 @@ app.whenReady().then(async () => {
   const previewPool = buildPreviewPool(spellIcons);
 
   const settingsStore = new SettingsStore(path.join(app.getPath('userData'), 'settings.json'));
-  const seedHeroes = loadHeroesJsonSeed();
   settingsStore.ensureDefaults({
-    heroes: seedHeroes,
-    trackedCharacterNames: seedHeroes.map((h) => h.characterName),
+    heroes: [],
+    trackedCharacterNames: [],
     comboLayout: {
       orientation: 'vertical',
       direction: 'top-to-bottom',
@@ -323,12 +352,17 @@ app.whenReady().then(async () => {
     logsDir: WakfuCombatLogReader.DEFAULT_LOGS_DIR,
   });
 
+  // Written before the server even tries to bind, so the file OBS points at
+  // exists (and targets the right port) whatever happens next.
+  let obsLoaderPath = writeLoaderPage(app.getPath('userData'), settingsStore.overlayPort);
+
   const overlayStart = await startOverlay(settingsStore.overlayPort, {
     ...settingsStore.comboLayout,
     classIcons,
     previewPool,
   });
   overlay = overlayStart.server;
+  overlayError = overlayStart.ok ? null : overlayStart.error;
   if (!overlayStart.ok) {
     console.error('[main] Overlay server failed to start:', overlayStart.error);
     dialog.showErrorBox(
@@ -426,6 +460,8 @@ app.whenReady().then(async () => {
     overlayUrl: `http://localhost:${settingsStore.overlayPort}`,
     overlayPort: settingsStore.overlayPort,
     overlayClients: overlay.clientCount,
+    overlayError,
+    obsLoaderPath,
   }));
 
   ipcMain.handle('settings:setLogsDir', async (_e, dir) => {
@@ -454,7 +490,9 @@ app.whenReady().then(async () => {
   });
 
   ipcMain.handle('settings:setOverlayPort', async (_e, port) => {
-    if (Number(port) === settingsStore.overlayPort) {
+    // Same port only short-circuits when it's actually listening — after a
+    // failed bind at startup, re-applying the same port is how to retry it.
+    if (Number(port) === settingsStore.overlayPort && !overlayError) {
       return { ok: true, overlayUrl: `http://localhost:${settingsStore.overlayPort}` };
     }
     if (!SettingsStore.isValidPort(port)) {
@@ -473,7 +511,9 @@ app.whenReady().then(async () => {
 
     overlay.stop();
     overlay = attempt.server;
+    overlayError = null;
     settingsStore.setOverlayPort(value);
+    obsLoaderPath = writeLoaderPage(app.getPath('userData'), value);
     return { ok: true, overlayUrl: `http://localhost:${value}` };
   });
 
@@ -506,11 +546,16 @@ app.whenReady().then(async () => {
     overlay.broadcastCast(testEvent);
   });
 
+  ipcMain.handle('app:getLaunchAtLogin', () => getLaunchAtLogin());
+  ipcMain.handle('app:setLaunchAtLogin', (_e, enabled) => setLaunchAtLogin(enabled));
+
   ipcMain.handle('updates:check', () => checkForUpdates({ manual: true }));
   ipcMain.handle('updates:getVersion', () => app.getVersion());
 
   createTray();
-  createSettingsWindow();
+  // At login the app starts straight in the tray: don't even spawn the
+  // window's renderer process until the user opens it.
+  if (!launchedAtLogin) createSettingsWindow();
 
   // Silent check a few seconds after launch — never interrupts startup, and
   // stays quiet unless a newer version actually exists (see update-not-available above).

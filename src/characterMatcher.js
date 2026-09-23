@@ -20,7 +20,7 @@ class CharacterMatcher {
    * Match a log-detected character name against your heroes list.
    *
    * @param {string} logCharacterName - Character name from Wakfu logs.
-   * @param {object[]} heroConfigs - Heroes from heroes.json.
+   * @param {object[]} heroConfigs - Heroes from the app settings.
    * @param {object} [options] - Optional matching options.
    * @param {object<string, string|number>} [options.characterMap] - Map of characterName -> hero name or hero index.
   * @param {string} [options.combatSpellName] - Spell name captured from combat logs.

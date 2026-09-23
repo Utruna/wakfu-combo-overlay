@@ -1,9 +1,8 @@
 /**
  * settingsStore.js
  * Persists and broadcasts user-editable combo-overlay settings: the tracked
- * character roster (own to this app, independent of the Stream Deck tool's
- * heroes.json), which of them are currently tracked, and how the combo list
- * is laid out.
+ * character roster, which of them are currently tracked, and how the combo
+ * list is laid out.
  *
  * Heroes are keyed by `characterName` (the exact in-game name, already
  * required to be unique for combat-log matching) rather than array position,
@@ -42,9 +41,8 @@ class SettingsStore extends EventEmitter {
   }
 
   /**
-   * Fill in any missing fields with defaults (e.g. on first run — importing
-   * the existing heroes.json roster so nothing is lost), persisting only if
-   * something was actually missing.
+   * Fill in any missing fields with defaults (e.g. on first run), persisting
+   * only if something was actually missing.
    *
    * @param {object} defaults
    * @param {{name: string, characterName: string, color: object}[]} defaults.heroes
@@ -285,18 +283,41 @@ class SettingsStore extends EventEmitter {
   _persist() {
     try {
       fs.mkdirSync(path.dirname(this._filePath), { recursive: true });
-      fs.writeFileSync(this._filePath, JSON.stringify(this._state, null, 2));
+      // Write-then-rename: writing settings.json in place leaves it empty or
+      // half-written if the app is killed mid-write (PC shutdown, update
+      // install, crash) — and an unreadable file silently resets every
+      // setting (port, heroes…) on the next launch. A rename is atomic, so the
+      // file is always either the old or the new version, never a mix.
+      const tmpPath = `${this._filePath}.tmp`;
+      fs.writeFileSync(tmpPath, JSON.stringify(this._state, null, 2));
+      if (fs.existsSync(this._filePath)) {
+        fs.copyFileSync(this._filePath, this._backupPath);
+      }
+      fs.renameSync(tmpPath, this._filePath);
     } catch (err) {
       console.error('[SettingsStore] Failed to persist settings:', err.message);
     }
   }
 
+  get _backupPath() {
+    return `${this._filePath}.bak`;
+  }
+
   _readOrEmpty() {
-    try {
-      return JSON.parse(fs.readFileSync(this._filePath, 'utf-8'));
-    } catch {
-      return {};
+    for (const candidate of [this._filePath, this._backupPath]) {
+      try {
+        const parsed = JSON.parse(fs.readFileSync(candidate, 'utf-8'));
+        if (parsed && typeof parsed === 'object') {
+          if (candidate !== this._filePath) {
+            console.warn('[SettingsStore] settings.json unreadable, restored from backup.');
+          }
+          return parsed;
+        }
+      } catch {
+        // Missing or corrupt — try the next candidate.
+      }
     }
+    return {};
   }
 }
 

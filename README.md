@@ -104,7 +104,8 @@ Dans la liste **Sources** de ta scène : **+** → **Navigateur**.
 
 Dans les propriétés de la source :
 
-- **URL** : `http://localhost:3457` (l'adresse exacte est affichée dans le panneau Diagnostic, un clic dessus la copie)
+- **Fichier local** (recommandé) : coche la case et choisis `overlay-obs.html`, dont le chemin est affiché dans le panneau Diagnostic (un clic dessus le copie). L'overlay s'affiche alors même si OBS est lancé avant l'appli.
+- Ou **URL** : `http://localhost:3457` (l'adresse exacte est affichée dans le panneau Diagnostic, un clic dessus la copie). Dans ce cas, l'appli doit être lancée avant OBS, sinon la source reste vide jusqu'à ce que tu l'actualises.
 - **Largeur** / **Hauteur** : les valeurs du tableau ci-dessus, selon ta taille d'icônes et ton orientation
 
 Les valeurs de Largeur et Hauteur sont celles que l'appli affiche sous les réglages de disposition — il suffit de les recopier :
@@ -193,6 +194,7 @@ L'overlay affiche les sorts sous forme d'icônes, avec un fallback visuel neutre
 → Vérifie le compteur "Connectés" dans le panneau Diagnostic. À zéro, OBS n'est pas connecté à la page (mauvaise URL, ou source pas encore chargée).
 → Vérifie l'ordre des sources dans OBS (la Source Navigateur doit être au-dessus de la capture de jeu).
 → Une page qui n'a jamais rien affiché peut ne pas se "peindre" dans OBS tant qu'un premier changement ne survient pas — le bouton **Tester** sert justement à déclencher ce premier rendu.
+→ **OBS lancé avant l'application** : avec l'URL `http://localhost:…`, la source navigateur tente de charger la page alors que le serveur n'existe pas encore, affiche une page d'erreur et ne réessaie jamais d'elle-même. Solution : dans les propriétés de la source, coche **Fichier local** et choisis le fichier indiqué dans le panneau Diagnostic (`overlay-obs.html`, dans `%APPDATA%\Wakfu Combo Overlay\`). Il attend que l'application soit lancée puis ouvre l'overlay tout seul. Autre option : coche **Lancer au démarrage de Windows** (section Démarrage des réglages) pour que l'overlay soit prêt avant OBS.
 → À l'ouverture, l'overlay ne réaffiche pas les sorts déjà expirés (ils sont datés de leur lancement réel, pas de la connexion) : une page fraîchement chargée reste donc vide jusqu'au sort suivant, c'est normal.
 
 **Les sorts sont détectés mais seuls les premiers apparaissent dans OBS**
