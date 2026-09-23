@@ -79,6 +79,23 @@ const ECAFLIP_CARDS = [
   { id: '7947', name: 'Le Dieu Ecaflip' },
 ];
 
+// The 3 "sorts communs" (Maîtrise d'Armes, Charme de Masse, Os à Moelle) are
+// account-wide spells unlocked by solo quests and usable by any class —
+// like the Ecaflip cards above, they don't appear on any of the 18 class
+// pages in the official encyclopedia. Names/ids sourced from the community
+// site stratfu.fr (its wakfu_classes_sorts_v2.json, "commun" bucket),
+// cross-checked against Ankama's own asset CDN: all 3 ids resolve a real
+// PNG at static.ankama.com/wakfu/portal/game/spell/<id>.png. Hardcoded for
+// the same reason as ECAFLIP_CARDS: a fixed, rarely-changing set, not worth
+// an ongoing scrape dependency on a second site. Stored under a "commun"
+// pseudo-class — findSpellIcon()'s cross-class fallback in electron/main.js
+// resolves them for any hero regardless of their actual class.
+const COMMON_QUEST_SPELLS = [
+  { id: '5622', name: "Maîtrise d'Armes" },
+  { id: '5623', name: 'Charme de Masse' },
+  { id: '6327', name: 'Os à Moelle' },
+];
+
 const PAGE_DELAY_MS = 3000;
 const ICON_DELAY_MS = 2000;
 
@@ -249,6 +266,11 @@ async function main() {
     allSpells.push({ name: card.name, iconId: card.id, class: 'ecaflip' });
   }
   console.log(`[scrape] ecaflip: +${ECAFLIP_CARDS.length} carte(s) (hors encyclopédie officielle, voir ECAFLIP_CARDS).`);
+
+  for (const spell of COMMON_QUEST_SPELLS) {
+    allSpells.push({ name: spell.name, iconId: spell.id, class: 'commun' });
+  }
+  console.log(`[scrape] commun: +${COMMON_QUEST_SPELLS.length} sort(s) commun(s) (hors encyclopédie officielle, voir COMMON_QUEST_SPELLS).`);
 
   console.log(`\n[scrape] ${allSpells.length} sort(s) au total. Téléchargement des icônes (doux, ~${ICON_DELAY_MS}ms entre chaque)...\n`);
 

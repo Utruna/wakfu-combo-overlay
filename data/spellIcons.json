@@ -155,10 +155,6 @@
     "Protecteur du troupeau": {
       "iconId": "7005",
       "icon": "assets/icons/feca/7005.png"
-    },
-    "Armure de la Paix": {
-      "iconId": "2271",
-      "icon": "assets/icons/feca/2271.png"
     }
   },
   "osamodas": {
@@ -313,18 +309,6 @@
     "Partage animal": {
       "iconId": "7344",
       "icon": "assets/icons/osamodas/7344.png"
-    },
-    "Invocation": {
-      "iconId": "787",
-      "icon": "assets/icons/osamodas/787.png"
-    },
-    "Forme draconique": {
-      "iconId": "746",
-      "icon": "assets/icons/osamodas/746.png"
-    },
-    "Gobgob": {
-      "iconId": "730",
-      "icon": "assets/icons/osamodas/730.png"
     }
   },
   "enutrof": {
@@ -479,22 +463,6 @@
     "Héritage": {
       "iconId": "727",
       "icon": "assets/icons/enutrof/727.png"
-    },
-    "Excavation": {
-      "iconId": "2063",
-      "icon": "assets/icons/enutrof/2063.png"
-    },
-    "Dette": {
-      "iconId": "6325",
-      "icon": "assets/icons/enutrof/6325.png"
-    },
-    "Appel du compagnon": {
-      "iconId": "1089",
-      "icon": "assets/icons/enutrof/1089.png"
-    },
-    "Phorzerker": {
-      "iconId": "2038",
-      "icon": "assets/icons/enutrof/2038.png"
     }
   },
   "sram": {
@@ -641,30 +609,6 @@
     "Assaut Brutal": {
       "iconId": "2440",
       "icon": "assets/icons/sram/2440.png"
-    },
-    "Invisibilité": {
-      "iconId": "2432",
-      "icon": "assets/icons/sram/2432.png"
-    },
-    "Double": {
-      "iconId": "2435",
-      "icon": "assets/icons/sram/2435.png"
-    },
-    "Piège de Répulsion": {
-      "iconId": "5182",
-      "icon": "assets/icons/sram/5182.png"
-    },
-    "Piège d'Attraction": {
-      "iconId": "5183",
-      "icon": "assets/icons/sram/5183.png"
-    },
-    "Piège de Téléportation": {
-      "iconId": "5184",
-      "icon": "assets/icons/sram/5184.png"
-    },
-    "Retirer un Piège": {
-      "iconId": "2433",
-      "icon": "assets/icons/sram/2433.png"
     }
   },
   "xelor": {
@@ -831,18 +775,6 @@
     "Assimilation": {
       "iconId": "7196",
       "icon": "assets/icons/xelor/7196.png"
-    },
-    "Cadran": {
-      "iconId": "5345",
-      "icon": "assets/icons/xelor/5345.png"
-    },
-    "Vol du temps": {
-      "iconId": "3909",
-      "icon": "assets/icons/xelor/3909.png"
-    },
-    "Distorsion": {
-      "iconId": "7794",
-      "icon": "assets/icons/xelor/7794.png"
     }
   },
   "ecaflip": {
@@ -1010,14 +942,6 @@
       "iconId": "8000",
       "icon": "assets/icons/ecaflip/8000.png"
     },
-    "Bond du félin": {
-      "iconId": "983",
-      "icon": "assets/icons/ecaflip/983.png"
-    },
-    "Relance": {
-      "iconId": "7227",
-      "icon": "assets/icons/ecaflip/7227.png"
-    },
     "La Croquette": {
       "iconId": "7938",
       "icon": "assets/icons/ecaflip/7938.png"
@@ -1025,6 +949,14 @@
     "Le Dieu Ouginak": {
       "iconId": "7939",
       "icon": "assets/icons/ecaflip/7939.png"
+    },
+    "Les Bébétards d'Ecaflip": {
+      "iconId": "7940",
+      "icon": "assets/icons/ecaflip/7940.png"
+    },
+    "L'Hermite Poilu": {
+      "iconId": "7941",
+      "icon": "assets/icons/ecaflip/7941.png"
     },
     "La Lune Poilue": {
       "iconId": "7942",
@@ -1049,14 +981,6 @@
     "Le Dieu Ecaflip": {
       "iconId": "7947",
       "icon": "assets/icons/ecaflip/7947.png"
-    },
-    "Les Bébétards d'Ecaflip": {
-      "iconId": "7940",
-      "icon": "assets/icons/ecaflip/7940.png"
-    },
-    "L'Hermite Poilu": {
-      "iconId": "7941",
-      "icon": "assets/icons/ecaflip/7941.png"
     }
   },
   "eniripsa": {
@@ -1223,18 +1147,6 @@
     "Nature morte": {
       "iconId": "1420",
       "icon": "assets/icons/eniripsa/1420.png"
-    },
-    "Contre-nature": {
-      "iconId": "7977",
-      "icon": "assets/icons/eniripsa/7977.png"
-    },
-    "Lapino": {
-      "iconId": "7978",
-      "icon": "assets/icons/eniripsa/7978.png"
-    },
-    "Répulsion": {
-      "iconId": "7979",
-      "icon": "assets/icons/eniripsa/7979.png"
     }
   },
   "iop": {
@@ -1401,22 +1313,6 @@
     "Destin": {
       "iconId": "6997",
       "icon": "assets/icons/iop/6997.png"
-    },
-    "Éventrail": {
-      "iconId": "8402",
-      "icon": "assets/icons/iop/8402.png"
-    },
-    "Uppercut": {
-      "iconId": "8403",
-      "icon": "assets/icons/iop/8403.png"
-    },
-    "Bond": {
-      "iconId": "510",
-      "icon": "assets/icons/iop/510.png"
-    },
-    "Étendard de bravoure": {
-      "iconId": "4793",
-      "icon": "assets/icons/iop/4793.png"
     }
   },
   "cra": {
@@ -1575,26 +1471,6 @@
     "Tir divergent": {
       "iconId": "586",
       "icon": "assets/icons/cra/586.png"
-    },
-    "Tir précis": {
-      "iconId": "611",
-      "icon": "assets/icons/cra/611.png"
-    },
-    "Balise de destruction": {
-      "iconId": "602",
-      "icon": "assets/icons/cra/602.png"
-    },
-    "Balise d'alignement": {
-      "iconId": "595",
-      "icon": "assets/icons/cra/595.png"
-    },
-    "Balise de contact": {
-      "iconId": "609",
-      "icon": "assets/icons/cra/609.png"
-    },
-    "Débalisage": {
-      "iconId": "596",
-      "icon": "assets/icons/cra/596.png"
     }
   },
   "sadida": {
@@ -1761,22 +1637,6 @@
     "Murmures Sauvages": {
       "iconId": "5058",
       "icon": "assets/icons/sadida/5058.png"
-    },
-    "Graine": {
-      "iconId": "911",
-      "icon": "assets/icons/sadida/911.png"
-    },
-    "La Surpuissante": {
-      "iconId": "914",
-      "icon": "assets/icons/sadida/914.png"
-    },
-    "La Voodoll": {
-      "iconId": "926",
-      "icon": "assets/icons/sadida/926.png"
-    },
-    "Engrènement": {
-      "iconId": "0",
-      "icon": "assets/icons/sadida/0.png"
     }
   },
   "sacrieur": {
@@ -1943,14 +1803,6 @@
     "Exécuteur": {
       "iconId": "5054",
       "icon": "assets/icons/sacrieur/5054.png"
-    },
-    "Châtiment osé": {
-      "iconId": "879",
-      "icon": "assets/icons/sacrieur/879.png"
-    },
-    "Châtiment sanguin": {
-      "iconId": "6065",
-      "icon": "assets/icons/sacrieur/6065.png"
     }
   },
   "pandawa": {
@@ -2077,18 +1929,6 @@
     "Éméché": {
       "iconId": "2215",
       "icon": "assets/icons/pandawa/2215.png"
-    },
-    "Karcham": {
-      "iconId": "2195",
-      "icon": "assets/icons/pandawa/2195.png"
-    },
-    "Chamrak": {
-      "iconId": "975",
-      "icon": "assets/icons/pandawa/975.png"
-    },
-    "Tonneau": {
-      "iconId": "2192",
-      "icon": "assets/icons/pandawa/2192.png"
     }
   },
   "roublard": {
@@ -2255,18 +2095,6 @@
     "Bombes à retardement": {
       "iconId": "7063",
       "icon": "assets/icons/roublard/7063.png"
-    },
-    "Détonation": {
-      "iconId": "1815",
-      "icon": "assets/icons/roublard/1815.png"
-    },
-    "Ruse": {
-      "iconId": "1822",
-      "icon": "assets/icons/roublard/1822.png"
-    },
-    "Roublabot": {
-      "iconId": "1819",
-      "icon": "assets/icons/roublard/1819.png"
     }
   },
   "zobal": {
@@ -2429,18 +2257,6 @@
     "Poussées d'entrave": {
       "iconId": "7113",
       "icon": "assets/icons/zobal/7113.png"
-    },
-    "Masque de psychopathe": {
-      "iconId": "7081",
-      "icon": "assets/icons/zobal/7081.png"
-    },
-    "Masque de pleutre": {
-      "iconId": "7082",
-      "icon": "assets/icons/zobal/7082.png"
-    },
-    "Masque de classe": {
-      "iconId": "7083",
-      "icon": "assets/icons/zobal/7083.png"
     }
   },
   "ouginak": {
@@ -2603,18 +2419,6 @@
     "Maître Chien": {
       "iconId": "6273",
       "icon": "assets/icons/ouginak/6273.png"
-    },
-    "Proie": {
-      "iconId": "6283",
-      "icon": "assets/icons/ouginak/6283.png"
-    },
-    "Ougigarou": {
-      "iconId": "6855",
-      "icon": "assets/icons/ouginak/6855.png"
-    },
-    "Chienchien": {
-      "iconId": "6286",
-      "icon": "assets/icons/ouginak/6286.png"
     }
   },
   "steamer": {
@@ -2781,22 +2585,6 @@
     "Déploiement tactique": {
       "iconId": "7107",
       "icon": "assets/icons/steamer/7107.png"
-    },
-    "Microbot": {
-      "iconId": "2811",
-      "icon": "assets/icons/steamer/2811.png"
-    },
-    "Tourelle": {
-      "iconId": "2813",
-      "icon": "assets/icons/steamer/2813.png"
-    },
-    "Steamerator": {
-      "iconId": "2808",
-      "icon": "assets/icons/steamer/2808.png"
-    },
-    "Canonnier": {
-      "iconId": "2812",
-      "icon": "assets/icons/steamer/2812.png"
     }
   },
   "eliotrope": {
@@ -2963,14 +2751,6 @@
     "Souffle de la déesse": {
       "iconId": "6925",
       "icon": "assets/icons/eliotrope/6925.png"
-    },
-    "Portail": {
-      "iconId": "4678",
-      "icon": "assets/icons/eliotrope/4678.png"
-    },
-    "Exaltation": {
-      "iconId": "4682",
-      "icon": "assets/icons/eliotrope/4682.png"
     }
   },
   "huppermage": {
@@ -3149,18 +2929,20 @@
     "Transcendance Runique": {
       "iconId": "5587",
       "icon": "assets/icons/huppermage/5587.png"
+    }
+  },
+  "commun": {
+    "Maîtrise d'Armes": {
+      "iconId": "5622",
+      "icon": "assets/icons/commun/5622.png"
     },
-    "Cœur de Lumière": {
-      "iconId": "5573",
-      "icon": "assets/icons/huppermage/5573.png"
+    "Charme de Masse": {
+      "iconId": "5623",
+      "icon": "assets/icons/commun/5623.png"
     },
-    "Feu-follet": {
-      "iconId": "5574",
-      "icon": "assets/icons/huppermage/5574.png"
-    },
-    "Cycle élémentaire": {
-      "iconId": "5578",
-      "icon": "assets/icons/huppermage/5578.png"
+    "Os à Moelle": {
+      "iconId": "6327",
+      "icon": "assets/icons/commun/6327.png"
     }
   }
 }
