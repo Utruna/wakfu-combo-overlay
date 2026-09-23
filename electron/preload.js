@@ -19,6 +19,8 @@ contextBridge.exposeInMainWorld('settingsAPI', {
     ipcRenderer.on('debug:event', handler);
     return () => ipcRenderer.removeListener('debug:event', handler);
   },
+  getLaunchAtLogin: () => ipcRenderer.invoke('app:getLaunchAtLogin'),
+  setLaunchAtLogin: (enabled) => ipcRenderer.invoke('app:setLaunchAtLogin', enabled),
   getAppVersion: () => ipcRenderer.invoke('updates:getVersion'),
   checkForUpdates: () => ipcRenderer.invoke('updates:check'),
   onUpdateStatus: (callback) => {

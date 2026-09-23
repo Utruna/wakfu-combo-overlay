@@ -43,6 +43,7 @@
       "src/wakfuCombatLogReader.js",
       "src/characterMatcher.js",
       "src/settingsStore.js",
+      "src/obsLoaderPage.js",
       "overlay/server.js",
       "heroes.json",
       "assets/tray-icon.png",

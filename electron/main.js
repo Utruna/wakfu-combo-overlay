@@ -20,6 +20,7 @@ const { autoUpdater } = require('electron-updater');
 const { OverlayServer } = require('../overlay/server');
 const { WakfuCombatLogReader } = require('../src/wakfuCombatLogReader');
 const { CharacterMatcher } = require('../src/characterMatcher');
+const { writeLoaderPage } = require('../src/obsLoaderPage');
 const {
   SettingsStore,
   DEFAULT_ICON_SIZE, MIN_ICON_SIZE, MAX_ICON_SIZE,
@@ -47,6 +48,28 @@ let settingsWindow = null;
 let combatLogReader = null;
 let overlay = null;
 let overlayError = null; // why the overlay server isn't listening, or null when it is
+
+// Passed by the Windows login item (see setLaunchAtLogin): starts straight in
+// the tray instead of popping the settings window at every session start.
+const LAUNCHED_AT_LOGIN_ARG = '--hidden';
+const launchedAtLogin = process.argv.includes(LAUNCHED_AT_LOGIN_ARG);
+
+/**
+ * Starting with Windows is what keeps the overlay reachable when OBS opens
+ * first: a browser source whose first load fails shows an error page and
+ * never retries by itself, so the server has to be up before OBS is.
+ */
+function getLaunchAtLogin() {
+  if (!app.isPackaged) return { available: false, enabled: false };
+  const { openAtLogin } = app.getLoginItemSettings({ args: [LAUNCHED_AT_LOGIN_ARG] });
+  return { available: true, enabled: openAtLogin };
+}
+
+function setLaunchAtLogin(enabled) {
+  if (!app.isPackaged) return getLaunchAtLogin();
+  app.setLoginItemSettings({ openAtLogin: Boolean(enabled), args: [LAUNCHED_AT_LOGIN_ARG] });
+  return getLaunchAtLogin();
+}
 
 app.on('second-instance', () => {
   // A second launch during our own startup would otherwise try to create a
@@ -265,11 +288,11 @@ function checkForUpdates({ manual = false } = {}) {
   });
 }
 
-function createSettingsWindow() {
+function createSettingsWindow({ show = true } = {}) {
   settingsWindow = new BrowserWindow({
     width: 480,
     height: 700,
-    show: true,
+    show,
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -325,6 +348,10 @@ app.whenReady().then(async () => {
     overlayPort: DEFAULT_OVERLAY_PORT,
     logsDir: WakfuCombatLogReader.DEFAULT_LOGS_DIR,
   });
+
+  // Written before the server even tries to bind, so the file OBS points at
+  // exists (and targets the right port) whatever happens next.
+  let obsLoaderPath = writeLoaderPage(app.getPath('userData'), settingsStore.overlayPort);
 
   const overlayStart = await startOverlay(settingsStore.overlayPort, {
     ...settingsStore.comboLayout,
@@ -431,6 +458,7 @@ app.whenReady().then(async () => {
     overlayPort: settingsStore.overlayPort,
     overlayClients: overlay.clientCount,
     overlayError,
+    obsLoaderPath,
   }));
 
   ipcMain.handle('settings:setLogsDir', async (_e, dir) => {
@@ -482,6 +510,7 @@ app.whenReady().then(async () => {
     overlay = attempt.server;
     overlayError = null;
     settingsStore.setOverlayPort(value);
+    obsLoaderPath = writeLoaderPage(app.getPath('userData'), value);
     return { ok: true, overlayUrl: `http://localhost:${value}` };
   });
 
@@ -514,11 +543,14 @@ app.whenReady().then(async () => {
     overlay.broadcastCast(testEvent);
   });
 
+  ipcMain.handle('app:getLaunchAtLogin', () => getLaunchAtLogin());
+  ipcMain.handle('app:setLaunchAtLogin', (_e, enabled) => setLaunchAtLogin(enabled));
+
   ipcMain.handle('updates:check', () => checkForUpdates({ manual: true }));
   ipcMain.handle('updates:getVersion', () => app.getVersion());
 
   createTray();
-  createSettingsWindow();
+  createSettingsWindow({ show: !launchedAtLogin });
 
   // Silent check a few seconds after launch — never interrupts startup, and
   // stays quiet unless a newer version actually exists (see update-not-available above).
