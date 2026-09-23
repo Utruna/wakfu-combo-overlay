@@ -160,6 +160,7 @@ function applyOrientationAndDirection(config) {
     comboOverlay.dataset.direction = config.direction;
     comboLog.dataset.direction = config.direction;
   }
+  if (config.classIconSide) comboOverlay.dataset.classIconSide = config.classIconSide;
 }
 
 function rerenderForCurrentMode() {

@@ -208,6 +208,7 @@ function renderLayout(layout) {
   const castLifetimeMs = layout?.castLifetimeMs || defaultCastLifetimeMs;
   const maxVisibleCasts = layout?.maxVisibleCasts || defaultMaxVisibleCasts;
   const previewEnabled = Boolean(layout?.previewEnabled);
+  const classIconSide = layout?.classIconSide || 'left';
   defaultMaxVisibleCasts = maxVisibleCasts;
 
   for (const input of orientationField.querySelectorAll('input[name="orientation"]')) {
@@ -215,6 +216,9 @@ function renderLayout(layout) {
   }
   for (const input of document.querySelectorAll('input[name="direction"]')) {
     input.checked = input.value === direction;
+  }
+  for (const input of document.querySelectorAll('input[name="class-icon-side"]')) {
+    input.checked = input.value === classIconSide;
   }
   iconSizeInput.value = iconSize;
   iconSizeValue.textContent = `${iconSize} px`;
@@ -245,6 +249,7 @@ orientationField.addEventListener('change', (e) => {
     castLifetimeMs: Number(castLifetimeInput.value) * 1000,
     maxVisibleCasts: Number(maxVisibleCastsInput.value),
     previewEnabled: previewEnabledInput.checked,
+    classIconSide: document.querySelector('input[name="class-icon-side"]:checked')?.value,
   });
   window.settingsAPI.setComboLayout({ orientation, direction });
   showStatus('Réglages enregistrés');
@@ -253,6 +258,12 @@ orientationField.addEventListener('change', (e) => {
 document.getElementById('direction-field').addEventListener('change', (e) => {
   if (e.target.name !== 'direction') return;
   window.settingsAPI.setComboLayout({ direction: e.target.value });
+  showStatus('Réglages enregistrés');
+});
+
+document.getElementById('class-icon-side-field').addEventListener('change', (e) => {
+  if (e.target.name !== 'class-icon-side') return;
+  window.settingsAPI.setComboLayout({ classIconSide: e.target.value });
   showStatus('Réglages enregistrés');
 });
 

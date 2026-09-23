@@ -34,3 +34,38 @@ test('leaves no temp file behind', () => {
   new SettingsStore(file).setOverlayPort(4000);
   assert.equal(fs.existsSync(`${file}.tmp`), false);
 });
+
+const LAYOUT_DEFAULTS = {
+  heroes: [],
+  trackedCharacterNames: [],
+  comboLayout: {
+    orientation: 'vertical',
+    direction: 'top-to-bottom',
+    iconSize: 32,
+    castLifetimeMs: 6000,
+    maxVisibleCasts: 8,
+    previewEnabled: false,
+    classIconSide: 'left',
+  },
+  overlayPort: 3456,
+  logsDir: 'logs',
+};
+
+test('keeps the class icon where it was for layouts saved before the setting existed', () => {
+  const file = tmpSettingsPath();
+  fs.writeFileSync(file, JSON.stringify({
+    comboLayout: { ...LAYOUT_DEFAULTS.comboLayout, direction: 'bottom-to-top', classIconSide: undefined },
+  }));
+  const store = new SettingsStore(file);
+  store.ensureDefaults(LAYOUT_DEFAULTS);
+  assert.equal(store.comboLayout.classIconSide, 'right');
+});
+
+test('ignores an invalid class icon side', () => {
+  const file = tmpSettingsPath();
+  const store = new SettingsStore(file);
+  store.ensureDefaults(LAYOUT_DEFAULTS);
+  store.setComboLayout({ classIconSide: 'right' });
+  store.setComboLayout({ classIconSide: 'middle' });
+  assert.equal(store.comboLayout.classIconSide, 'right');
+});

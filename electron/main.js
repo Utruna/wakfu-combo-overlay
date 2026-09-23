@@ -347,6 +347,7 @@ app.whenReady().then(async () => {
       castLifetimeMs: DEFAULT_CAST_LIFETIME_MS,
       maxVisibleCasts: DEFAULT_MAX_VISIBLE_CASTS,
       previewEnabled: false,
+      classIconSide: 'left',
     },
     overlayPort: DEFAULT_OVERLAY_PORT,
     logsDir: WakfuCombatLogReader.DEFAULT_LOGS_DIR,

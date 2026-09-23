@@ -31,12 +31,8 @@ body {
   align-items: center;
 }
 
-#combo-overlay[data-orientation="vertical"][data-direction="top-to-bottom"],
-#combo-overlay[data-orientation="horizontal"][data-direction="left-to-right"] {
-  flex-direction: row;
-}
-#combo-overlay[data-orientation="vertical"][data-direction="bottom-to-top"],
-#combo-overlay[data-orientation="horizontal"][data-direction="right-to-left"] {
+/* Class icon first (left) by default; `classIconSide` moves it to the right. */
+#combo-overlay[data-class-icon-side="right"] {
   flex-direction: row-reverse;
 }
 

@@ -47,7 +47,7 @@ class SettingsStore extends EventEmitter {
    * @param {object} defaults
    * @param {{name: string, characterName: string, color: object}[]} defaults.heroes
    * @param {string[]} defaults.trackedCharacterNames
-   * @param {{orientation: string, direction: string, iconSize: number, castLifetimeMs: number, maxVisibleCasts: number, previewEnabled: boolean}} defaults.comboLayout
+   * @param {{orientation: string, direction: string, iconSize: number, castLifetimeMs: number, maxVisibleCasts: number, previewEnabled: boolean, classIconSide: string}} defaults.comboLayout
    * @param {number} defaults.overlayPort
    * @param {string} defaults.logsDir
    */
@@ -84,6 +84,14 @@ class SettingsStore extends EventEmitter {
         this._state.comboLayout.previewEnabled = defaults.comboLayout.previewEnabled;
         changed = true;
       }
+      // Before this was a setting, the class icon's side followed the list
+      // direction — derive it from that so existing overlays don't move.
+      if (!SettingsStore.isValidClassIconSide(this._state.comboLayout.classIconSide)) {
+        const { direction } = this._state.comboLayout;
+        this._state.comboLayout.classIconSide =
+          direction === 'bottom-to-top' || direction === 'right-to-left' ? 'right' : 'left';
+        changed = true;
+      }
     }
     if (!this._state.overlayPort) {
       this._state.overlayPort = defaults.overlayPort;
@@ -110,6 +118,11 @@ class SettingsStore extends EventEmitter {
 
   get overlayPort() {
     return this._state.overlayPort;
+  }
+
+  /** @param {*} side @returns {boolean} true if `side` is a supported class-icon position. */
+  static isValidClassIconSide(side) {
+    return side === 'left' || side === 'right';
   }
 
   /** @param {*} port @returns {boolean} true if `port` is an integer in the unprivileged TCP range. */
@@ -165,7 +178,7 @@ class SettingsStore extends EventEmitter {
    * values are clamped rather than rejected, so a stray value can't leave the
    * overlay with unreadable icons or casts that never disappear.
    *
-   * @param {{orientation?: string, direction?: string, iconSize?: number, castLifetimeMs?: number, maxVisibleCasts?: number, previewEnabled?: boolean}} layout
+   * @param {{orientation?: string, direction?: string, iconSize?: number, castLifetimeMs?: number, maxVisibleCasts?: number, previewEnabled?: boolean, classIconSide?: 'left'|'right'}} layout
    */
   setComboLayout(layout) {
     const merged = { ...this._state.comboLayout, ...layout };
@@ -182,6 +195,9 @@ class SettingsStore extends EventEmitter {
     }
     if (layout.previewEnabled !== undefined) {
       merged.previewEnabled = Boolean(layout.previewEnabled);
+    }
+    if (layout.classIconSide !== undefined && !SettingsStore.isValidClassIconSide(layout.classIconSide)) {
+      merged.classIconSide = this._state.comboLayout?.classIconSide ?? 'left';
     }
     this._state.comboLayout = merged;
     this._persist();
