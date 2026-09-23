@@ -1,9 +1,8 @@
 /**
  * settingsStore.js
  * Persists and broadcasts user-editable combo-overlay settings: the tracked
- * character roster (own to this app, independent of the Stream Deck tool's
- * heroes.json), which of them are currently tracked, and how the combo list
- * is laid out.
+ * character roster, which of them are currently tracked, and how the combo
+ * list is laid out.
  *
  * Heroes are keyed by `characterName` (the exact in-game name, already
  * required to be unique for combat-log matching) rather than array position,
@@ -42,9 +41,8 @@ class SettingsStore extends EventEmitter {
   }
 
   /**
-   * Fill in any missing fields with defaults (e.g. on first run — importing
-   * the existing heroes.json roster so nothing is lost), persisting only if
-   * something was actually missing.
+   * Fill in any missing fields with defaults (e.g. on first run), persisting
+   * only if something was actually missing.
    *
    * @param {object} defaults
    * @param {{name: string, characterName: string, color: object}[]} defaults.heroes

@@ -5,9 +5,7 @@
  * the tracked heroes, and serves a live combo-list overlay for OBS. Has
  * nothing to do with the Stream Deck tool (index.js) — no shared runtime
  * state. The tracked-character roster lives entirely in this app's own
- * settings (SettingsStore), keyed by characterName; heroes.json is only
- * consulted once, on first run, to seed that roster so nothing already
- * configured for the Stream Deck tool is lost.
+ * settings (SettingsStore), keyed by characterName, and starts empty.
  */
 
 'use strict';
@@ -80,22 +78,6 @@ app.on('second-instance', () => {
   // BrowserWindow before the app is ready, which throws.
   if (app.isReady()) showSettingsWindow();
 });
-
-/** One-time seed for first run only — heroes.json stays the Stream Deck tool's own file. */
-function loadHeroesJsonSeed() {
-  try {
-    const raw = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'heroes.json'), 'utf-8'));
-    return (raw.heroes || []).map((h) => ({
-      name: h.name,
-      characterName: h.characterName,
-      color: h.color,
-      // heroes.json's profile path doubles as the class slug (e.g. "profiles/sram.json" -> "sram").
-      class: h.profile ? path.basename(h.profile, '.json') : null,
-    }));
-  } catch {
-    return [];
-  }
-}
 
 /** class -> {spellName -> {iconId, icon}} table built by tools/scrape_spell_icons.js. Missing file = no icons, nothing displayed. */
 function loadSpellIcons() {
@@ -355,10 +337,9 @@ app.whenReady().then(async () => {
   const previewPool = buildPreviewPool(spellIcons);
 
   const settingsStore = new SettingsStore(path.join(app.getPath('userData'), 'settings.json'));
-  const seedHeroes = loadHeroesJsonSeed();
   settingsStore.ensureDefaults({
-    heroes: seedHeroes,
-    trackedCharacterNames: seedHeroes.map((h) => h.characterName),
+    heroes: [],
+    trackedCharacterNames: [],
     comboLayout: {
       orientation: 'vertical',
       direction: 'top-to-bottom',

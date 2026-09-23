@@ -45,7 +45,6 @@
       "src/settingsStore.js",
       "src/obsLoaderPage.js",
       "overlay/server.js",
-      "heroes.json",
       "assets/tray-icon.png",
       "assets/icons/**/*",
       "data/spellIcons.json",

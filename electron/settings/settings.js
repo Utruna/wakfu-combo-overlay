@@ -60,6 +60,14 @@ function renderHeroes(heroes, trackedCharacterNames) {
   heroList.innerHTML = '';
   const tracked = new Set(trackedCharacterNames);
 
+  if (!heroes.length) {
+    const empty = document.createElement('p');
+    empty.className = 'hint';
+    empty.textContent = 'Aucun personnage pour l\'instant — ajoute le tien ci-dessous (nom exact en jeu).';
+    heroList.appendChild(empty);
+    return;
+  }
+
   heroes.forEach((hero) => {
     // A plain div, not a <label> — wrapping the whole row in a label makes
     // ANY click inside it (padding, the color swatch, gaps between buttons)

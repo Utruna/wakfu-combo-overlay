@@ -29,7 +29,7 @@ const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
 // All 18 classes — heroes can now be added freely from the settings UI
-// (any class), not just the 4 originally hardcoded in heroes.json.
+// (any class), not just the 4 classes originally hardcoded.
 const CLASSES = [
   { slug: '1-feca', class: 'feca' },
   { slug: '2-osamodas', class: 'osamodas' },
