@@ -51,7 +51,7 @@ class OverlayServer {
     return new Promise((resolve) => {
       const onError = (err) => {
         cleanup();
-        resolve({ ok: false, error: err.code === 'EADDRINUSE' ? 'Port déjà utilisé par un autre programme.' : err.message });
+        resolve({ ok: false, error: OverlayServer.describeListenError(err) });
       };
       const onListening = () => {
         cleanup();
@@ -66,6 +66,18 @@ class OverlayServer {
       this._server.once('listening', onListening);
       this._server.listen(port, '127.0.0.1');
     });
+  }
+
+  /**
+   * EACCES on an unprivileged port almost always means Windows has reserved
+   * it (Hyper-V / WSL / Docker grab random port ranges, re-rolled at each
+   * reboot — see `netsh interface ipv4 show excludedportrange protocol=tcp`),
+   * which is why it can work one day and fail the next with no change here.
+   */
+  static describeListenError(err) {
+    if (err.code === 'EADDRINUSE') return 'Port déjà utilisé par un autre programme.';
+    if (err.code === 'EACCES') return 'Port réservé par Windows (Hyper-V/WSL/Docker) — choisis-en un autre.';
+    return err.message;
   }
 
   stop() {

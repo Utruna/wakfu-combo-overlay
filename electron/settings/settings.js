@@ -325,7 +325,10 @@ let currentOverlayUrl = '';
 async function loadDiagnostics() {
   const diag = await window.settingsAPI.getDiagnostics();
   currentOverlayUrl = diag.overlayUrl;
-  diagOverlayUrl.textContent = diag.overlayUrl;
+  diagOverlayUrl.textContent = diag.overlayError
+    ? `${diag.overlayUrl} — HORS LIGNE : ${diag.overlayError}`
+    : diag.overlayUrl;
+  diagOverlayUrl.className = diag.overlayError ? 'diag-bad' : '';
   diagLogsDir.textContent = diag.logsDir;
   diagLogsStatus.textContent = diag.logsDirExists ? 'trouvé' : 'introuvable';
   diagLogsStatus.className = diag.logsDirExists ? 'diag-ok' : 'diag-bad';

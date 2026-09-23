@@ -46,9 +46,12 @@ let tray = null;
 let settingsWindow = null;
 let combatLogReader = null;
 let overlay = null;
+let overlayError = null; // why the overlay server isn't listening, or null when it is
 
 app.on('second-instance', () => {
-  showSettingsWindow();
+  // A second launch during our own startup would otherwise try to create a
+  // BrowserWindow before the app is ready, which throws.
+  if (app.isReady()) showSettingsWindow();
 });
 
 /** One-time seed for first run only — heroes.json stays the Stream Deck tool's own file. */
@@ -329,6 +332,7 @@ app.whenReady().then(async () => {
     previewPool,
   });
   overlay = overlayStart.server;
+  overlayError = overlayStart.ok ? null : overlayStart.error;
   if (!overlayStart.ok) {
     console.error('[main] Overlay server failed to start:', overlayStart.error);
     dialog.showErrorBox(
@@ -426,6 +430,7 @@ app.whenReady().then(async () => {
     overlayUrl: `http://localhost:${settingsStore.overlayPort}`,
     overlayPort: settingsStore.overlayPort,
     overlayClients: overlay.clientCount,
+    overlayError,
   }));
 
   ipcMain.handle('settings:setLogsDir', async (_e, dir) => {
@@ -454,7 +459,9 @@ app.whenReady().then(async () => {
   });
 
   ipcMain.handle('settings:setOverlayPort', async (_e, port) => {
-    if (Number(port) === settingsStore.overlayPort) {
+    // Same port only short-circuits when it's actually listening — after a
+    // failed bind at startup, re-applying the same port is how to retry it.
+    if (Number(port) === settingsStore.overlayPort && !overlayError) {
       return { ok: true, overlayUrl: `http://localhost:${settingsStore.overlayPort}` };
     }
     if (!SettingsStore.isValidPort(port)) {
@@ -473,6 +480,7 @@ app.whenReady().then(async () => {
 
     overlay.stop();
     overlay = attempt.server;
+    overlayError = null;
     settingsStore.setOverlayPort(value);
     return { ok: true, overlayUrl: `http://localhost:${value}` };
   });
