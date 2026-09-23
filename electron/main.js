@@ -32,6 +32,10 @@ const DEFAULT_OVERLAY_PORT = 3457;
 
 app.setName('Wakfu Combo Overlay'); // keeps userData path consistent between dev and packaged runs
 
+// The only UI is a plain settings form, so the dedicated GPU process
+// Chromium spawns for hardware acceleration is pure memory overhead here.
+app.disableHardwareAcceleration();
+
 // Only one instance may run at a time — a second launch (e.g. double-clicking the
 // exe while it's already running in the tray) would otherwise crash trying to bind
 // the same overlay port. Instead, just focus the settings window of the existing one.
@@ -193,17 +197,29 @@ autoUpdater.autoDownload = false;
 // stay silent when there's nothing new.
 let manualUpdateCheckPending = false;
 
+// Kept so a settings window opened later (it's destroyed when closed, see
+// createSettingsWindow) still shows the result of the last check.
+let lastUpdateStatus = null;
+
 function pushUpdateStatus(status, extra = {}) {
+  lastUpdateStatus = { status, ...extra };
   if (settingsWindow && !settingsWindow.isDestroyed()) {
-    settingsWindow.webContents.send('update:status', { status, ...extra });
+    settingsWindow.webContents.send('update:status', lastUpdateStatus);
   }
+}
+
+/** Attached to the settings window when it's open, standalone otherwise (it may not exist). */
+function showMessageBox(options) {
+  return settingsWindow && !settingsWindow.isDestroyed()
+    ? dialog.showMessageBox(settingsWindow, options)
+    : dialog.showMessageBox(options);
 }
 
 autoUpdater.on('checking-for-update', () => pushUpdateStatus('checking'));
 
 autoUpdater.on('update-available', (info) => {
   pushUpdateStatus('available', { version: info.version });
-  dialog.showMessageBox(settingsWindow, {
+  showMessageBox({
     type: 'info',
     buttons: ['Télécharger', 'Plus tard'],
     defaultId: 0,
@@ -219,7 +235,7 @@ autoUpdater.on('update-available', (info) => {
 autoUpdater.on('update-not-available', () => {
   pushUpdateStatus('not-available');
   if (manualUpdateCheckPending) {
-    dialog.showMessageBox(settingsWindow, {
+    showMessageBox({
       type: 'info',
       title: 'Mises à jour',
       message: `Tu es déjà à jour (v${app.getVersion()}).`,
@@ -231,7 +247,7 @@ autoUpdater.on('update-not-available', () => {
 autoUpdater.on('error', (err) => {
   pushUpdateStatus('error', { message: err?.message });
   if (manualUpdateCheckPending) {
-    dialog.showMessageBox(settingsWindow, {
+    showMessageBox({
       type: 'error',
       title: 'Mises à jour',
       message: 'Erreur lors de la recherche de mise à jour.',
@@ -245,7 +261,7 @@ autoUpdater.on('download-progress', (progress) => pushUpdateStatus('downloading'
 
 autoUpdater.on('update-downloaded', (info) => {
   pushUpdateStatus('downloaded', { version: info.version });
-  dialog.showMessageBox(settingsWindow, {
+  showMessageBox({
     type: 'info',
     buttons: ['Redémarrer maintenant', 'Plus tard'],
     defaultId: 0,
@@ -264,7 +280,7 @@ autoUpdater.on('update-downloaded', (info) => {
 function checkForUpdates({ manual = false } = {}) {
   if (!app.isPackaged) {
     if (manual) {
-      dialog.showMessageBox(settingsWindow, {
+      showMessageBox({
         type: 'info',
         title: 'Mises à jour',
         message: 'Recherche de mise à jour indisponible en développement (build non packagé).',
@@ -277,7 +293,7 @@ function checkForUpdates({ manual = false } = {}) {
   autoUpdater.checkForUpdates().catch((err) => {
     pushUpdateStatus('error', { message: err?.message });
     if (manualUpdateCheckPending) {
-      dialog.showMessageBox(settingsWindow, {
+      showMessageBox({
         type: 'error',
         title: 'Mises à jour',
         message: 'Erreur lors de la recherche de mise à jour.',
@@ -288,11 +304,11 @@ function checkForUpdates({ manual = false } = {}) {
   });
 }
 
-function createSettingsWindow({ show = true } = {}) {
+function createSettingsWindow() {
   settingsWindow = new BrowserWindow({
     width: 480,
     height: 700,
-    show,
+    show: true,
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -300,17 +316,23 @@ function createSettingsWindow({ show = true } = {}) {
       nodeIntegration: false,
     },
   });
-  settingsWindow.loadFile(path.join(__dirname, 'settings', 'index.html'));
-  settingsWindow.on('close', (e) => {
-    if (!app.isQuitting) {
-      e.preventDefault();
-      settingsWindow.hide();
-    }
+  const win = settingsWindow;
+  win.loadFile(path.join(__dirname, 'settings', 'index.html'));
+  win.webContents.on('did-finish-load', () => {
+    if (lastUpdateStatus) win.webContents.send('update:status', lastUpdateStatus);
+  });
+  // Closing really destroys the window (instead of hiding it) so its renderer
+  // process — the biggest share of the app's RAM — is freed while the app
+  // sits in the tray. It's rebuilt from the persisted settings on reopen;
+  // 'window-all-closed' below keeps the app itself alive.
+  win.on('closed', () => {
+    if (settingsWindow === win) settingsWindow = null;
   });
 }
 
 function showSettingsWindow() {
   if (!settingsWindow || settingsWindow.isDestroyed()) createSettingsWindow();
+  if (settingsWindow.isMinimized()) settingsWindow.restore();
   settingsWindow.show();
   settingsWindow.focus();
 }
@@ -550,7 +572,9 @@ app.whenReady().then(async () => {
   ipcMain.handle('updates:getVersion', () => app.getVersion());
 
   createTray();
-  createSettingsWindow({ show: !launchedAtLogin });
+  // At login the app starts straight in the tray: don't even spawn the
+  // window's renderer process until the user opens it.
+  if (!launchedAtLogin) createSettingsWindow();
 
   // Silent check a few seconds after launch — never interrupts startup, and
   // stays quiet unless a newer version actually exists (see update-not-available above).
