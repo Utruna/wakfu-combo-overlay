@@ -47,7 +47,7 @@ class SettingsStore extends EventEmitter {
    * @param {object} defaults
    * @param {{name: string, characterName: string, color: object}[]} defaults.heroes
    * @param {string[]} defaults.trackedCharacterNames
-   * @param {{orientation: string, direction: string, iconSize: number, castLifetimeMs: number, maxVisibleCasts: number, previewEnabled: boolean}} defaults.comboLayout
+   * @param {{orientation: string, direction: string, iconSize: number, castLifetimeMs: number, maxVisibleCasts: number, previewEnabled: boolean, classIconStyle: string}} defaults.comboLayout
    * @param {number} defaults.overlayPort
    * @param {string} defaults.logsDir
    */
@@ -84,6 +84,10 @@ class SettingsStore extends EventEmitter {
         this._state.comboLayout.previewEnabled = defaults.comboLayout.previewEnabled;
         changed = true;
       }
+      if (this._state.comboLayout.classIconStyle === undefined) {
+        this._state.comboLayout.classIconStyle = defaults.comboLayout.classIconStyle;
+        changed = true;
+      }
     }
     if (!this._state.overlayPort) {
       this._state.overlayPort = defaults.overlayPort;
@@ -111,6 +115,9 @@ class SettingsStore extends EventEmitter {
   get overlayPort() {
     return this._state.overlayPort;
   }
+
+  /** 'god' = the class god's emblem, 'head' = the character's head as shown in the guild list. */
+  static CLASS_ICON_STYLES = ['god', 'head'];
 
   /** @param {*} port @returns {boolean} true if `port` is an integer in the unprivileged TCP range. */
   static isValidPort(port) {
@@ -165,7 +172,7 @@ class SettingsStore extends EventEmitter {
    * values are clamped rather than rejected, so a stray value can't leave the
    * overlay with unreadable icons or casts that never disappear.
    *
-   * @param {{orientation?: string, direction?: string, iconSize?: number, castLifetimeMs?: number, maxVisibleCasts?: number, previewEnabled?: boolean}} layout
+   * @param {{orientation?: string, direction?: string, iconSize?: number, castLifetimeMs?: number, maxVisibleCasts?: number, previewEnabled?: boolean, classIconStyle?: 'god'|'head'}} layout
    */
   setComboLayout(layout) {
     const merged = { ...this._state.comboLayout, ...layout };
@@ -183,6 +190,11 @@ class SettingsStore extends EventEmitter {
     if (layout.previewEnabled !== undefined) {
       merged.previewEnabled = Boolean(layout.previewEnabled);
     }
+    if (layout.classIconStyle !== undefined) {
+      merged.classIconStyle = SettingsStore.CLASS_ICON_STYLES.includes(layout.classIconStyle)
+        ? layout.classIconStyle
+        : (this._state.comboLayout?.classIconStyle ?? 'god');
+    }
     this._state.comboLayout = merged;
     this._persist();
     this.emit('comboLayoutChanged', this._state.comboLayout);
@@ -193,7 +205,7 @@ class SettingsStore extends EventEmitter {
    * (it's the matching key, so it must stay unique) — returns false in that
    * case, true on success.
    *
-   * @param {{name: string, characterName: string, color: {r:number,g:number,b:number}, class: string}} hero
+   * @param {{name: string, characterName: string, color: {r:number,g:number,b:number}, class: string, gender?: 'm'|'f'}} hero
    */
   addHero(hero) {
     const characterName = String(hero.characterName || '').trim();
@@ -202,7 +214,8 @@ class SettingsStore extends EventEmitter {
 
     const name = String(hero.name || '').trim() || characterName;
     const heroClass = String(hero.class || '').trim() || null;
-    const heroes = [...this.heroes, { name, characterName, color: hero.color, class: heroClass }];
+    const gender = SettingsStore.normalizeGender(hero.gender);
+    const heroes = [...this.heroes, { name, characterName, color: hero.color, class: heroClass, gender }];
     this._state.heroes = heroes;
 
     this._trackedSet.add(characterName);
@@ -232,6 +245,31 @@ class SettingsStore extends EventEmitter {
     this._persist();
     this.emit('heroesChanged', this.heroes);
     return true;
+  }
+
+  /**
+   * Set which head (male/female) is shown for this hero when the overlay uses class heads.
+   *
+   * @param {string} characterName
+   * @param {'m'|'f'} gender
+   * @returns {boolean} true if the hero was found and updated, false otherwise.
+   */
+  setHeroGender(characterName, gender) {
+    const index = this.heroes.findIndex((h) => h.characterName === characterName);
+    if (index === -1) return false;
+
+    const heroes = [...this.heroes];
+    heroes[index] = { ...heroes[index], gender: SettingsStore.normalizeGender(gender) };
+    this._state.heroes = heroes;
+
+    this._persist();
+    this.emit('heroesChanged', this.heroes);
+    return true;
+  }
+
+  /** @returns {'m'|'f'} Anything but 'f' (incl. heroes saved before this field existed) is 'm'. */
+  static normalizeGender(gender) {
+    return gender === 'f' ? 'f' : 'm';
   }
 
   /** Remove a tracked character by characterName. */

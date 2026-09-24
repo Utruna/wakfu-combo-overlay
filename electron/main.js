@@ -122,6 +122,30 @@ function buildClassIconMap() {
   return classIcons;
 }
 
+const CLASS_HEADS_DIR = path.join(ROOT_DIR, 'assets', 'icons', 'class-heads');
+
+/**
+ * class -> {m, f} head icon paths (assets/icons/class-heads/<class>-<m|f>.png):
+ * the same 32x32 portraits the game shows in the guild member list, taken
+ * from the community asset dump github.com/Vertylo/wakassets (emoteIconsPlayers).
+ */
+function buildClassHeadMap() {
+  const classHeads = {};
+  let files = [];
+  try {
+    files = fs.readdirSync(CLASS_HEADS_DIR);
+  } catch {
+    return classHeads;
+  }
+  for (const file of files) {
+    const match = /^(.+)-([mf])\.png$/.exec(file);
+    if (!match) continue;
+    const [, heroClass, gender] = match;
+    classHeads[heroClass] = { ...classHeads[heroClass], [gender]: `assets/icons/class-heads/${file}` };
+  }
+  return classHeads;
+}
+
 function buildPreviewPool(spellIcons) {
   const colors = [
     { r: 74, g: 144, b: 226 },
@@ -334,7 +358,27 @@ function createTray() {
 app.whenReady().then(async () => {
   const spellIcons = loadSpellIcons();
   const classIcons = buildClassIconMap();
+  const classHeads = buildClassHeadMap();
   const previewPool = buildPreviewPool(spellIcons);
+
+  /** Head or god emblem depending on the layout setting; falls back to the emblem if a head is missing. */
+  function classIconFor(heroClass, gender) {
+    if (settingsStore.comboLayout.classIconStyle === 'head') {
+      const heads = classHeads[heroClass];
+      const head = heads?.[gender === 'f' ? 'f' : 'm'] ?? heads?.m;
+      if (head) return head;
+    }
+    return classIcons[heroClass] ?? null;
+  }
+
+  /** class -> icon map sent to the overlay (used by the preview, which has no hero/gender). */
+  function overlayClassIcons() {
+    return Object.fromEntries(
+      Object.keys({ ...classIcons, ...classHeads }).map((heroClass) => [heroClass, classIconFor(heroClass, 'm')])
+    );
+  }
+
+  const overlayConfig = () => ({ ...settingsStore.comboLayout, classIcons: overlayClassIcons(), previewPool });
 
   const settingsStore = new SettingsStore(path.join(app.getPath('userData'), 'settings.json'));
   settingsStore.ensureDefaults({
@@ -347,6 +391,7 @@ app.whenReady().then(async () => {
       castLifetimeMs: DEFAULT_CAST_LIFETIME_MS,
       maxVisibleCasts: DEFAULT_MAX_VISIBLE_CASTS,
       previewEnabled: false,
+      classIconStyle: 'god',
     },
     overlayPort: DEFAULT_OVERLAY_PORT,
     logsDir: WakfuCombatLogReader.DEFAULT_LOGS_DIR,
@@ -356,11 +401,7 @@ app.whenReady().then(async () => {
   // exists (and targets the right port) whatever happens next.
   let obsLoaderPath = writeLoaderPage(app.getPath('userData'), settingsStore.overlayPort);
 
-  const overlayStart = await startOverlay(settingsStore.overlayPort, {
-    ...settingsStore.comboLayout,
-    classIcons,
-    previewPool,
-  });
+  const overlayStart = await startOverlay(settingsStore.overlayPort, overlayConfig());
   overlay = overlayStart.server;
   overlayError = overlayStart.ok ? null : overlayStart.error;
   if (!overlayStart.ok) {
@@ -372,8 +413,7 @@ app.whenReady().then(async () => {
     );
   }
 
-  const pushOverlayConfig = (layout) => overlay.broadcastConfig({ ...layout, classIcons, previewPool });
-  settingsStore.on('comboLayoutChanged', (layout) => pushOverlayConfig(layout));
+  settingsStore.on('comboLayoutChanged', () => overlay.broadcastConfig(overlayConfig()));
 
   function handleCastEvent(castEvent) {
     // Read the roster live on every event — it can change at runtime via add/remove.
@@ -420,7 +460,7 @@ app.whenReady().then(async () => {
       characterName: castEvent.characterName,
       heroName: hero.name,
       class: hero.class,
-      classIcon: classIcons[hero.class] ?? null,
+      classIcon: classIconFor(hero.class, hero.gender),
       spellName: castEvent.spellName,
       color: hero.color,
       timestamp: castEvent.timestamp,
@@ -452,6 +492,7 @@ app.whenReady().then(async () => {
   ipcMain.handle('settings:setComboLayout', (_e, layout) => settingsStore.setComboLayout(layout));
   ipcMain.handle('settings:addHero', (_e, hero) => settingsStore.addHero(hero));
   ipcMain.handle('settings:setHeroColor', (_e, characterName, color) => settingsStore.setHeroColor(characterName, color));
+  ipcMain.handle('settings:setHeroGender', (_e, characterName, gender) => settingsStore.setHeroGender(characterName, gender));
   ipcMain.handle('settings:removeHero', (_e, characterName) => settingsStore.removeHero(characterName));
 
   ipcMain.handle('settings:getDiagnostics', () => ({
@@ -503,7 +544,7 @@ app.whenReady().then(async () => {
     // if it's already taken, the current overlay keeps running untouched and
     // settings.json still points at the port that actually works.
     const value = Number(port);
-    const attempt = await startOverlay(value, { ...settingsStore.comboLayout, classIcons, previewPool });
+    const attempt = await startOverlay(value, overlayConfig());
     if (!attempt.ok) {
       attempt.server.stop();
       return { ok: false, error: attempt.error };
@@ -536,7 +577,7 @@ app.whenReady().then(async () => {
       characterName: hero.characterName,
       heroName: hero.name,
       class: hero.class,
-      classIcon: classIcons[hero.class] ?? null,
+      classIcon: classIconFor(hero.class, hero.gender),
       spellName,
       color: hero.color,
       timestamp: Date.now(),

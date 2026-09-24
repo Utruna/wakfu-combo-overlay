@@ -108,6 +108,21 @@ function renderHeroes(heroes, trackedCharacterNames) {
       checkbox.dispatchEvent(new Event('change'));
     });
 
+    const genderBtn = document.createElement('button');
+    genderBtn.type = 'button';
+    genderBtn.className = 'gender-btn';
+    const renderGender = (gender) => {
+      genderBtn.textContent = gender === 'f' ? '♀' : '♂';
+      genderBtn.title = `Tête ${gender === 'f' ? 'femme' : 'homme'} — cliquer pour changer`;
+    };
+    renderGender(hero.gender);
+    genderBtn.addEventListener('click', async () => {
+      hero.gender = hero.gender === 'f' ? 'm' : 'f';
+      renderGender(hero.gender);
+      await window.settingsAPI.setHeroGender(hero.characterName, hero.gender);
+      showStatus('Réglages enregistrés');
+    });
+
     const testBtn = document.createElement('button');
     testBtn.type = 'button';
     testBtn.className = 'test-btn';
@@ -127,7 +142,7 @@ function renderHeroes(heroes, trackedCharacterNames) {
       showStatus('Héros retiré');
     });
 
-    row.append(checkbox, swatch, label, testBtn, removeBtn);
+    row.append(checkbox, swatch, label, testBtn, genderBtn, removeBtn);
     heroList.appendChild(row);
   });
 }
@@ -160,13 +175,14 @@ addHeroForm.addEventListener('submit', async (e) => {
   const characterName = document.getElementById('add-hero-character-name').value.trim();
   const heroClass = addHeroClassSelect.value;
   const color = hexToRgb(document.getElementById('add-hero-color').value);
+  const gender = document.getElementById('add-hero-gender').value;
 
   if (!heroClass) {
     addHeroError.textContent = 'Choisis une classe.';
     return;
   }
 
-  const ok = await window.settingsAPI.addHero({ characterName, color, class: heroClass });
+  const ok = await window.settingsAPI.addHero({ characterName, color, class: heroClass, gender });
   if (!ok) {
     addHeroError.textContent = 'Ce nom de personnage existe déjà (ou est vide).';
     return;
@@ -208,6 +224,7 @@ function renderLayout(layout) {
   const castLifetimeMs = layout?.castLifetimeMs || defaultCastLifetimeMs;
   const maxVisibleCasts = layout?.maxVisibleCasts || defaultMaxVisibleCasts;
   const previewEnabled = Boolean(layout?.previewEnabled);
+  const classIconStyle = layout?.classIconStyle === 'head' ? 'head' : 'god';
   defaultMaxVisibleCasts = maxVisibleCasts;
 
   for (const input of orientationField.querySelectorAll('input[name="orientation"]')) {
@@ -223,6 +240,9 @@ function renderLayout(layout) {
   maxVisibleCastsInput.value = maxVisibleCasts;
   maxVisibleCastsValue.textContent = `${maxVisibleCasts}`;
   previewEnabledInput.checked = previewEnabled;
+  for (const input of document.querySelectorAll('input[name="class-icon-style"]')) {
+    input.checked = input.value === classIconStyle;
+  }
   updateDirectionVisibility(orientation);
   updateLayoutSizeHint(orientation, iconSize, maxVisibleCasts);
 }
@@ -245,6 +265,7 @@ orientationField.addEventListener('change', (e) => {
     castLifetimeMs: Number(castLifetimeInput.value) * 1000,
     maxVisibleCasts: Number(maxVisibleCastsInput.value),
     previewEnabled: previewEnabledInput.checked,
+    classIconStyle: document.querySelector('input[name="class-icon-style"]:checked')?.value,
   });
   window.settingsAPI.setComboLayout({ orientation, direction });
   showStatus('Réglages enregistrés');
@@ -312,6 +333,12 @@ maxVisibleCastsInput.addEventListener('change', () => {
   defaultMaxVisibleCasts = parsed;
   maxVisibleCastsValue.textContent = `${parsed}`;
   window.settingsAPI.setComboLayout({ maxVisibleCasts: parsed });
+  showStatus('Réglages enregistrés');
+});
+
+document.getElementById('class-icon-style-field').addEventListener('change', (e) => {
+  if (e.target.name !== 'class-icon-style') return;
+  window.settingsAPI.setComboLayout({ classIconStyle: e.target.value });
   showStatus('Réglages enregistrés');
 });
 

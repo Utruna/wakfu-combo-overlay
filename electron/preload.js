@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('settingsAPI', {
   setComboLayout: (layout) => ipcRenderer.invoke('settings:setComboLayout', layout),
   addHero: (hero) => ipcRenderer.invoke('settings:addHero', hero),
   setHeroColor: (characterName, color) => ipcRenderer.invoke('settings:setHeroColor', characterName, color),
+  setHeroGender: (characterName, gender) => ipcRenderer.invoke('settings:setHeroGender', characterName, gender),
   removeHero: (characterName) => ipcRenderer.invoke('settings:removeHero', characterName),
   getDiagnostics: () => ipcRenderer.invoke('settings:getDiagnostics'),
   setOverlayPort: (port) => ipcRenderer.invoke('settings:setOverlayPort', port),

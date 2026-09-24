@@ -170,6 +170,19 @@ fieldset label {
 }
 .remove-btn:hover { color: #e53935; border-color: #e53935; }
 
+.gender-btn {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 5px;
+  font-size: 12px;
+  width: 22px;
+  height: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.gender-btn:hover { color: var(--text); border-color: var(--accent); }
+
 #add-hero-form {
   display: flex;
   gap: 6px;

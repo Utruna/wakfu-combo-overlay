@@ -16,6 +16,10 @@
     <select id="add-hero-class" required>
       <option value="" disabled selected>Classe</option>
     </select>
+    <select id="add-hero-gender" title="Tête affichée quand l'overlay utilise les têtes de classe">
+      <option value="m" selected>Homme</option>
+      <option value="f">Femme</option>
+    </select>
     <input type="color" id="add-hero-color" value="#4a90e2" title="Couleur">
     <button type="submit">Ajouter</button>
   </form>
@@ -38,6 +42,13 @@
       <label><input type="radio" name="direction" value="left-to-right"> Gauche → droite</label>
       <label><input type="radio" name="direction" value="right-to-left"> Droite → gauche</label>
     </div>
+  </fieldset>
+
+  <fieldset id="class-icon-style-field">
+    <legend>Icône de classe</legend>
+    <label><input type="radio" name="class-icon-style" value="god"> Emblème du dieu</label>
+    <label><input type="radio" name="class-icon-style" value="head"> Tête du personnage</label>
+    <p class="hint">Les têtes sont celles de la liste de guilde ; le bouton ♂/♀ de chaque héros choisit laquelle.</p>
   </fieldset>
 
   <fieldset id="icon-size-field">
