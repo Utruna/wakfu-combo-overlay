@@ -20,8 +20,12 @@ let previewEnabled = false;
 let classIcons = {};
 let previewPool = [];
 
-const liveCasts = []; // { cast, addedAt }
-let previewCasts = []; // { cast, addedAt }
+const liveCasts = []; // { cast, addedAt, el }
+let previewCasts = []; // { cast, addedAt, el }
+
+// Must outlast the `cast-leave` animation in style.css — fallback in case
+// animationend never fires (element hidden, animations disabled…).
+const LEAVE_FALLBACK_MS = 1000;
 
 function activeCasts() {
   return previewEnabled ? previewCasts : liveCasts;
@@ -52,7 +56,9 @@ function createCastElement(cast) {
     img.src = '/' + cast.icon.replace(/\\/g, '/');
     img.alt = '';
     img.onerror = () => {
-      el.innerHTML = '<div class="cast-icon-placeholder">•</div>';
+      img.replaceWith(Object.assign(document.createElement('div'), {
+        className: 'cast-icon-placeholder', textContent: '•',
+      }));
     };
     el.appendChild(img);
   } else {
@@ -64,30 +70,53 @@ function createCastElement(cast) {
   return el;
 }
 
-function renderActiveCasts({ animateNewest = false } = {}) {
+/** Older casts fade slightly; the newest one stays fully opaque and glows. */
+function updateEntryStyles() {
   const list = activeCasts();
-  comboLog.innerHTML = '';
+  const n = list.length;
   list.forEach((entry, index) => {
-    const el = createCastElement(entry.cast);
-    comboLog.appendChild(el);
-    if (animateNewest && index === list.length - 1) {
-      requestAnimationFrame(() => el.classList.add('visible'));
-    } else {
-      el.classList.add('visible');
-    }
+    if (!entry.el) return;
+    const newest = index === n - 1;
+    entry.el.classList.toggle('newest', newest);
+    entry.el.style.opacity = newest ? '1' : (0.6 + 0.4 * (index + 1) / n).toFixed(2);
   });
+}
+
+/** Folds a cast away (see `cast-leave` in style.css), then drops its element. */
+function animateOut(el) {
+  if (!el || el.classList.contains('leaving')) return;
+  el.classList.remove('newest', 'entering');
+  el.classList.add('leaving');
+  const done = () => el.remove();
+  el.addEventListener('animationend', (e) => { if (e.animationName === 'cast-leave') done(); });
+  setTimeout(done, LEAVE_FALLBACK_MS);
+}
+
+/** Full, unanimated rebuild — used on config changes, resizes and preview toggles. */
+function renderActiveCasts() {
+  comboLog.innerHTML = '';
+  for (const entry of activeCasts()) {
+    entry.el = createCastElement(entry.cast);
+    comboLog.appendChild(entry.el);
+  }
+  updateEntryStyles();
   updateClassLeadIcon();
 }
 
+/** @returns {object[]} The entries dropped from `model`, oldest first. */
 function trimModelToCapacity(model) {
   const capacity = effectiveCapacity();
-  while (model.length > capacity) model.shift();
+  const removed = [];
+  while (model.length > capacity) removed.push(model.shift());
+  return removed;
 }
 
+/** @returns {object[]} The expired or overflowing entries removed from liveCasts. */
 function pruneLiveCasts() {
   const now = Date.now();
-  while (liveCasts.length && liveCasts[0].addedAt + castLifetimeMs <= now) liveCasts.shift();
-  trimModelToCapacity(liveCasts);
+  const removed = [];
+  while (liveCasts.length && liveCasts[0].addedAt + castLifetimeMs <= now) removed.push(liveCasts.shift());
+  return removed.concat(trimModelToCapacity(liveCasts));
 }
 
 function buildPreviewCasts() {
@@ -112,10 +141,11 @@ function buildPreviewCasts() {
   }
 }
 
-function updateClassLeadIcon() {
+/** Shows the class of the most recent cast; `animate` replays the swap-in (new cast). */
+function updateClassLeadIcon({ animate = false } = {}) {
   const list = activeCasts();
   if (!list.length) {
-    classLeadIcon.classList.remove('visible');
+    classLeadIcon.classList.remove('visible', 'swap');
     classLeadIcon.innerHTML = '';
     return;
   }
@@ -126,6 +156,11 @@ function updateClassLeadIcon() {
 
   classLeadIcon.innerHTML = '';
   classLeadIcon.classList.add('visible');
+  if (animate) {
+    classLeadIcon.classList.remove('swap');
+    void classLeadIcon.offsetWidth; // restart the animation
+    classLeadIcon.classList.add('swap');
+  }
 
   if (!latestClass || !icon) {
     const placeholder = document.createElement('div');
@@ -145,10 +180,21 @@ function updateClassLeadIcon() {
 }
 
 function addLiveCast(cast) {
-  liveCasts.push({ cast, addedAt: cast.timestamp || Date.now() });
-  pruneLiveCasts();
+  const entry = { cast, addedAt: cast.timestamp || Date.now() };
+  liveCasts.push(entry);
+  const removed = pruneLiveCasts();
   if (previewEnabled) return;
-  renderActiveCasts({ animateNewest: true });
+
+  // Only the new cast is added and the dropped ones animated out — the rest
+  // stay untouched so their own animations aren't restarted.
+  if (liveCasts.includes(entry)) {
+    entry.el = createCastElement(cast);
+    entry.el.classList.add('entering');
+    comboLog.appendChild(entry.el);
+  }
+  for (const old of removed) animateOut(old.el);
+  updateEntryStyles();
+  updateClassLeadIcon({ animate: true });
 }
 
 function applyOrientationAndDirection(config) {
@@ -191,9 +237,16 @@ function applyConfig(config) {
 
 setInterval(() => {
   if (previewEnabled) return;
-  const before = liveCasts.length;
-  pruneLiveCasts();
-  if (before !== liveCasts.length) renderActiveCasts();
+  const removed = pruneLiveCasts();
+  if (!removed.length) return;
+  for (const old of removed) animateOut(old.el);
+  updateEntryStyles();
+  // Keep the class icon until the last cast has finished folding away.
+  if (!liveCasts.length) {
+    setTimeout(() => { if (!liveCasts.length && !previewEnabled) updateClassLeadIcon(); }, LEAVE_FALLBACK_MS);
+  } else {
+    updateClassLeadIcon();
+  }
 }, 500);
 
 window.addEventListener('resize', rerenderForCurrentMode);
