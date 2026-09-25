@@ -1,143 +1,79 @@
 'use strict';
 
+const api = window.settingsAPI;
+
 const CLASSES = [
   ['feca', 'Féca'], ['osamodas', 'Osamodas'], ['enutrof', 'Enutrof'], ['sram', 'Sram'],
   ['xelor', 'Xélor'], ['ecaflip', 'Ecaflip'], ['eniripsa', 'Eniripsa'], ['iop', 'Iop'],
   ['cra', 'Cra'], ['sadida', 'Sadida'], ['sacrieur', 'Sacrieur'], ['pandawa', 'Pandawa'],
   ['roublard', 'Roublard'], ['zobal', 'Zobal'], ['ouginak', 'Ouginak'], ['steamer', 'Steamer'],
   ['eliotrope', 'Eliotrope'], ['huppermage', 'Huppermage'],
-];
+].sort((a, b) => a[1].localeCompare(b[1], 'fr'));
 
 const CLASS_LABELS = new Map(CLASSES);
 
-const addHeroClassSelect = document.getElementById('add-hero-class');
-for (const [slug, label] of CLASSES) {
-  const option = document.createElement('option');
-  option.value = slug;
-  option.textContent = label;
-  addHeroClassSelect.appendChild(option);
-}
+const PALETTE = ['#4a90e2', '#43d1c1', '#22c55e', '#facc15', '#f2994a', '#e53935', '#d946ef', '#9b8cff'];
 
-const heroList = document.getElementById('hero-list');
-const statusEl = document.getElementById('status');
-const orientationField = document.getElementById('orientation-field');
-const directionVertical = document.getElementById('direction-vertical');
-const directionHorizontal = document.getElementById('direction-horizontal');
-const iconSizeInput = document.getElementById('icon-size');
-const iconSizeValue = document.getElementById('icon-size-value');
-const castLifetimeInput = document.getElementById('cast-lifetime');
-const castLifetimeValue = document.getElementById('cast-lifetime-value');
-const maxVisibleCastsInput = document.getElementById('max-visible-casts');
-const maxVisibleCastsValue = document.getElementById('max-visible-casts-value');
-const maxVisibleCastsError = document.getElementById('max-visible-casts-error');
-const previewEnabledInput = document.getElementById('preview-enabled');
+const LAYOUTS = [
+  { id: 'h-fwd', orientation: 'horizontal', direction: 'left-to-right', label: 'Horizontal', sub: 'gauche → droite', flex: 'row' },
+  { id: 'h-rev', orientation: 'horizontal', direction: 'right-to-left', label: 'Horizontal', sub: 'droite → gauche', flex: 'row-reverse' },
+  { id: 'v-fwd', orientation: 'vertical', direction: 'top-to-bottom', label: 'Vertical', sub: 'haut → bas', flex: 'column' },
+  { id: 'v-rev', orientation: 'vertical', direction: 'bottom-to-top', label: 'Vertical', sub: 'bas → haut', flex: 'column-reverse' },
+];
 
-// Overwritten by the main process's authoritative ranges on init (see
-// `iconSizeRange` / `castLifetimeRange` in settings:getState); the markup
-// values are only the fallback for the brief moment before that resolves.
-let defaultIconSize = Number(iconSizeInput.value) || 32;
-let defaultCastLifetimeMs = Number(castLifetimeInput.value) * 1000 || 6000;
-let defaultMaxVisibleCasts = Number(maxVisibleCastsInput.value) || 8;
-let maxVisibleCastsRange = {
-  min: Number(maxVisibleCastsInput.min) || 1,
-  max: Number(maxVisibleCastsInput.max) || 20,
+// Mirrors electron/overlay/style.css + client.js: .cast-entry padding (4px * 2)
+// + border (2px * 2) around the icon, the gap between entries, the wrapper's
+// offset from the page edge, and the class icon (icon size + 12px) with its gap.
+const ENTRY_CHROME_PX = 4 * 2 + 2 * 2;
+const ENTRY_GAP_PX = 6;
+const EDGE_OFFSET_PX = 16;
+const CLASS_ICON_GAP_PX = 8;
+const CLASS_ICON_EXTRA_PX = 12;
+
+// The page lives in electron/settings/, the icons in <root>/assets/.
+const ASSET_PREFIX = '../../';
+
+const $ = (id) => document.getElementById(id);
+
+const state = {
+  heroes: [],
+  tracked: new Set(),
+  layout: {},
+  maxVisibleRange: { min: 1, max: 20 },
+  classIcons: {},
+  previewPool: [],
+  diag: null,
+  editing: null, // characterName being edited, NEW_HERO for the add form, or null
+  draft: null, // { characterName, class, color } while the edit form is open
 };
 
-// The slider is in seconds — milliseconds are an awkward thing to drag.
-function formatLifetime(ms) {
-  const seconds = ms / 1000;
-  return `${Number.isInteger(seconds) ? seconds : seconds.toFixed(1)} s`;
-}
+const NEW_HERO = Symbol('new-hero');
 
-let showStatusTimer = null;
-function showStatus(text) {
-  statusEl.textContent = text;
-  clearTimeout(showStatusTimer);
-  showStatusTimer = setTimeout(() => { statusEl.textContent = ''; }, 1500);
-}
+// ── Helpers ──────────────────────────────────────────────────────────────
 
-function renderHeroes(heroes, trackedCharacterNames) {
-  heroList.innerHTML = '';
-  const tracked = new Set(trackedCharacterNames);
-
-  if (!heroes.length) {
-    const empty = document.createElement('p');
-    empty.className = 'hint';
-    empty.textContent = 'Aucun personnage pour l\'instant — ajoute le tien ci-dessous (nom exact en jeu).';
-    heroList.appendChild(empty);
-    return;
+function el(tag, props = {}, children = []) {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(props)) {
+    if (value === undefined || value === null) continue;
+    if (key === 'class') node.className = value;
+    else if (key === 'text') node.textContent = value;
+    else if (key === 'html') node.innerHTML = value;
+    else if (key === 'style') node.style.cssText = value;
+    else if (key.startsWith('on')) node.addEventListener(key.slice(2), value);
+    else node.setAttribute(key, value);
   }
-
-  heroes.forEach((hero) => {
-    // A plain div, not a <label> — wrapping the whole row in a label makes
-    // ANY click inside it (padding, the color swatch, gaps between buttons)
-    // toggle the checkbox. Only the checkbox itself and the name text should
-    // do that, so the checkbox stays natively clickable and the name gets an
-    // explicit click handler below instead of relying on label-forwarding.
-    const row = document.createElement('div');
-    row.className = 'hero-row';
-
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.checked = tracked.has(hero.characterName);
-    checkbox.addEventListener('change', () => {
-      if (checkbox.checked) tracked.add(hero.characterName); else tracked.delete(hero.characterName);
-      window.settingsAPI.setTrackedHeroes([...tracked]);
-      showStatus('Réglages enregistrés');
-    });
-
-    const swatch = document.createElement('input');
-    swatch.type = 'color';
-    swatch.className = 'hero-swatch';
-    swatch.title = 'Changer la couleur';
-    swatch.value = rgbToHex(hero.color);
-    swatch.addEventListener('change', async () => {
-      await window.settingsAPI.setHeroColor(hero.characterName, hexToRgb(swatch.value));
-      showStatus('Couleur mise à jour');
-    });
-
-    const label = document.createElement('span');
-    label.className = 'hero-label';
-    const baseLabel = hero.name && hero.name !== hero.characterName
-      ? `${hero.name} (${hero.characterName})`
-      : hero.characterName;
-    const classLabel = CLASS_LABELS.get(hero.class);
-    label.textContent = classLabel ? `${baseLabel} — ${classLabel}` : baseLabel;
-    label.addEventListener('click', () => {
-      checkbox.checked = !checkbox.checked;
-      checkbox.dispatchEvent(new Event('change'));
-    });
-
-    const testBtn = document.createElement('button');
-    testBtn.type = 'button';
-    testBtn.className = 'test-btn';
-    testBtn.textContent = 'Tester';
-    testBtn.addEventListener('click', () => {
-      window.settingsAPI.sendTestCast(hero.characterName);
-    });
-
-    const removeBtn = document.createElement('button');
-    removeBtn.type = 'button';
-    removeBtn.className = 'remove-btn';
-    removeBtn.textContent = '✕';
-    removeBtn.title = 'Retirer ce héros';
-    removeBtn.addEventListener('click', async () => {
-      await window.settingsAPI.removeHero(hero.characterName);
-      await refreshHeroes();
-      showStatus('Héros retiré');
-    });
-
-    row.append(checkbox, swatch, label, testBtn, removeBtn);
-    heroList.appendChild(row);
-  });
+  for (const child of [].concat(children)) {
+    if (child !== null && child !== undefined) node.append(child);
+  }
+  return node;
 }
 
-async function refreshHeroes() {
-  const state = await window.settingsAPI.getState();
-  renderHeroes(state.heroes, state.trackedCharacterNames);
+function svg(markup, size = 16, extra = '') {
+  const wrap = document.createElement('span');
+  wrap.style.display = 'contents';
+  wrap.innerHTML = `<svg width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true" ${extra}>${markup}</svg>`;
+  return wrap.firstChild;
 }
-
-// ── Add hero form ────────────────────────────────────────────────────────────
 
 function hexToRgb(hex) {
   const match = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
@@ -150,387 +86,858 @@ function rgbToHex({ r = 120, g = 120, b = 120 } = {}) {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
-const addHeroForm = document.getElementById('add-hero-form');
-const addHeroError = document.getElementById('add-hero-error');
+function assetUrl(relPath) {
+  return relPath ? ASSET_PREFIX + relPath.replace(/\\/g, '/') : null;
+}
 
-addHeroForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  addHeroError.textContent = '';
+function classEmblem(heroClass) {
+  return assetUrl(state.classIcons[heroClass]);
+}
 
-  const characterName = document.getElementById('add-hero-character-name').value.trim();
-  const heroClass = addHeroClassSelect.value;
-  const color = hexToRgb(document.getElementById('add-hero-color').value);
+function formatLifetime(ms) {
+  const seconds = ms / 1000;
+  return `${Number.isInteger(seconds) ? seconds : seconds.toFixed(1)} s`;
+}
 
-  if (!heroClass) {
-    addHeroError.textContent = 'Choisis une classe.';
-    return;
+function formatAgo(timestamp) {
+  if (!timestamp) return 'aucun pour l\'instant';
+  const seconds = Math.max(0, Math.round((Date.now() - timestamp) / 1000));
+  if (seconds < 60) return `il y a ${seconds} s`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `il y a ${minutes} min`;
+  return `il y a ${Math.round(minutes / 60)} h`;
+}
+
+async function copyText(text, button) {
+  try {
+    await navigator.clipboard.writeText(text);
+    if (button) {
+      button.textContent = 'Copié';
+      button.classList.add('copied');
+      clearTimeout(button._copiedTimer);
+      button._copiedTimer = setTimeout(() => {
+        button.textContent = 'Copier';
+        button.classList.remove('copied');
+      }, 1500);
+    }
+  } catch {
+    showToast('Impossible de copier.', { error: true });
   }
+}
 
-  const ok = await window.settingsAPI.addHero({ characterName, color, class: heroClass });
-  if (!ok) {
-    addHeroError.textContent = 'Ce nom de personnage existe déjà (ou est vide).';
-    return;
+function setSwitch(button, on) {
+  button.setAttribute('aria-checked', on ? 'true' : 'false');
+}
+
+function setSegmented(container, value, attr = 'aria-pressed') {
+  for (const button of container.querySelectorAll('button')) {
+    button.setAttribute(attr, button.dataset.value === value ? 'true' : 'false');
   }
+}
 
-  addHeroForm.reset();
-  document.getElementById('add-hero-color').value = '#4a90e2';
-  await refreshHeroes();
-  showStatus('Héros ajouté');
+// ── Toast ────────────────────────────────────────────────────────────────
+
+let toastTimer = null;
+let toastUndo = null;
+
+function showToast(text, { undo = null, error = false, duration } = {}) {
+  $('toast-text').textContent = text;
+  $('toast').classList.toggle('error', error);
+  $('toast-undo').hidden = !undo;
+  toastUndo = undo;
+  $('toast').hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, duration ?? (undo ? 8000 : 2500));
+}
+
+function hideToast() {
+  $('toast').hidden = true;
+  toastUndo = null;
+  clearTimeout(toastTimer);
+}
+
+$('toast-close').addEventListener('click', hideToast);
+$('toast-undo').addEventListener('click', async () => {
+  const undo = toastUndo;
+  hideToast();
+  if (undo) await undo();
 });
 
-function updateDirectionVisibility(orientation) {
-  directionVertical.classList.toggle('active', orientation === 'vertical');
-  directionHorizontal.classList.toggle('active', orientation === 'horizontal');
-}
+// ── Navigation ───────────────────────────────────────────────────────────
 
-// Mirrors overlay/style.css: .cast-entry padding (4px * 2) + border (2px * 2)
-// around the icon itself.
-const CAST_ENTRY_CHROME_PX = 4 * 2 + 2 * 2;
-const CAST_ENTRY_GAP_PX = 6;
+const VIEWS = ['heros', 'affichage', 'obs'];
 
-const layoutSizeHint = document.getElementById('layout-size-hint');
-
-function updateLayoutSizeHint(orientation, iconSize, maxVisibleCasts) {
-  const box = iconSize + CAST_ENTRY_CHROME_PX;
-  const count = Math.max(1, Number(maxVisibleCasts) || defaultMaxVisibleCasts);
-  const along = count * box + (count - 1) * CAST_ENTRY_GAP_PX;
-  const across = box;
-  const [width, height] = orientation === 'horizontal' ? [along, across] : [across, along];
-  layoutSizeHint.textContent =
-    `Taille recommandée pour la source navigateur OBS : ${width} × ${height} px `
-    + `(fond transparent — un peu plus large ne pose aucun problème).`;
-}
-
-function renderLayout(layout) {
-  const orientation = layout?.orientation || 'vertical';
-  const direction = layout?.direction || 'top-to-bottom';
-  const iconSize = layout?.iconSize || defaultIconSize;
-  const castLifetimeMs = layout?.castLifetimeMs || defaultCastLifetimeMs;
-  const maxVisibleCasts = layout?.maxVisibleCasts || defaultMaxVisibleCasts;
-  const previewEnabled = Boolean(layout?.previewEnabled);
-  const classIconSide = layout?.classIconSide || 'left';
-  defaultMaxVisibleCasts = maxVisibleCasts;
-
-  for (const input of orientationField.querySelectorAll('input[name="orientation"]')) {
-    input.checked = input.value === orientation;
+function showView(name) {
+  const view = VIEWS.includes(name) ? name : 'heros';
+  for (const v of VIEWS) $(`view-${v}`).hidden = v !== view;
+  for (const link of document.querySelectorAll('.nav-link')) {
+    link.setAttribute('aria-current', link.dataset.view === view ? 'page' : 'false');
   }
-  for (const input of document.querySelectorAll('input[name="direction"]')) {
-    input.checked = input.value === direction;
-  }
-  for (const input of document.querySelectorAll('input[name="class-icon-side"]')) {
-    input.checked = input.value === classIconSide;
-  }
-  iconSizeInput.value = iconSize;
-  iconSizeValue.textContent = `${iconSize} px`;
-  castLifetimeInput.value = castLifetimeMs / 1000;
-  castLifetimeValue.textContent = formatLifetime(castLifetimeMs);
-  maxVisibleCastsInput.value = maxVisibleCasts;
-  maxVisibleCastsValue.textContent = `${maxVisibleCasts}`;
-  previewEnabledInput.checked = previewEnabled;
-  updateDirectionVisibility(orientation);
-  updateLayoutSizeHint(orientation, iconSize, maxVisibleCasts);
+  if (view === 'affichage') renderPreview();
 }
 
-function defaultDirectionFor(orientation) {
-  return orientation === 'horizontal' ? 'left-to-right' : 'top-to-bottom';
+window.addEventListener('hashchange', () => showView(location.hash.slice(1)));
+
+// ── Héros ────────────────────────────────────────────────────────────────
+
+async function refreshHeroes() {
+  const s = await api.getState();
+  state.heroes = s.heroes;
+  state.tracked = new Set(s.trackedCharacterNames);
+  renderHeroes();
+  renderPreview();
 }
 
-orientationField.addEventListener('change', (e) => {
-  if (e.target.name !== 'orientation') return;
-  const orientation = e.target.value;
-  const direction = defaultDirectionFor(orientation);
-  updateDirectionVisibility(orientation);
-  // Carry the current slider values through, so re-rendering doesn't snap
-  // them back to the defaults.
-  renderLayout({
-    orientation,
-    direction,
-    iconSize: Number(iconSizeInput.value),
-    castLifetimeMs: Number(castLifetimeInput.value) * 1000,
-    maxVisibleCasts: Number(maxVisibleCastsInput.value),
-    previewEnabled: previewEnabledInput.checked,
-    classIconSide: document.querySelector('input[name="class-icon-side"]:checked')?.value,
+function avatarFor(hero) {
+  const emblem = classEmblem(hero.class);
+  const initials = (CLASS_LABELS.get(hero.class) || hero.characterName || '?').slice(0, 2);
+  const avatar = el('div', { class: 'avatar', 'aria-hidden': 'true', style: `--ring: ${rgbToHex(hero.color)}` });
+  if (emblem) {
+    const img = el('img', { src: emblem, alt: '' });
+    img.onerror = () => { avatar.textContent = initials; };
+    avatar.append(img);
+  } else {
+    avatar.textContent = initials;
+  }
+  return avatar;
+}
+
+function heroRow(hero) {
+  const active = state.tracked.has(hero.characterName);
+  const classLabel = CLASS_LABELS.get(hero.class) || 'Classe inconnue';
+  const alias = hero.name && hero.name !== hero.characterName ? ` · ${hero.name}` : '';
+
+  const toggle = el('button', {
+    type: 'button', class: 'switch', role: 'switch',
+    'aria-checked': active ? 'true' : 'false',
+    'aria-label': `Suivre ${hero.characterName}`,
+    onclick: () => {
+      if (active) state.tracked.delete(hero.characterName); else state.tracked.add(hero.characterName);
+      api.setTrackedHeroes([...state.tracked]);
+      renderHeroes();
+      renderPreview();
+    },
+  }, el('span'));
+
+  return el('li', {}, el('div', { class: `hero-row${active ? '' : ' paused'}` }, [
+    toggle,
+    el('div', { class: 'hero-main' }, [
+      avatarFor(hero),
+      el('div', { class: 'hero-text' }, [
+        el('span', { class: 'hero-name', text: hero.characterName, title: hero.characterName }),
+        el('span', { class: 'hero-meta', text: `${classLabel} · ${active ? 'suivi' : 'en pause'}${alias}` }),
+      ]),
+    ]),
+    el('button', {
+      type: 'button', class: 'btn row',
+      title: 'Envoyer un sort factice de ce héros à l\'overlay',
+      onclick: () => api.sendTestCast(hero.characterName),
+    }, [svg('<path d="M6 4l14 8-14 8z" fill="currentColor"/>', 12), el('span', { text: 'Tester' })]),
+    el('button', {
+      type: 'button', class: 'icon-btn', 'aria-label': `Modifier ${hero.characterName}`, title: 'Modifier',
+      onclick: () => openEditor(hero),
+    }, svg('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>', 16,
+      'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"')),
+    el('button', {
+      type: 'button', class: 'icon-btn', 'aria-label': `Retirer ${hero.characterName}`, title: 'Retirer',
+      onclick: () => removeHero(hero),
+    }, svg('<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/>', 16,
+      'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"')),
+  ]));
+}
+
+function heroEditor() {
+  const draft = state.draft;
+  const isNew = state.editing === NEW_HERO;
+  const idSuffix = isNew ? 'new' : 'edit';
+
+  const nameInput = el('input', {
+    id: `name-${idSuffix}`, type: 'text', class: 'input', placeholder: 'ex. Lueur Ocre', spellcheck: 'false',
   });
-  window.settingsAPI.setComboLayout({ orientation, direction });
-  showStatus('Réglages enregistrés');
-});
+  nameInput.value = draft.characterName;
+  nameInput.addEventListener('input', () => { draft.characterName = nameInput.value; });
 
-document.getElementById('direction-field').addEventListener('change', (e) => {
-  if (e.target.name !== 'direction') return;
-  window.settingsAPI.setComboLayout({ direction: e.target.value });
-  showStatus('Réglages enregistrés');
-});
+  const classSelect = el('select', { id: `cls-${idSuffix}`, class: 'input' }, [
+    el('option', { value: '', text: 'Choisir…' }),
+    ...CLASSES.map(([slug, label]) => el('option', { value: slug, text: label })),
+  ]);
+  classSelect.value = draft.class || '';
+  classSelect.addEventListener('change', () => { draft.class = classSelect.value; });
 
-document.getElementById('class-icon-side-field').addEventListener('change', (e) => {
-  if (e.target.name !== 'class-icon-side') return;
-  window.settingsAPI.setComboLayout({ classIconSide: e.target.value });
-  showStatus('Réglages enregistrés');
-});
+  const error = el('p', { class: 'error' });
 
-// `input` keeps the label and the OBS size hint live while dragging; the
-// setting itself is only persisted/broadcast on `change` (pointer release),
-// so a drag doesn't write the file once per pixel.
-iconSizeInput.addEventListener('input', () => {
-  const iconSize = Number(iconSizeInput.value);
-  const orientation = orientationField.querySelector('input[name="orientation"]:checked')?.value || 'vertical';
-  iconSizeValue.textContent = `${iconSize} px`;
-  updateLayoutSizeHint(orientation, iconSize, Number(maxVisibleCastsInput.value));
-});
+  const currentHex = draft.color.toLowerCase();
+  const isCustom = !PALETTE.includes(currentHex);
+  const swatches = PALETTE.map((c) => el('button', {
+    type: 'button', class: 'swatch', style: `--c: ${c}`,
+    'aria-label': `Couleur ${c}`, 'aria-pressed': c === currentHex ? 'true' : 'false',
+    onclick: () => pickColor(c),
+  }));
+  const custom = el('button', {
+    type: 'button', class: 'swatch custom', style: isCustom ? `--c: ${currentHex}` : null,
+    'aria-label': 'Couleur personnalisée', title: 'Couleur personnalisée',
+    'aria-pressed': isCustom ? 'true' : 'false',
+    onclick: () => {
+      const input = $('custom-color-input');
+      input.value = draft.color;
+      input.onchange = () => pickColor(input.value);
+      input.click();
+    },
+  }, svg('<path d="M12 5v14M5 12h14"/>', 12, 'fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"'));
 
-iconSizeInput.addEventListener('change', () => {
-  window.settingsAPI.setComboLayout({ iconSize: Number(iconSizeInput.value) });
-  showStatus('Réglages enregistrés');
-});
+  async function save() {
+    error.textContent = '';
+    const characterName = draft.characterName.trim();
+    if (!characterName) { error.textContent = 'Indique le nom exact du personnage.'; nameInput.focus(); return; }
+    if (!draft.class) { error.textContent = 'Choisis une classe.'; classSelect.focus(); return; }
 
-castLifetimeInput.addEventListener('input', () => {
-  castLifetimeValue.textContent = formatLifetime(Number(castLifetimeInput.value) * 1000);
-});
+    if (isNew) {
+      const ok = await api.addHero({ characterName, class: draft.class, color: hexToRgb(draft.color) });
+      if (!ok) { error.textContent = 'Ce nom de personnage existe déjà.'; return; }
+    } else {
+      const ok = await api.updateHero(state.editing, { characterName, class: draft.class });
+      if (!ok) { error.textContent = 'Ce nom de personnage existe déjà.'; return; }
+    }
+    closeEditor();
+    await refreshHeroes();
+  }
 
-castLifetimeInput.addEventListener('change', () => {
-  window.settingsAPI.setComboLayout({ castLifetimeMs: Number(castLifetimeInput.value) * 1000 });
-  showStatus('Réglages enregistrés');
-});
+  nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
 
-function parseValidMaxVisibleCasts(rawValue) {
-  const value = Number(rawValue);
-  if (!Number.isInteger(value)) return null;
-  if (value < maxVisibleCastsRange.min || value > maxVisibleCastsRange.max) return null;
-  return value;
+  return el('li', {}, el('div', { class: 'hero-edit' }, [
+    el('div', { class: 'hero-edit-grid' }, [
+      el('div', { class: 'field tight' }, [
+        el('label', { for: `name-${idSuffix}`, class: 'sub-label', text: 'Nom du personnage (exact, comme dans les logs)' }),
+        nameInput,
+      ]),
+      el('div', { class: 'field tight' }, [
+        el('label', { for: `cls-${idSuffix}`, class: 'sub-label', text: 'Classe' }),
+        el('div', { class: 'select-wrap' }, [
+          classSelect,
+          svg('<path d="m6 9 6 6 6-6"/>', 16, 'fill="none" stroke="#a0b0b7" stroke-width="2" stroke-linecap="round"'),
+        ]),
+      ]),
+    ]),
+    error,
+    el('div', { class: 'hero-edit-foot' }, [
+      el('div', { class: 'swatches', role: 'group', 'aria-label': 'Couleur' }, [
+        el('span', { class: 'sub-label', text: 'Couleur', style: 'margin-right: 4px' }),
+        ...swatches,
+        custom,
+      ]),
+      el('div', { class: 'hero-edit-actions' }, [
+        el('button', { type: 'button', class: 'btn ghost done', text: 'Annuler', onclick: () => { closeEditor(); renderHeroes(); } }),
+        el('button', { type: 'button', class: 'btn primary done', text: isNew ? 'Ajouter' : 'Terminé', onclick: save }),
+      ]),
+    ]),
+  ]));
 }
 
-maxVisibleCastsInput.addEventListener('input', () => {
-  maxVisibleCastsError.textContent = '';
-  maxVisibleCastsValue.textContent = `${maxVisibleCastsInput.value || ''}`;
-  const iconSize = Number(iconSizeInput.value);
-  const orientation = orientationField.querySelector('input[name="orientation"]:checked')?.value || 'vertical';
-  const value = parseValidMaxVisibleCasts(maxVisibleCastsInput.value) ?? defaultMaxVisibleCasts;
-  updateLayoutSizeHint(orientation, iconSize, value);
-});
-
-maxVisibleCastsInput.addEventListener('change', () => {
-  const parsed = parseValidMaxVisibleCasts(maxVisibleCastsInput.value);
-  if (parsed === null) {
-    maxVisibleCastsError.textContent =
-      `Valeur invalide : entier entre ${maxVisibleCastsRange.min} et ${maxVisibleCastsRange.max}.`;
-    maxVisibleCastsInput.value = defaultMaxVisibleCasts;
-    maxVisibleCastsValue.textContent = `${defaultMaxVisibleCasts}`;
-    const iconSize = Number(iconSizeInput.value);
-    const orientation = orientationField.querySelector('input[name="orientation"]:checked')?.value || 'vertical';
-    updateLayoutSizeHint(orientation, iconSize, defaultMaxVisibleCasts);
-    return;
+async function pickColor(hex) {
+  state.draft.color = hex;
+  // Color changes on an existing hero apply right away, like the rest of the page.
+  if (state.editing !== NEW_HERO) {
+    await api.setHeroColor(state.editing, hexToRgb(hex));
+    const hero = state.heroes.find((h) => h.characterName === state.editing);
+    if (hero) hero.color = hexToRgb(hex);
+    renderPreview();
   }
-  maxVisibleCastsError.textContent = '';
-  defaultMaxVisibleCasts = parsed;
-  maxVisibleCastsValue.textContent = `${parsed}`;
-  window.settingsAPI.setComboLayout({ maxVisibleCasts: parsed });
-  showStatus('Réglages enregistrés');
+  const focused = document.activeElement?.id;
+  renderHeroes();
+  if (focused) $(focused)?.focus();
+}
+
+function openEditor(hero) {
+  if (hero) {
+    state.editing = hero.characterName;
+    state.draft = { characterName: hero.characterName, class: hero.class || '', color: rgbToHex(hero.color) };
+  } else {
+    const used = new Set(state.heroes.map((h) => rgbToHex(h.color)));
+    state.editing = NEW_HERO;
+    state.draft = { characterName: '', class: '', color: PALETTE.find((c) => !used.has(c)) || PALETTE[0] };
+  }
+  renderHeroes();
+  $(hero ? 'name-edit' : 'name-new')?.focus();
+}
+
+function closeEditor() {
+  state.editing = null;
+  state.draft = null;
+}
+
+async function removeHero(hero) {
+  const index = state.heroes.findIndex((h) => h.characterName === hero.characterName);
+  const wasTracked = state.tracked.has(hero.characterName);
+  await api.removeHero(hero.characterName);
+  if (state.editing === hero.characterName) closeEditor();
+  await refreshHeroes();
+  const classLabel = CLASS_LABELS.get(hero.class);
+  showToast(`« ${hero.characterName}${classLabel ? ` — ${classLabel}` : ''} » a été retiré de la liste.`, {
+    undo: async () => {
+      await api.addHero(hero, { index, tracked: wasTracked });
+      await refreshHeroes();
+    },
+  });
+}
+
+function renderHeroes() {
+  const list = $('hero-list');
+  list.innerHTML = '';
+  if (state.editing === NEW_HERO) list.append(heroEditor());
+  for (const hero of state.heroes) {
+    list.append(hero.characterName === state.editing ? heroEditor() : heroRow(hero));
+  }
+  if (!state.heroes.length && state.editing !== NEW_HERO) {
+    list.append(el('li', { class: 'empty-state', text: 'Aucun personnage pour l\'instant — ajoute le tien avec « Ajouter un héros » (nom exact en jeu).' }));
+  }
+}
+
+$('add-hero-btn').addEventListener('click', () => openEditor(null));
+
+// ── Affichage ────────────────────────────────────────────────────────────
+
+function layoutId(layout) {
+  return LAYOUTS.find((l) => l.orientation === layout.orientation && l.direction === layout.direction)?.id || 'v-fwd';
+}
+
+/** Size of the OBS browser source that fits the whole overlay (matches the preview box). */
+function overlaySize(layout = state.layout) {
+  const n = layout.maxVisibleCasts || 8;
+  const icon = layout.iconSize || 32;
+  const entry = icon + ENTRY_CHROME_PX;
+  const lead = icon + CLASS_ICON_EXTRA_PX;
+  const logLen = n * entry + (n - 1) * ENTRY_GAP_PX;
+  const horizontal = layout.orientation === 'horizontal';
+  const width = EDGE_OFFSET_PX * 2 + lead + CLASS_ICON_GAP_PX + (horizontal ? logLen : entry);
+  const height = EDGE_OFFSET_PX * 2 + (horizontal ? Math.max(entry, lead) : Math.max(logLen, lead));
+  return { width, height };
+}
+
+function renderLayoutPicker() {
+  const picker = $('layout-picker');
+  picker.innerHTML = '';
+  const current = layoutId(state.layout);
+  for (const def of LAYOUTS) {
+    picker.append(el('button', {
+      type: 'button', class: 'layout-option', 'aria-pressed': def.id === current ? 'true' : 'false',
+      onclick: () => {
+        state.layout = { ...state.layout, orientation: def.orientation, direction: def.direction };
+        api.setComboLayout({ orientation: def.orientation, direction: def.direction });
+        renderLayout();
+      },
+    }, [
+      el('div', { class: 'layout-glyph', 'aria-hidden': 'true', style: `flex-direction: ${def.flex}` },
+        [el('span'), el('span'), el('span')]),
+      el('span', { class: 'layout-name' }, [el('b', { text: def.label }), el('small', { text: def.sub })]),
+    ]));
+  }
+}
+
+function renderLayout() {
+  const layout = state.layout;
+  renderLayoutPicker();
+  setSegmented($('class-icon-side'), layout.classIconSide || 'left');
+  $('icon-size').value = layout.iconSize;
+  $('icon-size-value').textContent = `${layout.iconSize} px`;
+  $('cast-lifetime').value = layout.castLifetimeMs / 1000;
+  $('cast-lifetime-value').textContent = formatLifetime(layout.castLifetimeMs);
+  $('max-visible-value').textContent = layout.maxVisibleCasts;
+  $('max-dec').disabled = layout.maxVisibleCasts <= state.maxVisibleRange.min;
+  $('max-inc').disabled = layout.maxVisibleCasts >= state.maxVisibleRange.max;
+  setSwitch($('preview-enabled'), layout.previewEnabled);
+  renderPreview();
+}
+
+/** Casts shown in the preview: the tracked heroes' colors and classes, two casts each. */
+function previewEntries(count) {
+  const pool = state.previewPool;
+  const tracked = state.heroes.filter((h) => state.tracked.has(h.characterName));
+  const heroes = tracked.length ? tracked : state.heroes;
+  const entries = [];
+  for (let i = 0; i < count; i += 1) {
+    if (heroes.length) {
+      const hero = heroes[Math.floor(i / 2) % heroes.length];
+      const sample = pool.find((p) => p.class === hero.class) || pool[i % (pool.length || 1)];
+      entries.push({ heroClass: hero.class, color: rgbToHex(hero.color), icon: sample?.icon });
+    } else if (pool.length) {
+      const sample = pool[i % pool.length];
+      entries.push({ heroClass: sample.class, color: rgbToHex(sample.color), icon: sample.icon });
+    } else {
+      entries.push({ heroClass: null, color: PALETTE[i % PALETTE.length], icon: null });
+    }
+  }
+  return entries;
+}
+
+function renderPreview() {
+  const layout = state.layout;
+  if (!layout.iconSize) return;
+  const iconSize = layout.iconSize;
+  const { width, height } = overlaySize(layout);
+  const sizeText = `${width} × ${height}`;
+  $('obs-size').textContent = `${sizeText} px`;
+  for (const node of document.querySelectorAll('.obs-size-inline')) node.textContent = sizeText;
+
+  if ($('view-affichage').hidden) return;
+
+  const stage = $('preview-stage');
+  const availW = stage.clientWidth - 28;
+  const availH = stage.clientHeight - 28;
+  const k = Math.min(1, availW / width, availH / height);
+
+  const box = $('preview-box');
+  box.style.width = `${Math.round(width * k)}px`;
+  box.style.height = `${Math.round(height * k)}px`;
+  const scale = $('preview-scale');
+  scale.style.width = `${width}px`;
+  scale.style.height = `${height}px`;
+  scale.style.transform = `scale(${k})`;
+
+  $('pv-overlay').dataset.side = layout.classIconSide || 'left';
+  const flex = LAYOUTS.find((l) => l.id === layoutId(layout)).flex;
+  const log = $('pv-log');
+  log.style.flexDirection = flex;
+  log.innerHTML = '';
+
+  const entries = previewEntries(layout.maxVisibleCasts);
+  for (const entry of entries) {
+    const box = el('div', { class: 'pv-entry', style: `--c: ${entry.color}` });
+    const src = assetUrl(entry.icon);
+    const fill = el('div', { class: 'pv-fill', style: `width: ${iconSize}px; height: ${iconSize}px` });
+    if (src) {
+      const img = el('img', { src, alt: '', style: `width: ${iconSize}px; height: ${iconSize}px` });
+      img.onerror = () => img.replaceWith(fill);
+      box.append(img);
+    } else {
+      box.append(fill);
+    }
+    log.append(box);
+  }
+
+  // The class icon shows the class of the most recent cast (the last one).
+  const lead = $('pv-lead');
+  const leadSize = iconSize + CLASS_ICON_EXTRA_PX;
+  lead.style.width = `${leadSize}px`;
+  lead.style.height = `${leadSize}px`;
+  lead.innerHTML = '';
+  const emblem = classEmblem(entries[entries.length - 1]?.heroClass);
+  if (emblem) lead.append(el('img', { src: emblem, alt: '' }));
+}
+
+window.addEventListener('resize', renderPreview);
+
+$('class-icon-side').addEventListener('click', (e) => {
+  const value = e.target.closest('button')?.dataset.value;
+  if (!value) return;
+  state.layout.classIconSide = value;
+  api.setComboLayout({ classIconSide: value });
+  renderLayout();
 });
 
-previewEnabledInput.addEventListener('change', () => {
-  window.settingsAPI.setComboLayout({ previewEnabled: previewEnabledInput.checked });
-  showStatus('Réglages enregistrés');
+// `input` keeps the label and preview live while dragging; the setting itself
+// is only persisted/broadcast on `change` (pointer release), so a drag doesn't
+// write the file once per pixel.
+$('icon-size').addEventListener('input', (e) => {
+  state.layout.iconSize = Number(e.target.value);
+  $('icon-size-value').textContent = `${state.layout.iconSize} px`;
+  renderPreview();
+});
+$('icon-size').addEventListener('change', () => api.setComboLayout({ iconSize: state.layout.iconSize }));
+
+$('cast-lifetime').addEventListener('input', (e) => {
+  state.layout.castLifetimeMs = Number(e.target.value) * 1000;
+  $('cast-lifetime-value').textContent = formatLifetime(state.layout.castLifetimeMs);
+});
+$('cast-lifetime').addEventListener('change', () => api.setComboLayout({ castLifetimeMs: state.layout.castLifetimeMs }));
+
+function stepMaxVisible(delta) {
+  const { min, max } = state.maxVisibleRange;
+  const value = Math.max(min, Math.min(max, state.layout.maxVisibleCasts + delta));
+  if (value === state.layout.maxVisibleCasts) return;
+  state.layout.maxVisibleCasts = value;
+  api.setComboLayout({ maxVisibleCasts: value });
+  renderLayout();
+}
+$('max-dec').addEventListener('click', () => stepMaxVisible(-1));
+$('max-inc').addEventListener('click', () => stepMaxVisible(1));
+
+$('preview-enabled').addEventListener('click', () => {
+  state.layout.previewEnabled = !state.layout.previewEnabled;
+  api.setComboLayout({ previewEnabled: state.layout.previewEnabled });
+  setSwitch($('preview-enabled'), state.layout.previewEnabled);
 });
 
-// ── Diagnostics ────────────────────────────────────────────────────────────
+$('copy-size').addEventListener('click', (e) => {
+  const { width, height } = overlaySize();
+  copyText(`${width}x${height}`, e.currentTarget);
+});
 
-const diagOverlayUrl = document.getElementById('diag-overlay-url');
-const diagObsLoader = document.getElementById('diag-obs-loader');
-const diagLogsDir = document.getElementById('diag-logs-dir');
-const diagLogsStatus = document.getElementById('diag-logs-status');
-const diagClients = document.getElementById('diag-clients');
-const debugLog = document.getElementById('debug-log');
+// ── OBS & diagnostic ─────────────────────────────────────────────────────
 
-let currentOverlayUrl = '';
-let currentObsLoaderPath = '';
+const ICON_CHECK = '<path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>';
+const ICON_ALERT = '<path d="M12 7v6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M12 17h.01" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>';
+
+function setDiagCard(id, { tone, label, value, title }) {
+  const card = $(id);
+  card.classList.toggle('warn', tone === 'warn');
+  card.classList.toggle('bad', tone === 'bad');
+  card.querySelector('.diag-icon').innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">${tone === 'ok' ? ICON_CHECK : ICON_ALERT}</svg>`;
+  if (label !== undefined) card.querySelector('.diag-label').textContent = label;
+  const valueEl = card.querySelector('.diag-value');
+  valueEl.textContent = value;
+  valueEl.title = title || value;
+}
+
+function setSideStatus(dotId, valueId, tone, text) {
+  const dot = $(dotId);
+  dot.className = `dot ${tone === 'ok' ? 'ok' : tone === 'bad' ? 'err' : 'warn'}`;
+  const value = $(valueId);
+  value.textContent = text;
+  value.className = `status-value ${tone === 'ok' ? 'ok-text' : tone === 'bad' ? 'err-text' : 'warn-text'}`;
+}
 
 async function loadDiagnostics() {
-  const diag = await window.settingsAPI.getDiagnostics();
-  currentOverlayUrl = diag.overlayUrl;
-  diagOverlayUrl.textContent = diag.overlayError
-    ? `${diag.overlayUrl} — HORS LIGNE : ${diag.overlayError}`
-    : diag.overlayUrl;
-  diagOverlayUrl.className = diag.overlayError ? 'diag-bad' : '';
-  currentObsLoaderPath = diag.obsLoaderPath || '';
-  diagObsLoader.textContent = currentObsLoaderPath || 'indisponible (écriture impossible)';
-  diagLogsDir.textContent = diag.logsDir;
-  diagLogsStatus.textContent = diag.logsDirExists ? 'trouvé' : 'introuvable';
-  diagLogsStatus.className = diag.logsDirExists ? 'diag-ok' : 'diag-bad';
-  diagClients.textContent = diag.overlayClients > 0
-    ? `${diag.overlayClients} connecté(s)`
-    : 'aucun — OBS (ou le navigateur) n\'est pas connecté à la page overlay';
-  diagClients.className = diag.overlayClients > 0 ? 'diag-ok' : 'diag-bad';
+  const diag = await api.getDiagnostics();
+  state.diag = diag;
+
+  setDiagCard('card-logs', diag.logsDirExists
+    ? { tone: 'ok', value: 'Dossier trouvé', title: diag.logsDir }
+    : { tone: 'bad', value: 'Dossier introuvable', title: diag.logsDir });
+  setSideStatus('side-logs-dot', 'side-logs-value', diag.logsDirExists ? 'ok' : 'bad', diag.logsDirExists ? 'trouvés' : 'introuvables');
+
+  const clients = diag.overlayClients;
+  if (diag.overlayError) {
+    setDiagCard('card-obs', { tone: 'bad', label: 'Overlay hors ligne', value: diag.overlayError });
+    setSideStatus('side-obs-dot', 'side-obs-value', 'bad', 'overlay HS');
+  } else {
+    setDiagCard('card-obs', {
+      tone: clients > 0 ? 'ok' : 'warn',
+      label: `Overlay · ${clients} client${clients > 1 ? 's' : ''}`,
+      value: clients > 0 ? 'OBS connecté' : 'OBS non connecté',
+    });
+    setSideStatus('side-obs-dot', 'side-obs-value', clients > 0 ? 'ok' : 'warn', clients > 0 ? 'connecté' : 'non connecté');
+  }
+  $('last-cast').textContent = formatAgo(diag.lastCastAt);
+
+  $('overlay-url').textContent = diag.overlayUrl;
+  $('obs-loader-path').textContent = diag.obsLoaderPath || 'indisponible (écriture impossible)';
+  $('overlay-error').textContent = diag.overlayError
+    ? `L'overlay est hors ligne (${diag.overlayError}) : change le port ci-dessous.`
+    : '';
 
   // Don't clobber what the user is actively typing.
-  if (document.activeElement !== overlayPortInput) {
-    overlayPortInput.value = diag.overlayPort;
-  }
-  if (document.activeElement !== logsDirInput) {
-    logsDirInput.value = diag.logsDir;
-  }
+  if (document.activeElement !== $('overlay-port-input')) $('overlay-port-input').value = diag.overlayPort;
+  if (document.activeElement !== $('logs-dir-input')) $('logs-dir-input').value = diag.logsDir;
+
+  renderWizardObsStatus();
 }
 
 setInterval(loadDiagnostics, 2000);
 
-// ── Click-to-copy overlay URL ───────────────────────────────────────────────
-
-diagOverlayUrl.addEventListener('click', async () => {
-  if (!currentOverlayUrl) return;
-  try {
-    await navigator.clipboard.writeText(currentOverlayUrl);
-    showStatus('URL copiée');
-  } catch {
-    showStatus('Impossible de copier');
-  }
+$('obs-method').addEventListener('click', (e) => {
+  const value = e.target.closest('button')?.dataset.value;
+  if (!value) return;
+  setSegmented($('obs-method'), value, 'aria-selected');
+  for (const panel of document.querySelectorAll('.method-panel')) panel.hidden = panel.dataset.method !== value;
 });
 
-diagObsLoader.addEventListener('click', async () => {
-  if (!currentObsLoaderPath) return;
-  try {
-    await navigator.clipboard.writeText(currentObsLoaderPath);
-    showStatus('Chemin copié');
-  } catch {
-    showStatus('Impossible de copier');
-  }
-});
+$('copy-url').addEventListener('click', (e) => state.diag && copyText(state.diag.overlayUrl, e.currentTarget));
+$('copy-file').addEventListener('click', (e) => state.diag?.obsLoaderPath && copyText(state.diag.obsLoaderPath, e.currentTarget));
+$('show-obs-loader').addEventListener('click', () => api.showObsLoader());
 
-// ── Overlay port ─────────────────────────────────────────────────────────────
-
-const overlayPortInput = document.getElementById('overlay-port-input');
-const overlayPortError = document.getElementById('overlay-port-error');
-
-document.getElementById('overlay-port-apply').addEventListener('click', async () => {
-  overlayPortError.textContent = '';
-  const result = await window.settingsAPI.setOverlayPort(overlayPortInput.value);
+async function applyOverlayPort() {
+  const input = $('overlay-port-input');
+  if (!state.diag || (String(state.diag.overlayPort) === input.value.trim() && !state.diag.overlayError)) return;
+  $('overlay-port-error').textContent = '';
+  const result = await api.setOverlayPort(input.value.trim());
+  input.classList.toggle('invalid', !result.ok);
   if (!result.ok) {
-    overlayPortError.textContent = result.error || 'Port invalide.';
+    $('overlay-port-error').textContent = result.error || 'Port invalide.';
     return;
   }
-  showStatus('Port changé — pense à mettre à jour l\'URL dans OBS');
+  showToast('Port changé — pense à mettre à jour l\'URL dans OBS.');
   await loadDiagnostics();
-});
-
-// ── Logs directory ───────────────────────────────────────────────────────────
-
-const logsDirInput = document.getElementById('logs-dir-input');
-const logsDirError = document.getElementById('logs-dir-error');
-
-document.getElementById('logs-dir-browse').addEventListener('click', async () => {
-  const picked = await window.settingsAPI.browseLogsDir();
-  if (picked) logsDirInput.value = picked;
-});
-
-document.getElementById('logs-dir-apply').addEventListener('click', async () => {
-  logsDirError.textContent = '';
-  const result = await window.settingsAPI.setLogsDir(logsDirInput.value);
-  if (!result.ok) {
-    logsDirError.textContent = result.error || 'Chemin invalide.';
-    return;
-  }
-  showStatus('Dossier de logs changé');
-  await loadDiagnostics();
-});
-
-const MAX_DEBUG_ENTRIES = 50;
-
-const DEBUG_LABELS = {
-  broadcast: 'Envoyé à l\'overlay',
-  'ignored-untracked': 'Ignoré (héros non suivi)',
-  'ignored-unmatched': 'Ignoré (joueur/mob inconnu)',
-  test: 'Test manuel',
-};
-
-function addDebugEntry(entry) {
-  const empty = debugLog.querySelector('.debug-empty');
-  if (empty) empty.remove();
-
-  const el = document.createElement('div');
-  el.className = `debug-entry ${entry.status}`;
-  const time = new Date(entry.timestamp).toLocaleTimeString('fr-FR');
-  const who = entry.heroName ? `${entry.characterName} (${entry.heroName})` : entry.characterName;
-  el.textContent = `[${time}] ${DEBUG_LABELS[entry.status] ?? entry.status} — ${who}${entry.spellName ? ' : ' + entry.spellName : ''}`;
-  debugLog.prepend(el);
-
-  while (debugLog.children.length > MAX_DEBUG_ENTRIES) debugLog.removeChild(debugLog.lastChild);
 }
 
-document.getElementById('clear-debug-log').addEventListener('click', () => {
-  debugLog.innerHTML = '<div class="debug-empty">Aucune activité pour l\'instant.</div>';
+$('overlay-port-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') e.target.blur(); });
+$('overlay-port-input').addEventListener('change', applyOverlayPort);
+
+async function applyLogsDir() {
+  const input = $('logs-dir-input');
+  if (!state.diag || state.diag.logsDir === input.value) return;
+  $('logs-dir-error').textContent = '';
+  const result = await api.setLogsDir(input.value);
+  input.classList.toggle('invalid', !result.ok);
+  if (!result.ok) {
+    $('logs-dir-error').textContent = result.error || 'Chemin invalide.';
+    return;
+  }
+  showToast('Dossier de logs changé.');
+  await loadDiagnostics();
+}
+
+$('logs-dir-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') e.target.blur(); });
+$('logs-dir-input').addEventListener('change', applyLogsDir);
+$('logs-dir-browse').addEventListener('click', async () => {
+  const picked = await api.browseLogsDir();
+  if (!picked) return;
+  $('logs-dir-input').value = picked;
+  await applyLogsDir();
 });
+
+function renderLaunchAtLogin({ available, enabled }) {
+  setSwitch($('launch-at-login'), enabled);
+  $('launch-at-login').disabled = !available;
+  $('launch-at-login-hint').hidden = available;
+}
+
+$('launch-at-login').addEventListener('click', async (e) => {
+  const enabled = e.currentTarget.getAttribute('aria-checked') !== 'true';
+  renderLaunchAtLogin(await api.setLaunchAtLogin(enabled));
+});
+
+// ── Activité en temps réel ───────────────────────────────────────────────
+
+const MAX_DEBUG_ENTRIES = 50;
+const debugLog = $('debug-log');
+
+function debugEntryView(entry) {
+  const heroClass = CLASS_LABELS.get(entry.heroClass);
+  const who = heroClass ? `${entry.characterName} (${heroClass})` : entry.characterName;
+  const spell = entry.spellName ? ` · ${entry.spellName}` : '';
+  switch (entry.status) {
+    case 'broadcast':
+      return entry.iconMissing
+        ? { tone: 'err', kind: 'erreur', msg: `${who}${spell} — sort sans icône connue` }
+        : { tone: 'ok', kind: 'affiché', msg: `${who}${spell}` };
+    case 'test':
+      return { tone: 'ok', kind: 'test', msg: `${who}${spell}` };
+    case 'ignored-untracked':
+      return { tone: 'muted', kind: 'ignoré', msg: `${entry.characterName} · héros en pause` };
+    case 'ignored-unmatched':
+      return { tone: 'muted', kind: 'ignoré', msg: `${entry.characterName} · personnage non suivi` };
+    default:
+      return { tone: 'muted', kind: entry.status, msg: who };
+  }
+}
+
+function showEmptyDebugLog() {
+  debugLog.innerHTML = '';
+  debugLog.append(el('li', { class: 'empty', text: 'En attente d\'un sort détecté dans les logs…' }));
+}
+
+function addDebugEntry(entry) {
+  debugLog.querySelector('.empty')?.remove();
+  const view = debugEntryView(entry);
+  const time = new Date(entry.timestamp || Date.now()).toLocaleTimeString('fr-FR');
+  debugLog.prepend(el('li', { class: view.tone }, [
+    el('span', { class: 't', text: time }),
+    el('span', { class: 'k', text: view.kind }),
+    el('span', { class: 'm', text: view.msg }),
+  ]));
+  while (debugLog.children.length > MAX_DEBUG_ENTRIES) debugLog.lastChild.remove();
+
+  if (entry.status === 'broadcast' && state.diag) {
+    state.diag.lastCastAt = entry.timestamp || Date.now();
+    $('last-cast').textContent = formatAgo(state.diag.lastCastAt);
+  }
+}
+
+$('clear-debug-log').addEventListener('click', showEmptyDebugLog);
 
 // ── Mises à jour ─────────────────────────────────────────────────────────
 
-const updateVersionEl = document.getElementById('update-version');
-const updateStatusEl = document.getElementById('update-status');
-const updateCheckBtn = document.getElementById('update-check-btn');
-
 const UPDATE_STATUS_LABELS = {
-  checking: 'Recherche en cours…',
-  available: (p) => `Nouvelle version disponible : v${p.version}`,
-  'not-available': 'À jour.',
-  downloading: (p) => `Téléchargement… ${Math.round(p.percent || 0)}%`,
-  downloaded: (p) => `Prêt à installer (v${p.version}) — redémarre l'application.`,
-  error: (p) => `Erreur : ${p.message || 'inconnue'}`,
+  checking: 'Recherche…',
+  available: (p) => `v${p.version} disponible`,
+  'not-available': 'À jour',
+  downloading: (p) => `Téléchargement ${Math.round(p.percent || 0)} %`,
+  downloaded: (p) => `v${p.version} prête — redémarre`,
+  error: 'Erreur de vérification',
 };
 
 function renderUpdateStatus(payload) {
   const label = UPDATE_STATUS_LABELS[payload.status];
-  updateStatusEl.textContent = typeof label === 'function' ? label(payload) : (label || '—');
-  updateCheckBtn.disabled = payload.status === 'checking' || payload.status === 'downloading';
+  const text = typeof label === 'function' ? label(payload) : (label || '');
+  $('update-status').textContent = text;
+  $('update-status').title = payload.status === 'error' ? (payload.message || '') : text;
+  $('update-check-btn').disabled = payload.status === 'checking' || payload.status === 'downloading';
 }
 
-updateCheckBtn.addEventListener('click', () => window.settingsAPI.checkForUpdates());
-window.settingsAPI.onUpdateStatus(renderUpdateStatus);
+$('update-check-btn').addEventListener('click', () => api.checkForUpdates());
+api.onUpdateStatus(renderUpdateStatus);
 
-// ── Démarrage ────────────────────────────────────────────────────────────
+// ── Assistant de premier lancement ───────────────────────────────────────
 
-const launchAtLoginInput = document.getElementById('launch-at-login');
-const launchAtLoginHint = document.getElementById('launch-at-login-hint');
+const WIZARD_STEPS = ['Ton personnage', 'Ajouter à OBS', 'Tester'];
+const wizard = { step: 1, name: '', cls: '', heroName: null, tested: false };
 
-function renderLaunchAtLogin({ available, enabled }) {
-  launchAtLoginInput.checked = enabled;
-  launchAtLoginInput.disabled = !available;
-  if (!available) launchAtLoginHint.textContent = 'Indisponible en développement (build non packagé).';
+function openWizard() {
+  Object.assign(wizard, { step: 1, name: '', cls: '', heroName: null, tested: false });
+  $('wz-name').value = '';
+  $('wz-error').textContent = '';
+  hideToast();
+  $('wizard').hidden = false;
+  renderWizard();
+  $('wz-name').focus();
 }
 
-launchAtLoginInput.addEventListener('change', async () => {
-  renderLaunchAtLogin(await window.settingsAPI.setLaunchAtLogin(launchAtLoginInput.checked));
-  showStatus('Réglages enregistrés');
+async function closeWizard() {
+  await api.setOnboardingDone();
+  $('wizard').hidden = true;
+  await refreshHeroes();
+  location.hash = '#heros';
+  showView('heros');
+}
+
+function renderWizardClasses() {
+  const grid = $('wz-classes');
+  grid.innerHTML = '';
+  for (const [slug, label] of CLASSES) {
+    const emblem = classEmblem(slug);
+    const mark = emblem ? el('img', { src: emblem, alt: '' }) : el('span', { text: label.slice(0, 2) });
+    grid.append(el('button', {
+      type: 'button', class: 'class-option', role: 'radio',
+      'aria-checked': wizard.cls === slug ? 'true' : 'false',
+      onclick: () => { wizard.cls = slug; renderWizardClasses(); },
+    }, [mark, el('span', { text: label })]));
+  }
+}
+
+function renderWizardObsStatus() {
+  if ($('wizard').hidden || !state.diag) return;
+  const connected = state.diag.overlayClients > 0;
+  $('wz-obs').classList.toggle('connected', connected);
+  $('wz-obs-text').textContent = connected ? 'OBS est connecté à l’overlay.' : 'En attente de la connexion d’OBS…';
+  $('wz-url').textContent = state.diag.overlayUrl;
+  if (wizard.step === 3) renderWizardChecks();
+}
+
+function renderWizardChecks() {
+  const connected = state.diag?.overlayClients > 0;
+  const checks = [
+    { ok: Boolean(wizard.heroName), label: wizard.heroName ? 'Personnage ajouté' : 'Aucun personnage ajouté' },
+    { ok: connected, label: connected ? 'OBS connecté à l’overlay' : 'OBS pas encore connecté' },
+    { ok: wizard.tested, label: wizard.tested ? 'Sort de test envoyé' : 'Sort de test pas encore envoyé' },
+  ];
+  const list = $('wz-checks');
+  list.innerHTML = '';
+  for (const check of checks) {
+    list.append(el('li', { class: check.ok ? 'ok' : '' }, [
+      el('span', { class: 'tick' }, svg('<path d="M20 6 9 17l-5-5"/>', 12,
+        'fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"')),
+      el('span', { text: check.label }),
+    ]));
+  }
+}
+
+function renderWizard() {
+  const steps = $('wizard-steps');
+  steps.innerHTML = '';
+  WIZARD_STEPS.forEach((label, i) => {
+    const n = i + 1;
+    const done = n < wizard.step;
+    const current = n === wizard.step;
+    steps.append(el('li', { class: done ? 'done' : current ? 'current' : '', 'aria-current': current ? 'step' : 'false' }, [
+      el('span', { class: 'mark', text: done ? '✓' : String(n) }),
+      el('span', { text: label }),
+    ]));
+  });
+
+  for (const section of document.querySelectorAll('.wizard-step')) {
+    section.hidden = Number(section.dataset.step) !== wizard.step;
+  }
+  $('wz-back').style.visibility = wizard.step > 1 ? 'visible' : 'hidden';
+  $('wz-next').hidden = wizard.step === 3;
+  $('wz-finish').hidden = wizard.step !== 3;
+
+  const { width, height } = overlaySize();
+  $('wz-w').textContent = width;
+  $('wz-h').textContent = height;
+
+  if (wizard.step === 1) renderWizardClasses();
+  if (wizard.step === 3) renderWizardChecks();
+  renderWizardObsStatus();
+}
+
+/** Step 1 → 2: adds the hero (or updates the one added earlier in this run). */
+async function saveWizardHero() {
+  const name = $('wz-name').value.trim();
+  $('wz-error').textContent = '';
+  if (!name) { $('wz-error').textContent = 'Indique le nom exact de ton personnage.'; $('wz-name').focus(); return false; }
+  if (!wizard.cls) { $('wz-error').textContent = 'Choisis sa classe.'; return false; }
+
+  if (wizard.heroName) {
+    const ok = await api.updateHero(wizard.heroName, { characterName: name, class: wizard.cls });
+    if (!ok) { $('wz-error').textContent = 'Ce nom de personnage existe déjà.'; return false; }
+  } else if (state.heroes.some((h) => h.characterName === name)) {
+    // Already in the roster (assistant re-run): just make sure it's tracked with that class.
+    await api.updateHero(name, { class: wizard.cls });
+    if (!state.tracked.has(name)) await api.setTrackedHeroes([...state.tracked, name]);
+  } else {
+    const used = new Set(state.heroes.map((h) => rgbToHex(h.color)));
+    const color = PALETTE.find((c) => !used.has(c)) || PALETTE[0];
+    const ok = await api.addHero({ characterName: name, class: wizard.cls, color: hexToRgb(color) });
+    if (!ok) { $('wz-error').textContent = 'Ce nom de personnage existe déjà.'; return false; }
+  }
+  wizard.heroName = name;
+  await refreshHeroes();
+  return true;
+}
+
+$('wz-next').addEventListener('click', async () => {
+  if (wizard.step === 1 && !(await saveWizardHero())) return;
+  wizard.step = Math.min(3, wizard.step + 1);
+  renderWizard();
 });
+$('wz-name').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('wz-next').click(); });
+$('wz-back').addEventListener('click', () => {
+  wizard.step = Math.max(1, wizard.step - 1);
+  renderWizard();
+});
+$('wz-copy').addEventListener('click', (e) => state.diag && copyText(state.diag.overlayUrl, e.currentTarget));
+$('wz-test').addEventListener('click', async () => {
+  await api.sendTestCast(wizard.heroName);
+  wizard.tested = true;
+  renderWizardChecks();
+});
+$('wz-finish').addEventListener('click', closeWizard);
+$('wizard-skip').addEventListener('click', closeWizard);
+$('rerun-wizard').addEventListener('click', openWizard);
 
-function applyIconSizeRange(range) {
-  if (!range) return;
-  iconSizeInput.min = range.min;
-  iconSizeInput.max = range.max;
-  defaultIconSize = range.default;
-}
-
-function applyCastLifetimeRange(range) {
-  if (!range) return;
-  castLifetimeInput.min = range.min / 1000;
-  castLifetimeInput.max = range.max / 1000;
-  defaultCastLifetimeMs = range.default;
-}
-
-function applyMaxVisibleCastsRange(range) {
-  if (!range) return;
-  maxVisibleCastsInput.min = range.min;
-  maxVisibleCastsInput.max = range.max;
-  defaultMaxVisibleCasts = range.default;
-  maxVisibleCastsRange = { min: range.min, max: range.max };
-}
+// ── Init ─────────────────────────────────────────────────────────────────
 
 async function init() {
-  const state = await window.settingsAPI.getState();
-  renderHeroes(state.heroes, state.trackedCharacterNames);
-  applyIconSizeRange(state.iconSizeRange);
-  applyCastLifetimeRange(state.castLifetimeRange);
-  applyMaxVisibleCastsRange(state.maxVisibleCastsRange);
-  renderLayout(state.comboLayout);
-  renderLaunchAtLogin(await window.settingsAPI.getLaunchAtLogin());
+  const s = await api.getState();
+  state.heroes = s.heroes;
+  state.tracked = new Set(s.trackedCharacterNames);
+  state.layout = { ...s.comboLayout };
+  state.classIcons = s.classIcons || {};
+  state.previewPool = s.previewPool || [];
+
+  if (s.iconSizeRange) {
+    $('icon-size').min = s.iconSizeRange.min;
+    $('icon-size').max = s.iconSizeRange.max;
+  }
+  if (s.castLifetimeRange) {
+    $('cast-lifetime').min = s.castLifetimeRange.min / 1000;
+    $('cast-lifetime').max = s.castLifetimeRange.max / 1000;
+  }
+  if (s.maxVisibleCastsRange) {
+    state.maxVisibleRange = { min: s.maxVisibleCastsRange.min, max: s.maxVisibleCastsRange.max };
+  }
+
+  showView(location.hash.slice(1));
+  renderHeroes();
+  renderLayout();
+  setSegmented($('obs-method'), 'url', 'aria-selected');
+  showEmptyDebugLog();
+  api.onDebugEvent(addDebugEntry);
+  renderLaunchAtLogin(await api.getLaunchAtLogin());
+  $('app-version').textContent = `v${await api.getAppVersion()}`;
   await loadDiagnostics();
-  debugLog.innerHTML = '<div class="debug-empty">En attente d\'un sort détecté dans les logs…</div>';
-  window.settingsAPI.onDebugEvent(addDebugEntry);
-  updateVersionEl.textContent = `v${await window.settingsAPI.getAppVersion()}`;
+
+  if (s.showOnboarding) openWizard();
 }
 
 init();

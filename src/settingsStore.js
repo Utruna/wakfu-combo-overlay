@@ -204,24 +204,39 @@ class SettingsStore extends EventEmitter {
     this.emit('comboLayoutChanged', this._state.comboLayout);
   }
 
+  get onboardingDone() {
+    return Boolean(this._state.onboardingDone);
+  }
+
+  /** Remembers that the first-launch assistant was completed or skipped. */
+  setOnboardingDone(done = true) {
+    this._state.onboardingDone = Boolean(done);
+    this._persist();
+  }
+
   /**
    * Add a new tracked character. Rejects a duplicate/blank characterName
    * (it's the matching key, so it must stay unique) — returns false in that
    * case, true on success.
    *
    * @param {{name: string, characterName: string, color: {r:number,g:number,b:number}, class: string}} hero
+   * @param {{index?: number, tracked?: boolean}} [options] - Where to insert it
+   *   (default: at the end) and whether it starts tracked (default: true) —
+   *   used to put a just-removed hero back exactly as it was.
    */
-  addHero(hero) {
+  addHero(hero, { index, tracked = true } = {}) {
     const characterName = String(hero.characterName || '').trim();
     if (!characterName) return false;
     if (this.heroes.some((h) => h.characterName === characterName)) return false;
 
     const name = String(hero.name || '').trim() || characterName;
     const heroClass = String(hero.class || '').trim() || null;
-    const heroes = [...this.heroes, { name, characterName, color: hero.color, class: heroClass }];
+    const heroes = [...this.heroes];
+    const at = Number.isInteger(index) ? Math.max(0, Math.min(heroes.length, index)) : heroes.length;
+    heroes.splice(at, 0, { name, characterName, color: hero.color, class: heroClass });
     this._state.heroes = heroes;
 
-    this._trackedSet.add(characterName);
+    if (tracked) this._trackedSet.add(characterName);
     this._state.trackedCharacterNames = [...this._trackedSet];
 
     this._persist();
@@ -247,6 +262,51 @@ class SettingsStore extends EventEmitter {
 
     this._persist();
     this.emit('heroesChanged', this.heroes);
+    return true;
+  }
+
+  /**
+   * Rename a hero and/or change its class. The characterName is the matching
+   * key, so a rename is rejected when blank or already taken; its tracked
+   * state carries over to the new name.
+   *
+   * @param {string} characterName - Current name.
+   * @param {{characterName?: string, class?: string}} changes
+   * @returns {boolean} true if the hero was found and updated, false otherwise.
+   */
+  updateHero(characterName, changes) {
+    const index = this.heroes.findIndex((h) => h.characterName === characterName);
+    if (index === -1) return false;
+
+    const hero = { ...this.heroes[index] };
+    let renamedFrom = null;
+    if (changes.characterName !== undefined) {
+      const newName = String(changes.characterName || '').trim();
+      if (!newName) return false;
+      if (newName !== characterName) {
+        if (this.heroes.some((h) => h.characterName === newName)) return false;
+        // `name` is only a display alias; keep it in sync unless it was customized.
+        if (hero.name === characterName) hero.name = newName;
+        hero.characterName = newName;
+        renamedFrom = characterName;
+      }
+    }
+    if (changes.class !== undefined) {
+      hero.class = String(changes.class || '').trim() || null;
+    }
+
+    const heroes = [...this.heroes];
+    heroes[index] = hero;
+    this._state.heroes = heroes;
+
+    if (renamedFrom && this._trackedSet.delete(renamedFrom)) {
+      this._trackedSet.add(hero.characterName);
+      this._state.trackedCharacterNames = [...this._trackedSet];
+    }
+
+    this._persist();
+    this.emit('heroesChanged', this.heroes);
+    if (renamedFrom) this.emit('trackedHeroesChanged', this.trackedCharacterNames);
     return true;
   }
 

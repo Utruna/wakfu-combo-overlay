@@ -7,134 +7,358 @@
   <link rel="stylesheet" href="settings.css">
 </head>
 <body>
-  <h1>Héros suivis</h1>
-  <p class="hint">Seuls les sorts lancés par les héros cochés apparaissent sur l'overlay.</p>
-  <div id="hero-list"></div>
+  <div id="app">
+    <!-- ── Barre latérale ─────────────────────────────────────────────── -->
+    <nav class="sidebar" aria-label="Sections des réglages">
+      <div class="brand">
+        <div class="brand-mark"><div></div></div>
+        <div class="brand-text">
+          <div class="brand-name">Wakfu Combo</div>
+          <div class="brand-sub">Overlay</div>
+        </div>
+      </div>
 
-  <form id="add-hero-form">
-    <input type="text" id="add-hero-character-name" placeholder="Nom exact du personnage en jeu" required>
-    <select id="add-hero-class" required>
-      <option value="" disabled selected>Classe</option>
-    </select>
-    <input type="color" id="add-hero-color" value="#4a90e2" title="Couleur">
-    <button type="submit">Ajouter</button>
-  </form>
-  <p class="error" id="add-hero-error"></p>
+      <div class="nav-links">
+        <a href="#heros" class="nav-link" data-view="heros">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span>Héros</span>
+        </a>
+        <a href="#affichage" class="nav-link" data-view="affichage">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+          <span>Affichage</span>
+        </a>
+        <a href="#obs" class="nav-link" data-view="obs">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          <span>OBS &amp; diagnostic</span>
+        </a>
+      </div>
 
-  <h1>Disposition de la liste</h1>
-  <fieldset id="orientation-field">
-    <legend>Orientation</legend>
-    <label><input type="radio" name="orientation" value="vertical"> Verticale</label>
-    <label><input type="radio" name="orientation" value="horizontal"> Horizontale</label>
-  </fieldset>
+      <div class="grow"></div>
 
-  <fieldset id="direction-field">
-    <legend>Sens des nouvelles entrées</legend>
-    <div id="direction-vertical" class="direction-group">
-      <label><input type="radio" name="direction" value="top-to-bottom"> Haut → bas</label>
-      <label><input type="radio" name="direction" value="bottom-to-top"> Bas → haut</label>
+      <a href="#obs" class="status-card">
+        <div class="eyebrow">État</div>
+        <div class="status-line">
+          <span class="dot" id="side-logs-dot"></span>
+          <span class="grow">Logs Wakfu</span>
+          <span class="status-value" id="side-logs-value">—</span>
+        </div>
+        <div class="status-line">
+          <span class="dot" id="side-obs-dot"></span>
+          <span class="grow">OBS</span>
+          <span class="status-value" id="side-obs-value">—</span>
+        </div>
+      </a>
+
+      <div class="side-footer">
+        <button type="button" class="link-btn" id="rerun-wizard">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 21 9-9"/><path d="M15 4V2"/><path d="M15 16v-2"/><path d="M8 9h2"/><path d="M20 9h2"/><path d="M17.8 11.8 19 13"/><path d="M17.8 6.2 19 5"/><path d="M12.2 6.2 11 5"/></svg>
+          <span>Relancer l'assistant</span>
+        </button>
+        <div class="version-row">
+          <div class="version-text">
+            <span class="mono" id="app-version">v—</span>
+            <span class="muted-sm" id="update-status">—</span>
+          </div>
+          <button type="button" class="icon-btn outlined" id="update-check-btn" aria-label="Vérifier les mises à jour" title="Vérifier les mises à jour">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ── Héros ──────────────────────────────────────────────────────── -->
+    <main class="view" id="view-heros" hidden>
+      <div class="page-head">
+        <div class="page-title">
+          <h1>Héros suivis</h1>
+          <p>Seuls les sorts des héros actifs apparaissent sur l'overlay.</p>
+        </div>
+        <button type="button" class="btn primary" id="add-hero-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          <span>Ajouter un héros</span>
+        </button>
+      </div>
+      <ul class="hero-list" id="hero-list"></ul>
+    </main>
+
+    <!-- ── Affichage ──────────────────────────────────────────────────── -->
+    <main class="view" id="view-affichage" hidden>
+      <div class="page-title">
+        <h1>Affichage</h1>
+        <p>Chaque réglage s'applique tout de suite à l'overlay.</p>
+      </div>
+      <div class="display-grid">
+        <div class="display-controls">
+          <fieldset class="field">
+            <legend class="field-label">Disposition</legend>
+            <div class="layout-picker" id="layout-picker"></div>
+            <span class="help">Le carré plein = le sort le plus récent.</span>
+          </fieldset>
+
+          <div class="field" role="group" aria-labelledby="lbl-side">
+            <span class="field-label" id="lbl-side">Position de l'icône de classe</span>
+            <div class="segmented" id="class-icon-side">
+              <button type="button" data-value="left">À gauche</button>
+              <button type="button" data-value="right">À droite</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-row">
+              <label for="icon-size" class="field-label">Taille des icônes</label>
+              <span class="mono accent" id="icon-size-value"></span>
+            </div>
+            <input type="range" id="icon-size" min="16" max="128" step="1" value="32">
+            <span class="help">Icônes natives en 32 px : au-delà, rendu volontairement pixelisé.</span>
+          </div>
+
+          <div class="field">
+            <div class="field-row">
+              <label for="cast-lifetime" class="field-label">Durée d'affichage d'un sort</label>
+              <span class="mono accent" id="cast-lifetime-value"></span>
+            </div>
+            <input type="range" id="cast-lifetime" min="1" max="60" step="0.5" value="6">
+          </div>
+
+          <div class="field-row">
+            <span class="field-label" id="lbl-max">Nombre max de sorts visibles</span>
+            <div class="stepper" role="group" aria-labelledby="lbl-max">
+              <button type="button" id="max-dec" aria-label="Diminuer">−</button>
+              <span aria-live="polite" class="mono" id="max-visible-value">8</span>
+              <button type="button" id="max-inc" aria-label="Augmenter">+</button>
+            </div>
+          </div>
+        </div>
+
+        <section class="preview-col" aria-label="Aperçu de l'overlay">
+          <div class="field-row">
+            <span class="field-label">Aperçu</span>
+            <span class="eyebrow">coin haut-droit d'OBS</span>
+          </div>
+          <div class="preview-stage" id="preview-stage">
+            <div class="preview-box" id="preview-box">
+              <div class="preview-scale" id="preview-scale">
+                <div class="pv-overlay" id="pv-overlay">
+                  <div class="pv-lead" id="pv-lead"></div>
+                  <div class="pv-log" id="pv-log"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="size-card">
+            <div class="size-text">
+              <span class="muted-sm">Source navigateur OBS</span>
+              <span class="mono strong" id="obs-size"></span>
+            </div>
+            <button type="button" class="btn ghost sm" id="copy-size">Copier</button>
+          </div>
+          <div class="switch-row">
+            <button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="lbl-prev" id="preview-enabled"><span></span></button>
+            <span id="lbl-prev">Envoyer aussi ces sorts factices à OBS</span>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- ── OBS & diagnostic ───────────────────────────────────────────── -->
+    <main class="view" id="view-obs" hidden>
+      <h1>OBS &amp; diagnostic</h1>
+      <div class="diag-cards">
+        <div class="diag-card" id="card-logs">
+          <span class="diag-icon"></span>
+          <div class="diag-text">
+            <span class="diag-label">Logs Wakfu</span>
+            <span class="diag-value"></span>
+          </div>
+        </div>
+        <div class="diag-card" id="card-obs">
+          <span class="diag-icon"></span>
+          <div class="diag-text">
+            <span class="diag-label"></span>
+            <span class="diag-value"></span>
+          </div>
+        </div>
+        <div class="diag-card" id="card-last">
+          <span class="diag-icon neutral"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+          <div class="diag-text">
+            <span class="diag-label">Dernier sort détecté</span>
+            <span class="diag-value" id="last-cast">—</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="obs-grid">
+        <div class="obs-left">
+          <section class="card" aria-labelledby="h-connect">
+            <h2 id="h-connect">Ajouter l'overlay dans OBS</h2>
+            <div class="segmented" role="tablist" aria-label="Méthode" id="obs-method">
+              <button type="button" role="tab" data-value="url">Lien local · recommandé</button>
+              <button type="button" role="tab" data-value="file">Fichier local</button>
+            </div>
+            <div class="method-panel" data-method="url">
+              <div class="copy-field">
+                <span class="mono" id="overlay-url">—</span>
+                <button type="button" class="copy-btn" id="copy-url">Copier</button>
+              </div>
+              <ol class="steps">
+                <li>Dans OBS, ajoute une source <strong>Navigateur</strong>.</li>
+                <li>Laisse « Fichier local » décoché et colle ce lien dans <strong>URL</strong>.</li>
+                <li>Taille : <span class="mono white obs-size-inline"></span> (voir Affichage).</li>
+              </ol>
+              <span class="help">Si OBS démarre avant l'application, actualise la source (ou active « Lancer avec Windows »).</span>
+            </div>
+            <div class="method-panel" data-method="file" hidden>
+              <div class="copy-field">
+                <span class="mono path" id="obs-loader-path">—</span>
+                <button type="button" class="copy-btn" id="copy-file">Copier</button>
+              </div>
+              <button type="button" class="link-btn accent-link" id="show-obs-loader">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>
+                <span>Afficher le fichier dans l'explorateur</span>
+              </button>
+              <ol class="steps">
+                <li>Dans OBS, ajoute une source <strong>Navigateur</strong>.</li>
+                <li>Coche <strong>Fichier local</strong>, clique sur <strong>Parcourir</strong> et colle ce chemin dans le champ <strong>Nom du fichier</strong> (pas dans la barre d'adresse en haut).</li>
+                <li>Taille : <span class="mono white obs-size-inline"></span> (voir Affichage).</li>
+              </ol>
+              <span class="help">Fonctionne même si OBS démarre avant l'application.</span>
+            </div>
+            <p class="error" id="overlay-error"></p>
+          </section>
+
+          <section class="card" aria-labelledby="h-adv">
+            <h2 id="h-adv">Configuration</h2>
+            <div class="field tight">
+              <label for="logs-dir-input" class="sub-label">Dossier de logs surveillé</label>
+              <div class="inline-inputs">
+                <input type="text" id="logs-dir-input" class="input mono sm" spellcheck="false">
+                <button type="button" class="icon-btn outlined" id="logs-dir-browse" aria-label="Parcourir" title="Parcourir">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>
+                </button>
+              </div>
+              <p class="error" id="logs-dir-error"></p>
+            </div>
+            <div class="field-row">
+              <label for="overlay-port-input">Port de l'overlay</label>
+              <input type="text" inputmode="numeric" id="overlay-port-input" class="input mono port">
+            </div>
+            <p class="error" id="overlay-port-error"></p>
+            <div class="field-row">
+              <span id="lbl-boot">Lancer avec Windows (zone de notification)</span>
+              <button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="lbl-boot" id="launch-at-login"><span></span></button>
+            </div>
+            <p class="help" id="launch-at-login-hint" hidden>Indisponible en développement (build non packagé).</p>
+          </section>
+        </div>
+
+        <section class="activity" aria-labelledby="h-log">
+          <div class="activity-head">
+            <h2 id="h-log"><span class="dot ok"></span>Activité en temps réel</h2>
+            <button type="button" class="btn ghost xs" id="clear-debug-log">Effacer</button>
+          </div>
+          <ul aria-live="polite" class="activity-list" id="debug-log"></ul>
+          <div class="activity-legend">
+            <span><span class="dot ok"></span>affiché</span>
+            <span><span class="dot muted"></span>ignoré</span>
+            <span><span class="dot err square"></span>erreur</span>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- ── Assistant de premier lancement ────────────────────────────── -->
+    <div class="wizard" id="wizard" hidden>
+      <aside class="wizard-side">
+        <div class="brand">
+          <div class="brand-mark"><div></div></div>
+          <span class="brand-name">Wakfu Combo</span>
+        </div>
+        <div class="page-title">
+          <h1 class="wizard-title">Prêt en trois étapes</h1>
+          <p>Tout reste modifiable ensuite dans les réglages.</p>
+        </div>
+        <ol class="wizard-steps" id="wizard-steps"></ol>
+        <div class="grow"></div>
+        <button type="button" class="link-btn" id="wizard-skip">Passer, je configure moi-même</button>
+      </aside>
+      <div class="wizard-main">
+        <section class="wizard-step" data-step="1">
+          <div class="step-head">
+            <span class="eyebrow accent">Étape 1 sur 3</span>
+            <h2>Quel personnage suivre ?</h2>
+          </div>
+          <div class="field tight narrow">
+            <label for="wz-name" class="sub-label">Nom exact du personnage en jeu</label>
+            <input type="text" id="wz-name" class="input lg" placeholder="ex. Lueur Ocre" spellcheck="false">
+          </div>
+          <div class="field tight" role="radiogroup" aria-labelledby="wz-cls">
+            <span id="wz-cls" class="sub-label">Classe</span>
+            <div class="class-grid" id="wz-classes"></div>
+          </div>
+          <p class="error" id="wz-error"></p>
+        </section>
+
+        <section class="wizard-step narrow-560" data-step="2" hidden>
+          <div class="step-head">
+            <span class="eyebrow accent">Étape 2 sur 3</span>
+            <h2>Ajoute l'overlay dans OBS</h2>
+          </div>
+          <ol class="big-steps">
+            <li><span class="num">1</span><span>Dans OBS, clique sur <strong>+</strong> dans Sources et choisis <strong>Navigateur</strong>.</span></li>
+            <li>
+              <span class="num">2</span>
+              <div class="big-step-body">
+                <span>Laisse « Fichier local » décoché et colle ce lien dans <strong>URL</strong> :</span>
+                <div class="copy-field lg">
+                  <span class="mono" id="wz-url">—</span>
+                  <button type="button" class="copy-btn" id="wz-copy">Copier</button>
+                </div>
+              </div>
+            </li>
+            <li><span class="num">3</span><span>Largeur <span class="mono" id="wz-w"></span>, hauteur <span class="mono" id="wz-h"></span>, puis valide.</span></li>
+          </ol>
+          <div class="obs-wait" role="status" id="wz-obs">
+            <span class="dot"></span>
+            <span class="grow" id="wz-obs-text"></span>
+          </div>
+        </section>
+
+        <section class="wizard-step narrow-560" data-step="3" hidden>
+          <div class="step-head">
+            <span class="eyebrow accent">Étape 3 sur 3</span>
+            <h2>Vérifie que tout s'affiche</h2>
+            <p class="lead">Envoie un sort factice, puis regarde ta scène OBS.</p>
+          </div>
+          <button type="button" class="btn test-big" id="wz-test">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>
+            <span>Envoyer un sort de test</span>
+          </button>
+          <ul class="checks" id="wz-checks"></ul>
+        </section>
+
+        <div class="wizard-nav">
+          <button type="button" class="btn ghost md" id="wz-back">Retour</button>
+          <button type="button" class="btn primary md" id="wz-next">
+            <span>Continuer</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+          </button>
+          <button type="button" class="btn primary md" id="wz-finish" hidden>Terminer</button>
+        </div>
+      </div>
     </div>
-    <div id="direction-horizontal" class="direction-group">
-      <label><input type="radio" name="direction" value="left-to-right"> Gauche → droite</label>
-      <label><input type="radio" name="direction" value="right-to-left"> Droite → gauche</label>
+
+    <div class="toast" role="status" id="toast" hidden>
+      <span id="toast-text"></span>
+      <div class="toast-actions">
+        <button type="button" class="toast-undo" id="toast-undo" hidden>Annuler</button>
+        <button type="button" class="toast-close" id="toast-close" aria-label="Fermer">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
     </div>
-  </fieldset>
-
-  <fieldset id="class-icon-side-field">
-    <legend>Icône de classe</legend>
-    <label><input type="radio" name="class-icon-side" value="left"> À gauche</label>
-    <label><input type="radio" name="class-icon-side" value="right"> À droite</label>
-  </fieldset>
-
-  <fieldset id="icon-size-field">
-    <legend>Taille des icônes</legend>
-    <div class="slider-row">
-      <input type="range" id="icon-size" min="16" max="128" step="4" value="32">
-      <span id="icon-size-value"></span>
-    </div>
-    <p class="hint">Les icônes sont en 32 px : au-delà, elles sont volontairement pixélisées.</p>
-  </fieldset>
-
-  <fieldset id="cast-lifetime-field">
-    <legend>Durée d'affichage</legend>
-    <div class="slider-row">
-      <input type="range" id="cast-lifetime" min="1" max="60" step="0.5" value="6">
-      <span id="cast-lifetime-value"></span>
-    </div>
-    <p class="hint">Temps pendant lequel un sort reste à l'écran avant de disparaître.</p>
-  </fieldset>
-
-  <fieldset id="max-visible-casts-field">
-    <legend>Nombre max visible</legend>
-    <div class="inline-number-row">
-      <input type="number" id="max-visible-casts" step="1" min="1" max="20" value="8">
-      <span id="max-visible-casts-value"></span>
-    </div>
-    <p class="error" id="max-visible-casts-error"></p>
-  </fieldset>
-
-  <fieldset id="preview-field">
-    <legend>Preview</legend>
-    <label><input type="checkbox" id="preview-enabled"> Afficher des sorts factices pour caler l'overlay</label>
-  </fieldset>
-
-  <p class="hint" id="layout-size-hint"></p>
-
-  <fieldset id="startup-field">
-    <legend>Démarrage</legend>
-    <label><input type="checkbox" id="launch-at-login"> Lancer au démarrage de Windows (dans le tray)</label>
-    <p class="hint" id="launch-at-login-hint">Recommandé si OBS est lancé avant l'application : sinon la source navigateur reste vide tant qu'elle n'est pas actualisée.</p>
-  </fieldset>
-
-  <p class="status" id="status"></p>
-
-  <h1>Diagnostic</h1>
-  <div id="diagnostics-panel">
-    <div class="diag-row">
-      <span>Overlay OBS :</span>
-      <code id="diag-overlay-url" title="Cliquer pour copier">—</code>
-    </div>
-    <div class="diag-row"><span>Fichier local pour OBS (recommandé) :</span></div>
-    <code id="diag-obs-loader" class="diag-path" title="Cliquer pour copier">—</code>
-    <p class="hint">Dans la source navigateur OBS, coche « Fichier local » et choisis ce fichier : l'overlay s'affiche même si OBS est lancé avant l'application.</p>
-    <div class="diag-row">
-      <span>Port de l'overlay :</span>
-      <span class="port-edit">
-        <input type="number" id="overlay-port-input" min="1024" max="65535">
-        <button type="button" id="overlay-port-apply">Changer</button>
-      </span>
-    </div>
-    <p class="error" id="overlay-port-error"></p>
-    <div class="diag-row"><span>Dossier de logs surveillé :</span></div>
-    <code id="diag-logs-dir" class="diag-path">—</code>
-    <div class="path-edit">
-      <input type="text" id="logs-dir-input" placeholder="Chemin du dossier de logs Wakfu">
-      <button type="button" id="logs-dir-browse">Parcourir…</button>
-      <button type="button" id="logs-dir-apply">Changer</button>
-    </div>
-    <p class="error" id="logs-dir-error"></p>
-    <div class="diag-row"><span>État :</span> <span id="diag-logs-status">—</span></div>
-    <div class="diag-row"><span>Connectés sur l'overlay (OBS/navigateur) :</span> <span id="diag-clients">—</span></div>
   </div>
 
-  <div id="debug-log-header">
-    <span>Activité en temps réel</span>
-    <button id="clear-debug-log" type="button">Effacer</button>
-  </div>
-  <div id="debug-log"></div>
-
-  <h1>Mises à jour</h1>
-  <div id="update-panel">
-    <div class="diag-row">
-      <span>Version installée :</span>
-      <code id="update-version">—</code>
-    </div>
-    <div class="diag-row">
-      <span id="update-status">—</span>
-      <button type="button" id="update-check-btn">Vérifier les mises à jour</button>
-    </div>
-  </div>
-
+  <input type="color" id="custom-color-input" class="visually-hidden" tabindex="-1" aria-hidden="true">
   <script src="settings.js"></script>
 </body>
 </html>

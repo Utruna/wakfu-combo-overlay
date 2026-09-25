@@ -69,3 +69,49 @@ test('ignores an invalid class icon side', () => {
   store.setComboLayout({ classIconSide: 'middle' });
   assert.equal(store.comboLayout.classIconSide, 'right');
 });
+
+const BLUE = { r: 74, g: 144, b: 226 };
+
+test('re-inserts a removed hero at its old position and tracked state', () => {
+  const store = new SettingsStore(tmpSettingsPath());
+  store.ensureDefaults(LAYOUT_DEFAULTS);
+  store.addHero({ characterName: 'A', color: BLUE, class: 'iop' });
+  store.addHero({ characterName: 'B', color: BLUE, class: 'cra' });
+  store.addHero({ characterName: 'C', color: BLUE, class: 'sram' });
+  store.setTrackedHeroes(['A', 'C']);
+
+  store.removeHero('B');
+  assert.equal(store.addHero({ characterName: 'B', color: BLUE, class: 'cra' }, { index: 1, tracked: false }), true);
+
+  assert.deepEqual(store.heroes.map((h) => h.characterName), ['A', 'B', 'C']);
+  assert.equal(store.isTracked('B'), false);
+});
+
+test('renames a hero, keeping it tracked under its new name', () => {
+  const store = new SettingsStore(tmpSettingsPath());
+  store.ensureDefaults(LAYOUT_DEFAULTS);
+  store.addHero({ characterName: 'Old', color: BLUE, class: 'iop' });
+
+  assert.equal(store.updateHero('Old', { characterName: 'New', class: 'cra' }), true);
+
+  assert.deepEqual(store.heroes, [{ name: 'New', characterName: 'New', color: BLUE, class: 'cra' }]);
+  assert.deepEqual(store.trackedCharacterNames, ['New']);
+});
+
+test('refuses to rename a hero to a blank or already used name', () => {
+  const store = new SettingsStore(tmpSettingsPath());
+  store.ensureDefaults(LAYOUT_DEFAULTS);
+  store.addHero({ characterName: 'A', color: BLUE, class: 'iop' });
+  store.addHero({ characterName: 'B', color: BLUE, class: 'cra' });
+
+  assert.equal(store.updateHero('A', { characterName: 'B' }), false);
+  assert.equal(store.updateHero('A', { characterName: '  ' }), false);
+  assert.deepEqual(store.heroes.map((h) => h.characterName), ['A', 'B']);
+});
+
+test('persists the onboarding flag', () => {
+  const file = tmpSettingsPath();
+  assert.equal(new SettingsStore(file).onboardingDone, false);
+  new SettingsStore(file).setOnboardingDone();
+  assert.equal(new SettingsStore(file).onboardingDone, true);
+});

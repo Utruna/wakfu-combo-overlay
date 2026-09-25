@@ -12,7 +12,7 @@
 
 const path = require('path');
 const fs = require('fs');
-const { app, BrowserWindow, Tray, Menu, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, dialog, shell } = require('electron');
 const { autoUpdater } = require('electron-updater');
 
 const { OverlayServer } = require('../overlay/server');
@@ -50,6 +50,7 @@ let settingsWindow = null;
 let combatLogReader = null;
 let overlay = null;
 let overlayError = null; // why the overlay server isn't listening, or null when it is
+let lastCastAt = null; // when a tracked hero's cast last reached the overlay, for the diagnostics panel
 
 // Passed by the Windows login item (see setLaunchAtLogin): starts straight in
 // the tray instead of popping the settings window at every session start.
@@ -161,6 +162,7 @@ async function startOverlay(port, comboLayout) {
 }
 
 function pushDebugEvent(entry) {
+  if (entry.status === 'broadcast') lastCastAt = entry.timestamp || Date.now();
   console.log(`[debug] ${entry.status} — ${entry.characterName} -> ${entry.spellName ?? ''}`);
   if (settingsWindow && !settingsWindow.isDestroyed()) {
     settingsWindow.webContents.send('debug:event', entry);
@@ -288,8 +290,12 @@ function checkForUpdates({ manual = false } = {}) {
 
 function createSettingsWindow() {
   settingsWindow = new BrowserWindow({
-    width: 480,
-    height: 700,
+    width: 980,
+    height: 680,
+    minWidth: 900,
+    minHeight: 620,
+    useContentSize: true,
+    backgroundColor: '#131a1e',
     show: true,
     autoHideMenuBar: true,
     webPreferences: {
@@ -407,15 +413,17 @@ app.whenReady().then(async () => {
       return; // configured but not currently tracked
     }
 
+    const iconEntry = findSpellIcon(spellIcons, hero.class, castEvent.spellName.trim());
+
     pushDebugEvent({
       status: 'broadcast',
       characterName: castEvent.characterName,
       heroName: hero.name,
+      heroClass: hero.class,
       spellName: castEvent.spellName,
+      iconMissing: !iconEntry,
       timestamp: castEvent.timestamp,
     });
-
-    const iconEntry = findSpellIcon(spellIcons, hero.class, castEvent.spellName.trim());
 
     overlay.broadcastCast({
       characterName: castEvent.characterName,
@@ -448,10 +456,17 @@ app.whenReady().then(async () => {
     maxVisibleCastsRange: {
       min: MIN_MAX_VISIBLE_CASTS, max: MAX_MAX_VISIBLE_CASTS, default: DEFAULT_MAX_VISIBLE_CASTS,
     },
+    classIcons,
+    previewPool,
+    // First launch only: an existing roster means the app was already set up
+    // before the assistant existed.
+    showOnboarding: !settingsStore.onboardingDone && settingsStore.heroes.length === 0,
   }));
   ipcMain.handle('settings:setTrackedHeroes', (_e, characterNames) => settingsStore.setTrackedHeroes(characterNames));
   ipcMain.handle('settings:setComboLayout', (_e, layout) => settingsStore.setComboLayout(layout));
-  ipcMain.handle('settings:addHero', (_e, hero) => settingsStore.addHero(hero));
+  ipcMain.handle('settings:addHero', (_e, hero, options) => settingsStore.addHero(hero, options));
+  ipcMain.handle('settings:updateHero', (_e, characterName, changes) => settingsStore.updateHero(characterName, changes));
+  ipcMain.handle('settings:setOnboardingDone', () => settingsStore.setOnboardingDone(true));
   ipcMain.handle('settings:setHeroColor', (_e, characterName, color) => settingsStore.setHeroColor(characterName, color));
   ipcMain.handle('settings:removeHero', (_e, characterName) => settingsStore.removeHero(characterName));
 
@@ -463,6 +478,7 @@ app.whenReady().then(async () => {
     overlayClients: overlay.clientCount,
     overlayError,
     obsLoaderPath,
+    lastCastAt,
   }));
 
   ipcMain.handle('settings:setLogsDir', async (_e, dir) => {
@@ -488,6 +504,10 @@ app.whenReady().then(async () => {
     });
     if (result.canceled || result.filePaths.length === 0) return null;
     return result.filePaths[0];
+  });
+
+  ipcMain.handle('settings:showObsLoader', () => {
+    if (obsLoaderPath) shell.showItemInFolder(obsLoaderPath);
   });
 
   ipcMain.handle('settings:setOverlayPort', async (_e, port) => {
@@ -543,7 +563,7 @@ app.whenReady().then(async () => {
       timestamp: Date.now(),
       icon: sampleSpellName ? findSpellIcon(spellIcons, hero.class, sampleSpellName)?.icon : null,
     };
-    pushDebugEvent({ status: 'test', characterName: hero.characterName, heroName: hero.name, spellName: testEvent.spellName, timestamp: testEvent.timestamp });
+    pushDebugEvent({ status: 'test', characterName: hero.characterName, heroName: hero.name, heroClass: hero.class, spellName: testEvent.spellName, timestamp: testEvent.timestamp });
     overlay.broadcastCast(testEvent);
   });
 
