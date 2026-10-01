@@ -22,7 +22,9 @@ jobs:
         shell: bash
         run: |
           VERSION="v$(node -p "require('./package.json').version")"
-          if gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+          # A leftover draft from a failed run is fine — it gets reused below.
+          IS_DRAFT="$(gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft 2>/dev/null || true)"
+          if [ "$IS_DRAFT" = "false" ]; then
             echo "::error::Release $VERSION already exists. Bump the version in package.json before re-running this workflow."
             exit 1
           fi
@@ -44,10 +46,37 @@ jobs:
             git push origin "$VERSION"
           fi
 
+      # electron-builder uploads the .exe and its .blockmap through two parallel
+      # publishers, and each one creates the GitHub release on its own if it
+      # doesn't exist yet — a race that produced a duplicate release per version
+      # (one with the .exe + latest.yml, one with the .blockmap), and on 1.5.1
+      # failed outright with "422 already_exists" before latest.yml was uploaded.
+      # Creating the release up front as a draft means both publishers find it
+      # and upload into it; it is only made public once every file is there.
+      - name: Create draft release
+        shell: bash
+        run: |
+          VERSION="v$(node -p "require('./package.json').version")"
+          if gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Draft release $VERSION already exists — reusing it."
+          else
+            gh release create "$VERSION" --repo "$GITHUB_REPOSITORY" --verify-tag --draft --title "$VERSION"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Install dependencies
         run: npm ci
 
       - name: Build and publish Windows installer
         run: npx electron-builder --win --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish the release
+        shell: bash
+        run: |
+          VERSION="v$(node -p "require('./package.json').version")"
+          gh release edit "$VERSION" --repo "$GITHUB_REPOSITORY" --draft=false --latest
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

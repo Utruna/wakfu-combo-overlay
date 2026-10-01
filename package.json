@@ -58,7 +58,7 @@
       "provider": "github",
       "owner": "utruna",
       "repo": "wakfu-combo-overlay",
-      "releaseType": "release"
+      "releaseType": "draft"
     },
     "win": {
       "target": [
