@@ -6,8 +6,8 @@ const assert = require('node:assert/strict');
 const { CombatTurnTracker } = require('../src/combatTurnTracker');
 
 const combat = (message) => ` INFO 19:16:35,717 [AWT-EventQueue-0] (aNZ:174) - [Information (combat)] ${message}`;
-const join = (name, ai, fightId = '1664003685') =>
-  ` INFO 18:44:53,521 [AWT-EventQueue-0] (fcb:0) - [_FL_] fightId=${fightId} ${name} breed : 4 [8820880] `
+const join = (name, ai, fightId = '1664003685', breed = 4) =>
+  ` INFO 18:44:53,521 [AWT-EventQueue-0] (fcb:0) - [_FL_] fightId=${fightId} ${name} breed : ${breed} [8820880] `
   + `isControlledByAI=${ai} obstacleId : -1 join the fight at {Point3 : (3, 5, 9)}`;
 
 function track(lines, options) {
@@ -193,16 +193,16 @@ test('a lagging client\'s late copy doesn\'t drop back to one client', () => {
 
 // Real excerpt: an Osamodas creature is only named on the system join line.
 const OSAMODAS_FIGHT = [
-  join('Sac à patates', 'true', '1552161909'),
-  join('Lueur Pourpre', 'false', '1552161909'),
-  join('Lueur Émeraude', 'false', '1552161909'),
+  join('Sac à patates', 'true', '1552161909', 2335),
+  join('Lueur Pourpre', 'false', '1552161909', 4),
+  join('Lueur Émeraude', 'false', '1552161909', 2),
   combat('Lueur Émeraude lance le sort Invocation'),
   combat('Lueur Émeraude: Invoque une créature du Gobgob'),
-  join('Dragoeuf Guerrier', 'true', '1552161909'),
+  join('Dragoeuf Guerrier', 'true', '1552161909', 4210),
   combat('Dragoeuf Guerrier: -50 % Dommages infligés'),
   combat('Lueur Émeraude lance le sort Gobgob'),
   combat('Lueur Émeraude: Invoque un(e) Gobgob '),
-  join('Gobgob', 'true', '1552161909'),
+  join('Gobgob', 'true', '1552161909', 1620),
   combat('53 secondes reportées pour le tour suivant.'),
   combat('Lueur Émeraude: 0 PW (Invocateur animal)'),
   combat('Gobgob lance le sort Nova'),
@@ -245,6 +245,24 @@ test('a summon playing after someone else opens a turn for its summoner', () => 
     combat('Kamarachnide lance le sort Morsure'),
   ]);
   assert.deepEqual(ended, [['Lueur Pourpre', 0], ['Kamarachnide', 0], ['Lueur Pourpre', 700]]);
+});
+
+test('training dummies a hero summons are targets, not pets', () => {
+  // Real excerpt: a Roublard summoning "Sac à patates" (the Poutch) to hit them.
+  const { ended, tracker } = track([
+    join('Sac à patates', 'true', '1552162620', 2335),
+    join('Lueur Anthracite', 'false', '1552162620', 13),
+    combat('Lueur Anthracite lance le sort Invocation'),
+    combat('Lueur Anthracite: Invoque un(e) Sac à patates '),
+    join('Sac à patates', 'true', '1552162620', 2335),
+    combat('Lueur Anthracite lance le sort Barbrûlé'),
+    combat('Sac à patates: -1 494 PV (Feu)'),
+    combat('Sac à patates: -1 121 PV (Lumière) (Feu) (Tir surprise)'),
+    combat('Lueur Anthracite: Passe son tour'),
+  ]);
+  assert.equal(tracker.isAlly('Sac à patates'), false);
+  assert.equal(tracker.ownerOf('Sac à patates'), null);
+  assert.deepEqual(ended, [['Lueur Anthracite', 1494 + 1121]]);
 });
 
 test('a new fight forgets the previous fight\'s allies', () => {

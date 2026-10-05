@@ -50,9 +50,12 @@ const DAMAGE = /^(.+?):\s+-(\d[\d\s]*)\s+PV\b/;
 const INVOKE = /^(.+?):\s+Invoque\s+(?:un\(e\)\s+(.+?)\s*$)?/;
 const TURN_END = /secondes\s+report[ée]es\s+pour\s+le\s+tour\s+suivant|^[^:]+:\s+Passe\s+son\s+tour/;
 const COMBAT_END = /^Combat\s+termin[ée]/;
-const FIGHTER_JOIN = /\[_FL_\]\s+fightId=(\d+)\s+(.+?)\s+breed\s*:.*?isControlledByAI=(true|false)/;
+const FIGHTER_JOIN = /\[_FL_\]\s+fightId=(\d+)\s+(.+?)\s+breed\s*:\s*(\d+).*?isControlledByAI=(true|false)/;
 const FIGHT_END = /\[FIGHT\]\s+End\s+fight/;
-const LOG_TIME = /(\d{2}):(\d{2}):(\d{2}),(\d{3})/;
+// The training dummy ("Poutch", logged "Sac à patates"): players summon it
+// themselves to hit it, so it is always a target, never a pet.
+const TARGET_DUMMY_BREEDS = ['2335'];
+const LOG_TIME =/(\d{2}):(\d{2}):(\d{2}),(\d{3})/;
 
 const COPY_WINDOW_MS = 400;
 // Copies of a cast arrive mostly < 150 ms apart; a genuine quick recast (an
@@ -89,6 +92,7 @@ class CombatTurnTracker {
     this._summons = new Map(); // summon name -> { owner, spell } (the spell that summoned it)
     this._lastSpell = new Map(); // fighter -> last spell cast
     this._pendingSummon = null; // { owner, spell } waiting for the creature's name (Osamodas)
+    this._enemyBreeds = new Set(TARGET_DUMMY_BREEDS); // breeds that are targets even when summoned
     this._copies = 1; // clients currently writing the feed
     this._castGroups = new Map(); // cast message -> { at, count, provenCopies }
     this._loneCast = null; // last cast seen with fewer copies than expected
@@ -106,15 +110,22 @@ class CombatTurnTracker {
 
     const join = line.match(FIGHTER_JOIN);
     if (join) {
-      const [, fightId, name, aiControlled] = join;
+      const [, fightId, name, breed, aiControlled] = join;
       if (fightId !== this._fightId) {
         this._fightId = fightId;
         this._forgetFighters();
       }
+      const pending = this._pendingSummon;
       if (aiControlled === 'false') {
         this._allies.add(name.trim());
-      } else if (this._pendingSummon) {
-        this._addSummon(name.trim(), this._pendingSummon);
+      } else if (pending && this._isAllyFighter(pending.owner)) {
+        this._addSummon(name.trim(), { ...pending, breed });
+      } else {
+        // The other side — a creature an ally then summons with the same
+        // breed is a target, not a pet (training dummies: a player summoning
+        // "Sac à patates" to hit them).
+        this._enemyBreeds.add(breed);
+        if (pending) this._addSummon(name.trim(), { ...pending, breed });
       }
       this._pendingSummon = null;
       return;
@@ -182,16 +193,21 @@ class CombatTurnTracker {
   }
 
   isAlly(name) {
-    if (this._allies.has(name) || this._isAllyExtra(name)) return true;
+    if (this._isAllyFighter(name)) return true;
     const owner = this.ownerOf(name);
-    return owner !== null && (this._allies.has(owner) || Boolean(this._isAllyExtra(owner)));
+    return owner !== null && this._isAllyFighter(owner);
   }
 
-  /** The fighter at the top of a summon chain (a summon's summon…), or null if not a summon. */
+  /**
+   * The fighter at the top of a summon chain (a summon's summon…), or null if
+   * not a summon. Names aren't unique: a summon sharing an enemy's breed (a
+   * training dummy) is not treated as one, or that enemy's own casts and hits
+   * would be taken for the summoner's.
+   */
   ownerOf(name) {
     let owner = null;
     const seen = new Set();
-    for (let s = this._summons.get(name); s && !seen.has(s.owner); s = this._summons.get(s.owner)) {
+    for (let s = this._summonOf(name); s && !seen.has(s.owner); s = this._summonOf(s.owner)) {
       seen.add(s.owner);
       owner = s.owner;
     }
@@ -200,7 +216,7 @@ class CombatTurnTracker {
 
   /** The spell its summoner cast to bring it in (e.g. "Invocation", "Double"), or null. */
   summoningSpellOf(name) {
-    return this._summons.get(name)?.spell ?? null;
+    return this._summonOf(name)?.spell ?? null;
   }
 
   /** The turn currently open, if any. */
@@ -252,9 +268,19 @@ class CombatTurnTracker {
     return (group.count - 1) % this._copies !== 0;
   }
 
-  _addSummon(name, { owner, spell }) {
+  /** A player (or configured hero) in its own right, summons aside. */
+  _isAllyFighter(name) {
+    return this._allies.has(name) || Boolean(this._isAllyExtra(name));
+  }
+
+  _summonOf(name) {
+    const summon = this._summons.get(name);
+    return summon && !this._enemyBreeds.has(summon.breed) ? summon : null;
+  }
+
+  _addSummon(name, { owner, spell, breed }) {
     if (name === owner) return; // a monster duplicating itself isn't a summon chain
-    this._summons.set(name, { owner, spell });
+    this._summons.set(name, { owner, spell, breed });
   }
 
   _closeTurn() {
@@ -270,6 +296,7 @@ class CombatTurnTracker {
     this._lastSpell.clear();
     this._pendingSummon = null;
     this._lastTurn = null;
+    this._enemyBreeds = new Set(TARGET_DUMMY_BREEDS);
   }
 
   _endFight() {
