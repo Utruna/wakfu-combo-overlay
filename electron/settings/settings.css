@@ -326,6 +326,7 @@ legend.field-label { margin-bottom: 8px; }
 /* Mirrors electron/overlay/style.css so the preview matches what OBS shows. */
 .pv-overlay { display: inline-flex; align-items: center; gap: 8px; }
 .pv-overlay[data-side="right"] { flex-direction: row-reverse; }
+.pv-overlay[data-orientation="vertical"] { align-items: flex-start; }
 .pv-lead {
   border-radius: 6px; border: 2px solid rgba(255, 255, 255, 0.2);
   background: rgba(20, 20, 26, 0.85);
@@ -333,6 +334,52 @@ legend.field-label { margin-bottom: 8px; }
   overflow: hidden; flex-shrink: 0;
 }
 .pv-lead img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+/* K1 counter + V3 — same rules as #lead-wrap / #turn-damage in the overlay. */
+.pv-lead-wrap {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  transform: translateY(var(--lead-y, 0px));
+}
+.pv-overlay[data-orientation="horizontal"][data-side="left"] .pv-lead-wrap { flex-direction: row-reverse; }
+.pv-overlay[data-orientation="vertical"] .pv-lead-wrap { flex-direction: column; }
+.pv-damage {
+  --td-cut: max(5px, calc(9px * var(--k)));
+  position: relative; flex-shrink: 0;
+  filter: drop-shadow(0 0 5px rgba(var(--td-rgb), 0.4));
+}
+.pv-damage[hidden] { display: none; }
+.pv-overlay[data-orientation="horizontal"] .pv-damage { height: var(--lead); min-width: calc(136px * var(--k)); }
+.pv-overlay[data-orientation="vertical"] .pv-damage { min-width: calc(88px * var(--k)); }
+.pv-damage .td-frame, .pv-damage .td-fill { position: absolute; }
+.pv-damage .td-frame {
+  inset: 0;
+  clip-path: polygon(var(--td-cut) 0, calc(100% - var(--td-cut)) 0, 100% var(--td-cut), 100% calc(100% - var(--td-cut)),
+    calc(100% - var(--td-cut)) 100%, var(--td-cut) 100%, 0 calc(100% - var(--td-cut)), 0 var(--td-cut));
+  background: linear-gradient(135deg, rgb(var(--td-light)), rgb(var(--td-rgb)) 50%, rgb(var(--td-light)));
+}
+.pv-damage .td-fill {
+  --cut: calc(var(--td-cut) - 1px);
+  inset: 2px;
+  clip-path: polygon(var(--cut) 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%, var(--cut) 100%, 0 calc(100% - var(--cut)), 0 var(--cut));
+  background: radial-gradient(120% 140% at 100% 0%, rgba(var(--td-rgb), 0.32), rgba(10, 12, 16, 0.94) 62%);
+}
+.pv-damage .td-body { position: relative; display: flex; flex-direction: column; gap: 1px; }
+.pv-overlay[data-orientation="horizontal"] .td-body {
+  height: 100%; padding: 0 calc(16px * var(--k)); justify-content: center; align-items: flex-end;
+}
+.pv-overlay[data-orientation="horizontal"][data-side="left"] .td-body { align-items: flex-start; }
+.pv-overlay[data-orientation="vertical"] .td-body { padding: calc(7px * var(--k)) calc(6px * var(--k)); align-items: center; }
+.pv-damage .td-tag {
+  font: 500 max(8px, calc(10px * var(--k))) / 1.2 'IBM Plex Mono', ui-monospace, monospace;
+  letter-spacing: 0.14em; text-transform: uppercase; color: rgb(var(--td-light)); white-space: nowrap;
+}
+.pv-damage .td-value {
+  font-family: 'IBM Plex Sans', system-ui, sans-serif; font-weight: 600; line-height: 1.2;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+  color: #f4f4f6; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+.pv-overlay[data-orientation="horizontal"] .td-value { font-size: calc(22px * var(--k)); }
+.pv-overlay[data-orientation="vertical"] .td-value { font-size: max(10px, calc(15px * var(--k))); }
 .pv-log { display: flex; align-items: center; gap: 6px; }
 .pv-entry {
   display: flex; align-items: center; justify-content: center;

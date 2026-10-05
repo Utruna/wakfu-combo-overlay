@@ -17,6 +17,7 @@ const MIME = {
   '.jpg': 'image/jpeg',
   '.gif': 'image/gif',
   '.json': 'application/json',
+  '.woff2': 'font/woff2',
 };
 
 class OverlayServer {
@@ -32,6 +33,7 @@ class OverlayServer {
     this._lastState = null;
     this._castBuffer = [];
     this._lastConfig = null;
+    this._lastTurnDamage = null;
     this._server = http.createServer((req, res) => this._handle(req, res));
     // Without a listener, an error here (e.g. EADDRINUSE) would be an uncaught
     // exception that crashes the whole Electron main process — this permanent
@@ -107,6 +109,13 @@ class OverlayServer {
     for (const res of this._clients) res.write(payload);
   }
 
+  /** Push the running damage total of the current (or just-ended) turn. */
+  broadcastTurnDamage(event) {
+    this._lastTurnDamage = event;
+    const payload = `event: turn-damage\ndata: ${JSON.stringify(event)}\n\n`;
+    for (const res of this._clients) res.write(payload);
+  }
+
   /** Push a display-config change (e.g. combo-list layout) to all connected browser clients. */
   broadcastConfig(config) {
     this._lastConfig = config;
@@ -136,6 +145,9 @@ class OverlayServer {
       }
       for (const event of this._castBuffer) {
         res.write(`event: cast\ndata: ${JSON.stringify(event)}\n\n`);
+      }
+      if (this._lastTurnDamage) {
+        res.write(`event: turn-damage\ndata: ${JSON.stringify(this._lastTurnDamage)}\n\n`);
       }
 
       this._clients.add(res);

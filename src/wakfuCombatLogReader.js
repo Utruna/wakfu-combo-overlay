@@ -51,9 +51,12 @@ class WakfuCombatLogReader {
    * @param {object} [options]
    * @param {string} [options.logsDir] - Directory to watch (defaults to Wakfu's logs dir).
    * @param {number} [options.pollIntervalMs] - Fallback poll interval (fs.watch is unreliable on Windows).
+   * @param {Function} [options.onLine] - (line) => void, called with every complete new line, in
+   *   order, before that line's cast (if any) is emitted — for consumers that need more than casts.
    */
-  constructor(onCastEvent, { logsDir = WakfuCombatLogReader.DEFAULT_LOGS_DIR, pollIntervalMs = 700 } = {}) {
+  constructor(onCastEvent, { logsDir = WakfuCombatLogReader.DEFAULT_LOGS_DIR, pollIntervalMs = 700, onLine = null } = {}) {
     this._onCastEvent = onCastEvent;
+    this._onLine = onLine;
     this._logsDir = logsDir;
     this._pollIntervalMs = pollIntervalMs;
     this._watcher = null;
@@ -221,7 +224,7 @@ class WakfuCombatLogReader {
         return;
       }
       state.pendingLine = combined.slice(lastNewline + 1);
-      this._emitCastsFrom(combined.slice(0, lastNewline + 1), filePath);
+      this._processLines(combined.slice(0, lastNewline + 1), filePath);
     } catch (err) {
       console.error('[WakfuCombatLogReader] Error reading', filePath, err.message);
     } finally {
@@ -231,13 +234,27 @@ class WakfuCombatLogReader {
     }
   }
 
-  _emitCastsFrom(text, sourceFile) {
+  _processLines(text, sourceFile) {
+    for (const line of text.split(/\r?\n/)) {
+      if (!line) continue;
+      if (this._onLine) {
+        try {
+          this._onLine(line);
+        } catch (err) {
+          console.error('[WakfuCombatLogReader] onLine handler failed:', err.message);
+        }
+      }
+      this._emitCastFrom(line, sourceFile);
+    }
+  }
+
+  _emitCastFrom(line, sourceFile) {
     const pattern = new RegExp(
       WakfuCombatLogReader.COMBAT_SPELL_CAST_PATTERN.source,
       WakfuCombatLogReader.COMBAT_SPELL_CAST_PATTERN.flags
     );
 
-    for (const match of text.matchAll(pattern)) {
+    for (const match of line.matchAll(pattern)) {
       const characterName = String(match[1] || '').trim();
       const spellName = String(match[2] || '').trim();
       if (!characterName || !spellName) continue;

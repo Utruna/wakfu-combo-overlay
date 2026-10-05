@@ -128,6 +128,14 @@
               <button type="button" id="max-inc" aria-label="Augmenter">+</button>
             </div>
           </div>
+
+          <div class="field">
+            <div class="switch-row">
+              <button type="button" class="switch" role="switch" aria-checked="true" aria-labelledby="lbl-damage" id="damage-counter-enabled"><span></span></button>
+              <span id="lbl-damage">Compteur de dégâts du tour</span>
+            </div>
+            <span class="help">Cumul des dégâts infligés depuis le premier sort du tour, à côté de l'icône de classe (dessous en vertical).</span>
+          </div>
         </div>
 
         <section class="preview-col" aria-label="Aperçu de l'overlay">
@@ -139,7 +147,14 @@
             <div class="preview-box" id="preview-box">
               <div class="preview-scale" id="preview-scale">
                 <div class="pv-overlay" id="pv-overlay">
-                  <div class="pv-lead" id="pv-lead"></div>
+                  <div class="pv-lead-wrap" id="pv-lead-wrap">
+                    <div class="pv-lead" id="pv-lead"></div>
+                    <div class="pv-damage" id="pv-damage">
+                      <div class="td-frame"></div>
+                      <div class="td-fill"></div>
+                      <div class="td-body"><span class="td-tag">Tour</span><span class="td-value">87 412</span></div>
+                    </div>
+                  </div>
                   <div class="pv-log" id="pv-log"></div>
                 </div>
               </div>

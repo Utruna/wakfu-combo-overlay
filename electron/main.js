@@ -18,6 +18,7 @@ const { autoUpdater } = require('electron-updater');
 const { OverlayServer } = require('../overlay/server');
 const { WakfuCombatLogReader } = require('../src/wakfuCombatLogReader');
 const { CharacterMatcher } = require('../src/characterMatcher');
+const { CombatTurnTracker } = require('../src/combatTurnTracker');
 const { writeLoaderPage } = require('../src/obsLoaderPage');
 const {
   SettingsStore,
@@ -353,6 +354,7 @@ app.whenReady().then(async () => {
       castLifetimeMs: DEFAULT_CAST_LIFETIME_MS,
       maxVisibleCasts: DEFAULT_MAX_VISIBLE_CASTS,
       previewEnabled: false,
+      damageCounterEnabled: true,
       classIconSide: 'left',
     },
     overlayPort: DEFAULT_OVERLAY_PORT,
@@ -385,8 +387,11 @@ app.whenReady().then(async () => {
   function handleCastEvent(castEvent) {
     // Read the roster live on every event — it can change at runtime via add/remove.
     const heroes = settingsStore.heroes;
+    // A summon's casts (Osamodas creature, Double Sram…) show up as its
+    // summoner's — the tracker has already seen the summon line by now.
+    const summoner = turnTracker.ownerOf(castEvent.characterName);
     const heroIndex = CharacterMatcher.findHeroIndexByName(
-      castEvent.characterName,
+      summoner ?? castEvent.characterName,
       heroes,
       { strict: true }
     );
@@ -413,7 +418,10 @@ app.whenReady().then(async () => {
       return; // configured but not currently tracked
     }
 
-    const iconEntry = findSpellIcon(spellIcons, hero.class, castEvent.spellName.trim());
+    // Summon spells (monster spells) mostly have no icon of their own: fall
+    // back to the summoner's spell that brought the creature in.
+    const iconEntry = findSpellIcon(spellIcons, hero.class, castEvent.spellName.trim())
+      ?? (summoner && findSpellIcon(spellIcons, hero.class, turnTracker.summoningSpellOf(castEvent.characterName)));
 
     pushDebugEvent({
       status: 'broadcast',
@@ -421,6 +429,7 @@ app.whenReady().then(async () => {
       heroName: hero.name,
       heroClass: hero.class,
       spellName: castEvent.spellName,
+      summonOf: summoner ?? undefined,
       iconMissing: !iconEntry,
       timestamp: castEvent.timestamp,
     });
@@ -431,14 +440,47 @@ app.whenReady().then(async () => {
       class: hero.class,
       classIcon: classIcons[hero.class] ?? null,
       spellName: castEvent.spellName,
+      summon: Boolean(summoner),
       color: hero.color,
       timestamp: castEvent.timestamp,
       icon: iconEntry?.icon ?? null,
     });
   }
 
+  /** @returns {object|null} The configured, currently tracked hero playing under this name. */
+  function findTrackedHero(characterName) {
+    const heroes = settingsStore.heroes;
+    const heroIndex = CharacterMatcher.findHeroIndexByName(characterName, heroes, { strict: true });
+    if (heroIndex === null) return null;
+    const hero = heroes[heroIndex];
+    return settingsStore.isTracked(hero.characterName) ? hero : null;
+  }
+
+  // Only the tracked heroes' turns reach the overlay: a monster's or another
+  // player's turn leaves the last hero's total on screen until it fades.
+  const turnTracker = new CombatTurnTracker((update) => {
+    const hero = findTrackedHero(update.characterName);
+    if (!hero) return;
+    overlay.broadcastTurnDamage({
+      characterName: update.characterName,
+      heroName: hero.name,
+      class: hero.class,
+      color: hero.color,
+      turnId: update.turnId,
+      total: update.total,
+      amount: update.amount ?? 0,
+      ended: update.type === 'end',
+      timestamp: Date.now(),
+    });
+  }, {
+    isAlly: (name) => CharacterMatcher.findHeroIndexByName(name, settingsStore.heroes, { strict: true }) !== null,
+  });
+
   async function startCombatLogReader(logsDir) {
-    const reader = new WakfuCombatLogReader(handleCastEvent, { logsDir });
+    const reader = new WakfuCombatLogReader(handleCastEvent, {
+      logsDir,
+      onLine: (line) => turnTracker.processLine(line),
+    });
     await reader.start();
     return reader;
   }

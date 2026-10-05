@@ -15,8 +15,10 @@ const CLASS_LABELS = new Map(CLASSES);
 const PALETTE = ['#4a90e2', '#43d1c1', '#22c55e', '#facc15', '#f2994a', '#e53935', '#d946ef', '#9b8cff'];
 
 const LAYOUTS = [
-  { id: 'h-fwd', orientation: 'horizontal', direction: 'left-to-right', label: 'Horizontal', sub: 'gauche → droite', flex: 'row' },
-  { id: 'h-rev', orientation: 'horizontal', direction: 'right-to-left', label: 'Horizontal', sub: 'droite → gauche', flex: 'row-reverse' },
+  // Horizontal layouts put the class icon next to the newest cast, where the
+  // list grows (it reads better); still overridable with the "Position" toggle.
+  { id: 'h-fwd', orientation: 'horizontal', direction: 'left-to-right', label: 'Horizontal', sub: 'gauche → droite', flex: 'row', iconSide: 'right' },
+  { id: 'h-rev', orientation: 'horizontal', direction: 'right-to-left', label: 'Horizontal', sub: 'droite → gauche', flex: 'row-reverse', iconSide: 'left' },
   { id: 'v-fwd', orientation: 'vertical', direction: 'top-to-bottom', label: 'Vertical', sub: 'haut → bas', flex: 'column' },
   { id: 'v-rev', orientation: 'vertical', direction: 'bottom-to-top', label: 'Vertical', sub: 'bas → haut', flex: 'column-reverse' },
 ];
@@ -401,6 +403,19 @@ function layoutId(layout) {
 }
 
 /** Size of the OBS browser source that fits the whole overlay (matches the preview box). */
+/** Mirrors counterMetrics() in electron/overlay/client.js (K1 mockup drawn at 48 px icons). */
+function counterMetrics(iconSize) {
+  const k = iconSize / 48;
+  return {
+    k,
+    horizontalWidth: 136 * k,
+    verticalWidth: 88 * k,
+    verticalHeight: 2 * 7 * k + 1.2 * Math.max(8, 10 * k) + 1 + 1.2 * Math.max(10, 15 * k),
+    deltaRoom: 6 + 1.2 * 15 * k + 14, // the "+N" rising above (horizontal)
+    deltaBelow: 6 + 1.2 * Math.max(9, 13 * k) + 14, // …or dropping below (vertical)
+  };
+}
+
 function overlaySize(layout = state.layout) {
   const n = layout.maxVisibleCasts || 8;
   const icon = layout.iconSize || 32;
@@ -408,9 +423,23 @@ function overlaySize(layout = state.layout) {
   const lead = icon + CLASS_ICON_EXTRA_PX;
   const logLen = n * entry + (n - 1) * ENTRY_GAP_PX;
   const horizontal = layout.orientation === 'horizontal';
-  const width = EDGE_OFFSET_PX * 2 + lead + CLASS_ICON_GAP_PX + (horizontal ? logLen : entry);
-  const height = EDGE_OFFSET_PX * 2 + (horizontal ? Math.max(entry, lead) : Math.max(logLen, lead));
-  return { width, height };
+  const counterOn = layout.damageCounterEnabled !== false;
+  const c = counterMetrics(icon);
+  if (horizontal) {
+    // Counter beside the class icon, "+N" room above.
+    const counterW = counterOn ? c.horizontalWidth + CLASS_ICON_GAP_PX : 0;
+    return {
+      width: Math.ceil(EDGE_OFFSET_PX * 2 + lead + CLASS_ICON_GAP_PX + counterW + logLen),
+      height: Math.ceil(EDGE_OFFSET_PX * 2 + Math.max(entry, lead) + (counterOn ? c.deltaRoom : 0)),
+    };
+  }
+  // V3: icon (+ counter under it) level with the newest cast, i.e. the last slot at worst.
+  const leadW = counterOn ? Math.max(lead, c.verticalWidth) : lead;
+  const leadH = lead + (counterOn ? CLASS_ICON_GAP_PX + c.verticalHeight + c.deltaBelow : 0);
+  return {
+    width: Math.ceil(EDGE_OFFSET_PX * 2 + leadW + CLASS_ICON_GAP_PX + entry),
+    height: Math.ceil(EDGE_OFFSET_PX * 2 + Math.max(logLen, logLen - entry + leadH)),
+  };
 }
 
 function renderLayoutPicker() {
@@ -421,8 +450,10 @@ function renderLayoutPicker() {
     picker.append(el('button', {
       type: 'button', class: 'layout-option', 'aria-pressed': def.id === current ? 'true' : 'false',
       onclick: () => {
-        state.layout = { ...state.layout, orientation: def.orientation, direction: def.direction };
-        api.setComboLayout({ orientation: def.orientation, direction: def.direction });
+        const change = { orientation: def.orientation, direction: def.direction };
+        if (def.iconSide) change.classIconSide = def.iconSide;
+        state.layout = { ...state.layout, ...change };
+        api.setComboLayout(change);
         renderLayout();
       },
     }, [
@@ -445,6 +476,7 @@ function renderLayout() {
   $('max-dec').disabled = layout.maxVisibleCasts <= state.maxVisibleRange.min;
   $('max-inc').disabled = layout.maxVisibleCasts >= state.maxVisibleRange.max;
   setSwitch($('preview-enabled'), layout.previewEnabled);
+  setSwitch($('damage-counter-enabled'), layout.damageCounterEnabled !== false);
   renderPreview();
 }
 
@@ -522,6 +554,25 @@ function renderPreview() {
   lead.innerHTML = '';
   const emblem = classEmblem(entries[entries.length - 1]?.heroClass);
   if (emblem) lead.append(el('img', { src: emblem, alt: '' }));
+
+  // K1 counter, in the colour of the most recent cast's hero.
+  const counterOn = layout.damageCounterEnabled !== false;
+  const horizontal = layout.orientation === 'horizontal';
+  const overlay = $('pv-overlay');
+  overlay.dataset.orientation = horizontal ? 'horizontal' : 'vertical';
+  overlay.style.setProperty('--k', (iconSize / 48).toFixed(4));
+  overlay.style.setProperty('--lead', `${leadSize}px`);
+  const { r, g, b } = hexToRgb(entries[entries.length - 1]?.color ?? '#787878');
+  overlay.style.setProperty('--td-rgb', `${r}, ${g}, ${b}`);
+  overlay.style.setProperty('--td-light',
+    [r, g, b].map((v) => Math.round(v + (255 - v) * 0.55)).join(', '));
+  $('pv-damage').hidden = !counterOn;
+  scale.style.paddingTop = `${EDGE_OFFSET_PX + (horizontal && counterOn ? Math.ceil(counterMetrics(iconSize).deltaRoom) : 0)}px`;
+
+  // V3: in a top-to-bottom column the icon sits level with the newest (last) cast.
+  const followsDown = !horizontal && layout.direction !== 'bottom-to-top';
+  const slot = iconSize + ENTRY_CHROME_PX + ENTRY_GAP_PX;
+  $('pv-lead-wrap').style.setProperty('--lead-y', `${followsDown ? (entries.length - 1) * slot : 0}px`);
 }
 
 window.addEventListener('resize', renderPreview);
@@ -565,6 +616,12 @@ $('preview-enabled').addEventListener('click', () => {
   state.layout.previewEnabled = !state.layout.previewEnabled;
   api.setComboLayout({ previewEnabled: state.layout.previewEnabled });
   setSwitch($('preview-enabled'), state.layout.previewEnabled);
+});
+
+$('damage-counter-enabled').addEventListener('click', () => {
+  state.layout.damageCounterEnabled = state.layout.damageCounterEnabled === false;
+  api.setComboLayout({ damageCounterEnabled: state.layout.damageCounterEnabled });
+  renderLayout();
 });
 
 $('copy-size').addEventListener('click', (e) => {

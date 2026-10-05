@@ -42,6 +42,7 @@
       "electron/**/*",
       "src/wakfuCombatLogReader.js",
       "src/characterMatcher.js",
+      "src/combatTurnTracker.js",
       "src/settingsStore.js",
       "src/obsLoaderPage.js",
       "overlay/server.js",

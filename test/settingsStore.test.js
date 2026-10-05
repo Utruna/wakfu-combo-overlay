@@ -45,6 +45,7 @@ const LAYOUT_DEFAULTS = {
     castLifetimeMs: 6000,
     maxVisibleCasts: 8,
     previewEnabled: false,
+    damageCounterEnabled: true,
     classIconSide: 'left',
   },
   overlayPort: 3456,
@@ -107,6 +108,19 @@ test('refuses to rename a hero to a blank or already used name', () => {
   assert.equal(store.updateHero('A', { characterName: 'B' }), false);
   assert.equal(store.updateHero('A', { characterName: '  ' }), false);
   assert.deepEqual(store.heroes.map((h) => h.characterName), ['A', 'B']);
+});
+
+test('turns the damage counter on for layouts saved before the setting existed', () => {
+  const file = tmpSettingsPath();
+  fs.writeFileSync(file, JSON.stringify({
+    comboLayout: { ...LAYOUT_DEFAULTS.comboLayout, damageCounterEnabled: undefined },
+  }));
+  const store = new SettingsStore(file);
+  store.ensureDefaults(LAYOUT_DEFAULTS);
+  assert.equal(store.comboLayout.damageCounterEnabled, true);
+
+  store.setComboLayout({ damageCounterEnabled: 0 });
+  assert.equal(store.comboLayout.damageCounterEnabled, false);
 });
 
 test('persists the onboarding flag', () => {
