@@ -5,7 +5,7 @@
 
 Affiche en direct sur ton stream les sorts lancés par tes personnages Wakfu, sous forme d'icônes qui défilent dans OBS.
 
-![Rendu de l'overlay dans OBS](doc/overlay-rendu.png)
+![L'overlay en combat : sorts des héros et compteur de dégâts du tour](doc/overlay-demo.gif)
 
 L'application lit les logs de combat du client Wakfu en temps réel. Elle ne garde que les sorts de tes personnages (les autres joueurs et les mobs sont ignorés) et les envoie à une page web transparente que tu ajoutes comme **Source Navigateur** dans OBS.
 
@@ -70,17 +70,20 @@ Chaque réglage s'applique tout de suite à l'overlay, et l'**aperçu** à droit
 - **Taille des icônes** : de 16 à 128 px. Les icônes du jeu font 32 px : au-delà, elles sont agrandies en pixel art net, sans flou.
 - **Durée d'affichage d'un sort** : de 1 à 60 s (6 s par défaut).
 - **Nombre max de sorts visibles** : quand la limite est atteinte, le plus ancien disparaît.
+- **Compteur de dégâts du tour** : cumul des dégâts infligés depuis le premier sort du tour, avec un « +N » à chaque coup. Il s'affiche à côté de l'icône de classe (dessous en vertical), à la couleur du héros. Les bombes du Roublard et les coups des invocations sont comptés ; le tir allié ne l'est pas. Activé par défaut.
 - **Envoyer aussi ces sorts factices à OBS** : affiche les sorts de l'aperçu dans OBS, pour positionner la source précisément dans ta scène.
 
-Sous l'aperçu, la carte **Source navigateur OBS** indique la taille exacte à donner à la source dans OBS (bouton **Copier**). Elle dépend de la disposition, de la taille des icônes et du nombre max de sorts. Pour 8 sorts visibles :
+Sous l'aperçu, la carte **Source navigateur OBS** indique la taille exacte à donner à la source dans OBS (bouton **Copier**). Elle dépend de la disposition, de la taille des icônes, du nombre max de sorts et du compteur de dégâts. Pour 8 sorts visibles, compteur activé :
 
 | Taille icône | Horizontale (L × H) | Verticale (L × H) |
 |---|---|---|
-| 32 px | 478 × 76 | 128 × 426 |
-| 48 px | 622 × 92 | 160 × 554 |
-| 64 px | 766 × 108 | 192 × 682 |
-| 96 px | 1054 × 140 | 256 × 938 |
-| 128 px | 1342 × 172 | 320 × 1194 |
+| 32 px | 577 × 108 | 143 × 497 |
+| 48 px | 766 × 130 | 188 × 643 |
+| 64 px | 956 × 152 | 234 × 791 |
+| 96 px | 1334 × 196 | 324 × 1087 |
+| 128 px | 1713 × 240 | 415 × 1382 |
+
+Sans le compteur, la source est plus petite (ex. 478 × 76 en horizontal à 32 px) : fie-toi toujours à la valeur affichée dans l'appli.
 
 > **Piège classique** : si la source OBS est plus petite que la taille indiquée, une partie des sorts sort du cadre. L'overlay garde alors ce qui tient à l'écran, en priorité les plus récents.
 
@@ -149,10 +152,12 @@ L'appli installée vérifie toute seule s'il existe une nouvelle version quelque
 **« address already in use » au lancement**
 - Une autre application utilise déjà le port 3457 : change le port dans **Configuration**, puis mets à jour l'adresse dans OBS.
 
-**Les sorts des invocations (créature Osamodas, poupée Sadida…) n'apparaissent pas**
-- Limitation connue. Les invocations lancent leurs sorts sous leur propre nom (ex. « Chafer Elite lance le sort Sabre d'élite »), pas sous celui du personnage : elles sont donc classées *ignoré* comme un joueur inconnu. Pour les afficher, il manque deux choses :
-  1. Rattacher l'invocation à son héros. Le mécanisme existe dans le code (`characterAliases` dans `src/characterMatcher.js`) mais il n'est pas exposé dans l'interface.
-  2. Récupérer les icônes de ces sorts : ils ne figurent pas sur les pages classe de l'encyclopédie que scrape `tools/scrape_spell_icons.js`.
+**Les sorts des invocations (créature Osamodas, poupée Sadida…)**
+- Depuis la 1.6.0, les invocations sont rattachées automatiquement à leur invocateur : leurs sorts s'affichent sous le héros, avec une **bordure en pointillés**, et leurs dégâts entrent dans le compteur du tour. Leurs sorts ne figurent pas dans l'encyclopédie : à défaut d'icône propre, c'est l'icône du sort d'invocation qui est affichée.
+
+**Le compteur de dégâts reste à 0 ou compte en double**
+- À 0 : vérifie que le héros est actif et bien orthographié. Les coups portés à un allié (tir allié) ne sont pas comptés.
+- En multi-compte, plusieurs clients écrivent les mêmes lignes dans le log : l'appli les déduplique toute seule.
 
 **« Cannot find latest.yml in the latest release artifacts » lors d'une recherche de mise à jour**
 - La dernière release publiée ne contient pas `latest.yml`, le plus souvent parce que la nouvelle release est encore en brouillon (draft). Publie-la, puis relance la vérification. Pour voir ce que voit l'updater :
@@ -211,6 +216,7 @@ Le workflow échoue explicitement si la version a déjà une release publiée : 
 - `electron/overlay/` : page servie à OBS
 - `src/wakfuCombatLogReader.js` : lecture incrémentale de `wakfu.log`
 - `src/characterMatcher.js` : tri entre héros suivis et autres joueurs ou mobs
+- `src/combatTurnTracker.js` : découpage du combat en tours, cumul des dégâts, rattachement des invocations
 - `src/settingsStore.js` : enregistrement des réglages
 - `src/obsLoaderPage.js` : génère `overlay-obs.html` (méthode Fichier local)
 - `overlay/server.js` : petit serveur HTTP/SSE
@@ -243,3 +249,10 @@ npx electron tools/capture_screenshots.js
 ```
 
 Ce script refait `doc/app-*.png` et `doc/overlay-rendu.png` sur l'appli réelle, lancée avec un profil de démo isolé (héros fictifs, faux `wakfu.log`, port 3499). Depuis un terminal VS Code, retire d'abord la variable `ELECTRON_RUN_AS_NODE`, sinon Electron démarre comme un simple Node. Les captures `doc/obs-*.png` sont faites à la main dans OBS.
+
+```bash
+npx electron tools/capture_gif.js            # doc/overlay-demo.gif
+npx electron tools/capture_gif.js vertical   # doc/overlay-demo-vertical.gif
+```
+
+Ce script enregistre le vrai overlay pendant qu'il rejoue un combat scénarisé (sorts, compteur de dégâts, invocation Osamodas), écrit dans un faux `wakfu.log` au format du jeu.
