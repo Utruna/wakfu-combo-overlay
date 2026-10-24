@@ -2,71 +2,32 @@
   "name": "wakfu-combo-overlay",
   "version": "1.6.1",
   "description": "Overlay OBS qui affiche en temps réel les sorts lancés par tes personnages dans Wakfu, à partir des logs de combat.",
-  "main": "electron/main.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/utruna/wakfu-combo-overlay.git"
   },
   "scripts": {
     "lint": "eslint .",
-    "test": "node --test test/*.test.js",
-    "electron:dev": "electron .",
-    "dist": "electron-builder --win --publish never"
+    "test": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "dev": "tauri dev",
+    "dist": "tauri build",
+    "tauri": "tauri"
   },
   "keywords": [
     "wakfu",
     "overlay",
     "obs",
     "combo",
-    "electron"
+    "tauri"
   ],
   "author": "",
   "license": "MIT",
-  "dependencies": {
-    "electron-updater": "^6.8.9"
-  },
   "devDependencies": {
-    "electron": "^44.0.0",
-    "electron-builder": "^26.15.7",
+    "@tauri-apps/cli": "^2.12.4",
     "eslint": "^8.57.0",
     "gifenc": "^1.0.3"
   },
   "engines": {
     "node": ">=18.0.0"
-  },
-  "build": {
-    "appId": "com.colinliaud.wakfu-combo-overlay",
-    "productName": "Wakfu Combo Overlay",
-    "asar": true,
-    "npmRebuild": false,
-    "files": [
-      "electron/**/*",
-      "src/wakfuCombatLogReader.js",
-      "src/characterMatcher.js",
-      "src/combatTurnTracker.js",
-      "src/settingsStore.js",
-      "src/obsLoaderPage.js",
-      "overlay/server.js",
-      "assets/tray-icon.png",
-      "assets/icons/**/*",
-      "data/spellIcons.json",
-      "package.json",
-      "node_modules/**/*"
-    ],
-    "directories": {
-      "output": "dist"
-    },
-    "publish": {
-      "provider": "github",
-      "owner": "utruna",
-      "repo": "wakfu-combo-overlay",
-      "releaseType": "draft"
-    },
-    "win": {
-      "target": [
-        "nsis"
-      ],
-      "icon": "build/icon.png"
-    }
   }
 }

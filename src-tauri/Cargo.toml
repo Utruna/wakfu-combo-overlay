@@ -1,0 +1,37 @@
+[package]
+name = "wakfu-combo-overlay"
+# The app's real version lives in package.json (tauri.conf.json reads it from there).
+version = "0.0.0"
+description = "Overlay OBS des sorts lancés dans Wakfu"
+license = "MIT"
+edition = "2021"
+publish = false
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-single-instance = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-updater = "2"
+serde = { version = "1", features = ["derive"] }
+# preserve_order: settings.json keeps its key order when rewritten, and the
+# spell icon table keeps the scraped order (the preview pool picks each
+# class's first spell).
+serde_json = { version = "1", features = ["preserve_order"] }
+regex = "1"
+unicode-normalization = "0.1"
+tokio = { version = "1", features = ["rt", "net", "io-util", "sync", "macros", "time"] }
+winreg = "0.56"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[lib]
+name = "wakfu_combo_overlay_lib"
+path = "src/lib.rs"

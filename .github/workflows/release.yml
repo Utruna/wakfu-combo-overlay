@@ -18,6 +18,14 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Setup Rust
+        run: rustup toolchain install stable --profile minimal
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
       - name: Ensure this version hasn't already been released
         shell: bash
         run: |
@@ -46,13 +54,9 @@ jobs:
             git push origin "$VERSION"
           fi
 
-      # electron-builder uploads the .exe and its .blockmap through two parallel
-      # publishers, and each one creates the GitHub release on its own if it
-      # doesn't exist yet — a race that produced a duplicate release per version
-      # (one with the .exe + latest.yml, one with the .blockmap), and on 1.5.1
-      # failed outright with "422 already_exists" before latest.yml was uploaded.
-      # Creating the release up front as a draft means both publishers find it
-      # and upload into it; it is only made public once every file is there.
+      # Created up front as a draft, so the files are uploaded into it and it
+      # only goes public once every one of them is there (an updater reading a
+      # release that has the installer but not yet latest.json would fail).
       - name: Create draft release
         shell: bash
         run: |
@@ -68,8 +72,24 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build and publish Windows installer
-        run: npx electron-builder --win --publish always
+      - name: Run tests
+        run: npm test
+
+      # The signing key signs the installer for the in-app updater, which
+      # refuses any update whose signature doesn't match the public key in
+      # src-tauri/tauri.conf.json.
+      - name: Build Windows installer
+        run: npx tauri build
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+
+      - name: Upload installer and update manifests
+        shell: bash
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          node tools/release_manifests.js
+          gh release upload "v$VERSION" --repo "$GITHUB_REPOSITORY" --clobber             "dist/wakfu-combo-overlay-setup-$VERSION.exe" dist/latest.json dist/latest.yml
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

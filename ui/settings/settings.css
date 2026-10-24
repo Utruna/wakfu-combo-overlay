@@ -323,7 +323,7 @@ legend.field-label { margin-bottom: 8px; }
   display: flex; justify-content: flex-end; align-items: flex-start;
 }
 
-/* Mirrors electron/overlay/style.css so the preview matches what OBS shows. */
+/* Mirrors ui/overlay/style.css so the preview matches what OBS shows. */
 .pv-overlay { display: inline-flex; align-items: center; gap: 8px; }
 .pv-overlay[data-side="right"] { flex-direction: row-reverse; }
 .pv-overlay[data-orientation="vertical"] { align-items: flex-start; }
