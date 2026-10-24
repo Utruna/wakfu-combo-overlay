@@ -174,14 +174,39 @@ curl -sL https://github.com/utruna/wakfu-combo-overlay/releases/latest/download/
 
 ## Développement
 
-L'appli est faite avec [Tauri](https://tauri.app) : un cœur en Rust (lecture des logs, serveur de l'overlay, zone de notification) et une fenêtre de réglages en HTML/JS affichée par WebView2, le moteur web déjà présent dans Windows. La fenêtre n'existe que tant qu'elle est ouverte : la refermer libère toute la mémoire du moteur web.
+### Depuis la 2.0 : Tauri au lieu d'Electron
 
-### Prérequis
+Jusqu'à la 1.6, l'appli était une appli **Electron** : elle embarquait son propre Chromium et Node.js, ce qui coûtait ~110 Mo de RAM en permanence (même fenêtre fermée) et un installeur de 126 Mo. Depuis la 2.0, c'est une appli **[Tauri](https://tauri.app)** :
 
-- Windows (le chemin des logs Wakfu et la zone de notification sont spécifiques à Windows)
-- [Rust](https://rustup.rs) (stable) et les Build Tools Visual Studio avec la charge « Développement Desktop en C++ »
-- Node.js 18+ (CLI Tauri, ESLint, outils)
-- Wakfu installé via le launcher Zaap
+| | 1.x (Electron) | 2.x (Tauri) |
+|---|---|---|
+| Logique (logs, tours, réglages, serveur overlay) | JavaScript (`src/`, `electron/main.js`) | **Rust** (`src-tauri/src/`) |
+| Fenêtre de réglages | Chromium embarqué | WebView2, le moteur web de Windows |
+| Pages (réglages, overlay) | HTML/JS dans `electron/` | le même HTML/JS, dans `ui/` |
+| Lien page ↔ appli | `ipcMain` + `preload.js` | commandes Tauri + `ui/settings/tauri-api.js` |
+| RAM fenêtre fermée / ouverte | ~110 Mo / ~110 Mo | **~5 Mo** / ~90 Mo |
+| Installeur | 126 Mo | 8 Mo |
+
+Ce qu'il faut retenir pour coder :
+
+- **La fenêtre de réglages n'existe que tant qu'elle est ouverte.** La fermer la détruit, et WebView2 rend toute sa mémoire. L'appli tourne en Rust seul dans la zone de notification ; tout ce qui doit survivre à la fenêtre (lecture des logs, overlay, état) vit côté Rust.
+- **La page n'a pas changé de modèle** : elle parle toujours à `window.settingsAPI`. Seule l'implémentation de ce pont a changé (`tauri-api.js` appelle `invoke()` au lieu d'`ipcRenderer`).
+- **Ajouter une action appelée par la page**, c'est trois endroits : une fonction `#[tauri::command]` dans `src-tauri/src/commands.rs`, son enregistrement dans `generate_handler![…]` (`src-tauri/src/lib.rs`), et sa méthode dans `ui/settings/tauri-api.js`. Les arguments passent en camelCase côté JS (`characterName`) et arrivent en snake_case côté Rust (`character_name`).
+- **Pousser un événement vers la page** (comme l'activité en temps réel) : `app.emit_to("settings", "nom:evenement", payload)` côté Rust, `listen()` côté `tauri-api.js`.
+- **Les fichiers de `ui/` et `data/` sont embarqués dans l'exe** : la même copie sert la fenêtre de réglages et le serveur de l'overlay pour OBS.
+- **Les réglages restent au même endroit** (`%APPDATA%\Wakfu Combo Overlay\settings.json`, même format) : une 1.x mise à jour garde tout, y compris le chemin `overlay-obs.html` collé dans OBS.
+
+### Installer les outils (une seule fois)
+
+Windows uniquement (chemin des logs Wakfu, zone de notification). Dans PowerShell :
+
+```powershell
+winget install Rustlang.Rustup
+winget install Microsoft.VisualStudio.2022.BuildTools --override "--quiet --wait --norestart --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+winget install OpenJS.NodeJS.LTS
+```
+
+Puis ouvre un **nouveau** terminal (pour que `cargo` et `node` soient dans le `PATH`). WebView2 est déjà installé sur Windows 10/11 à jour. Wakfu doit être installé via le launcher Zaap pour avoir de vrais logs.
 
 ### Lancer en dev
 
@@ -190,12 +215,23 @@ npm install
 npm run dev
 ```
 
-```bash
-npm test      # tests Rust (cargo test)
-npm run lint  # ESLint (pages et outils)
+La première compilation prend quelques minutes (toutes les dépendances Rust), les suivantes quelques secondes. `npm run dev` surveille `src-tauri/` : une modification du Rust recompile et relance l'appli. Une modification de `ui/` se voit en rechargeant la fenêtre (Ctrl+R) ou, pour l'overlay, en actualisant la source dans OBS.
+
+Pour tester sans toucher à tes vrais réglages (ni à l'instance déjà ouverte) :
+
+```powershell
+$env:WAKFU_OVERLAY_DATA_DIR = "$env:TEMP\wakfu-dev"
+npm run dev
 ```
 
-`WAKFU_OVERLAY_DATA_DIR` fait lire les réglages ailleurs que dans `%APPDATA%\Wakfu Combo Overlay`, pour tester sans toucher aux vrais. L'instance peut alors tourner à côté de celle déjà ouverte.
+L'appli lit et écrit alors ses réglages dans ce dossier, et peut tourner à côté de l'instance installée (pense à y mettre un autre port que 3457 dans les réglages).
+
+```bash
+npm test      # tests Rust (cargo test) : log, tours, réglages, overlay
+npm run lint  # ESLint (pages de ui/ et outils)
+```
+
+En dev, les messages de l'appli (`[debug] broadcast — …`, erreurs) s'affichent dans le terminal ; l'exe de release n'a pas de console.
 
 ### Générer un installeur
 
@@ -203,20 +239,28 @@ npm run lint  # ESLint (pages et outils)
 npm run dist
 ```
 
-Produit un installeur Windows (NSIS) dans `src-tauri/target/release/bundle/nsis/`. Pour qu'il soit signé pour l'updater, définis d'abord `TAURI_SIGNING_PRIVATE_KEY` (voir ci-dessous). `npm run tauri build -- --no-bundle` ne produit que l'exe.
+Produit l'installeur Windows (NSIS) dans `src-tauri/target/release/bundle/nsis/`. Pour qu'il soit signé pour l'updater, définis d'abord la clé privée (voir ci-dessous) :
+
+```powershell
+$env:TAURI_SIGNING_PRIVATE_KEY = Get-Content "$env:USERPROFILE\.tauri\wakfu-combo-overlay.key" -Raw
+$env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = ""
+npm run dist
+```
+
+`npm run tauri build -- --no-bundle` ne produit que l'exe (`src-tauri/target/release/wakfu-combo-overlay.exe`), sans installeur ni signature.
 
 ### Publier une release
 
-Le workflow `.github/workflows/release.yml` build l'installeur sur un runner Windows et le publie en **GitHub Release** : pas besoin de commiter l'exe.
+Le workflow `.github/workflows/release.yml` compile l'installeur sur un runner Windows et le publie en **GitHub Release** : pas besoin de commiter l'exe.
 
-1. Monte la version dans `package.json` (`npm version patch` / `minor` / `major`) et pousse le commit.
+1. Monte la version dans `package.json` (`npm version patch` / `minor` / `major`) et pousse le commit sur `main`. C'est la seule version à changer : `src-tauri/tauri.conf.json` la lit dans `package.json`.
 2. Sur GitHub : **Actions** → **Build & Release (Windows)** → **Run workflow**.
-3. Une fois le workflow terminé, la release `vX.Y.Z` apparaît dans **Releases** avec l'installeur `.exe`, `latest.json` et `latest.yml`.
+3. Une fois le workflow terminé (~10 min, moins quand le cache Rust est chaud), la release `vX.Y.Z` apparaît dans **Releases** avec l'installeur `wakfu-combo-overlay-setup-X.Y.Z.exe`, `latest.json` et `latest.yml`, et des notes générées à partir des commits.
 
-Le workflow échoue explicitement si la version a déjà une release publiée : il faut alors monter `version` et relancer. Sinon, il crée et pousse le tag `vX.Y.Z`, crée la release en brouillon (ou réutilise le brouillon d'un essai raté), lance les tests, y envoie les fichiers, puis la publie. La release n'est donc visible qu'une fois complète.
+Le workflow vérifie que la version n'a pas déjà de release publiée et que le secret de signature existe, crée et pousse le tag `vX.Y.Z`, crée la release en brouillon (ou réutilise le brouillon d'un essai raté), lance ESLint et les tests, compile, envoie les fichiers, puis publie la release. Elle n'est donc visible qu'une fois complète.
 
-- `latest.json` est lu par l'updater de l'appli. Il contient la signature de l'installeur : l'updater refuse toute mise à jour qui ne correspond pas à la clé publique de `src-tauri/tauri.conf.json`. La clé privée est le secret GitHub `TAURI_SIGNING_PRIVATE_KEY` du dépôt. Sans elle, impossible de publier une mise à jour que les installations existantes accepteront : garde-en une copie.
-- `latest.yml` est lu par les anciennes versions 1.x (Electron), pour qu'elles proposent elles aussi la nouvelle version.
+- `latest.json` est lu par l'updater de l'appli. Il contient la signature de l'installeur : l'updater refuse toute mise à jour qui ne correspond pas à la clé publique de `src-tauri/tauri.conf.json`. La clé privée est le secret GitHub `TAURI_SIGNING_PRIVATE_KEY` du dépôt (copie locale : `%USERPROFILE%\.tauri\wakfu-combo-overlay.key`). Sans elle, impossible de publier une mise à jour que les installations existantes accepteront : garde-en une sauvegarde.
+- `latest.yml` est lu par les anciennes versions 1.x (Electron), pour qu'elles proposent elles aussi la nouvelle version. L'installeur désinstalle alors la 1.x (`src-tauri/installer-hooks.nsh`).
 
 Les deux updaters ne voient que les releases **publiées**, pas les brouillons.
 
