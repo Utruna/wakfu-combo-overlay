@@ -27,8 +27,10 @@ L'application lit les logs de combat du client Wakfu en temps réel. Elle ne gar
 
 ## Installation et premier lancement
 
-1. Télécharge `Wakfu-Combo-Overlay-Setup-X.Y.Z.exe` depuis la [dernière release](https://github.com/utruna/wakfu-combo-overlay/releases/latest) et lance-le.
+1. Télécharge `wakfu-combo-overlay-setup-X.Y.Z.exe` depuis la [dernière release](https://github.com/utruna/wakfu-combo-overlay/releases/latest) et lance-le.
 2. Windows SmartScreen peut afficher un avertissement, parce que l'installeur n'est pas signé : clique sur **Informations complémentaires** → **Exécuter quand même**.
+
+Tu avais une version 1.x ? L'installeur la désinstalle tout seul et reprend tes réglages (héros, affichage, port, lancement avec Windows) : rien à refaire, ni dans l'appli ni dans OBS.
 
 Au premier lancement, un **assistant en trois étapes** te guide :
 
@@ -43,6 +45,8 @@ Au premier lancement, un **assistant en trois étapes** te guide :
 Tu peux passer l'assistant et tout configurer à la main. Tu peux aussi le relancer plus tard avec **Relancer l'assistant**, en bas de la barre latérale.
 
 L'appli vit ensuite dans la **zone de notification Windows** (souvent rangée derrière la flèche `^` à côté de l'horloge). Fermer la fenêtre ne quitte **pas** l'appli : le suivi continue en arrière-plan pendant le stream. Pour la fermer complètement : clic droit sur l'icône → **Quitter**.
+
+En arrière-plan, fenêtre fermée, l'appli occupe environ 5 Mo de mémoire.
 
 ---
 
@@ -149,8 +153,8 @@ L'appli installée vérifie toute seule s'il existe une nouvelle version quelque
 **Le dossier de logs est introuvable**
 - Wakfu n'a peut-être jamais été lancé sur cette machine, ou il est installé ailleurs que via Zaap. Indique le bon dossier dans **Configuration**. Par défaut : `%APPDATA%\zaap\gamesLogs\wakfu\logs`.
 
-**« address already in use » au lancement**
-- Une autre application utilise déjà le port 3457 : change le port dans **Configuration**, puis mets à jour l'adresse dans OBS.
+**« Port déjà utilisé » ou « Port réservé par Windows » au lancement**
+- Une autre application utilise déjà le port 3457, ou Windows l'a réservé (Hyper-V, WSL, Docker) : change le port dans **Configuration**, puis mets à jour l'adresse dans OBS.
 
 **Les sorts des invocations (créature Osamodas, poupée Sadida…)**
 - Depuis la 1.6.0, les invocations sont rattachées automatiquement à leur invocateur : leurs sorts s'affichent sous le héros, avec une **bordure en pointillés**, et leurs dégâts entrent dans le compteur du tour. Leurs sorts ne figurent pas dans l'encyclopédie : à défaut d'icône propre, c'est l'icône du sort d'invocation qui est affichée.
@@ -159,34 +163,39 @@ L'appli installée vérifie toute seule s'il existe une nouvelle version quelque
 - À 0 : vérifie que le héros est actif et bien orthographié. Les coups portés à un allié (tir allié) ne sont pas comptés.
 - En multi-compte, plusieurs clients écrivent les mêmes lignes dans le log : l'appli les déduplique toute seule.
 
-**« Cannot find latest.yml in the latest release artifacts » lors d'une recherche de mise à jour**
-- La dernière release publiée ne contient pas `latest.yml`, le plus souvent parce que la nouvelle release est encore en brouillon (draft). Publie-la, puis relance la vérification. Pour voir ce que voit l'updater :
+**« Erreur de vérification » à côté du numéro de version**
+- L'appli n'a pas pu lire `latest.json` dans la dernière release publiée : pas de connexion, ou la nouvelle release est encore en brouillon (draft). Publie-la, puis relance la vérification. Pour voir ce que voit l'updater :
 
 ```bash
-curl -s https://github.com/utruna/wakfu-combo-overlay/releases.atom | grep -o 'releases/tag/[^"]*'
+curl -sL https://github.com/utruna/wakfu-combo-overlay/releases/latest/download/latest.json
 ```
 
 ---
 
 ## Développement
 
+L'appli est faite avec [Tauri](https://tauri.app) : un cœur en Rust (lecture des logs, serveur de l'overlay, zone de notification) et une fenêtre de réglages en HTML/JS affichée par WebView2, le moteur web déjà présent dans Windows. La fenêtre n'existe que tant qu'elle est ouverte : la refermer libère toute la mémoire du moteur web.
+
 ### Prérequis
 
-- Node.js 18+
-- Windows (le chemin des logs Wakfu et la surveillance de fichiers sont spécifiques à Windows)
+- Windows (le chemin des logs Wakfu et la zone de notification sont spécifiques à Windows)
+- [Rust](https://rustup.rs) (stable) et les Build Tools Visual Studio avec la charge « Développement Desktop en C++ »
+- Node.js 18+ (CLI Tauri, ESLint, outils)
 - Wakfu installé via le launcher Zaap
 
 ### Lancer en dev
 
 ```bash
 npm install
-npm run electron:dev
+npm run dev
 ```
 
 ```bash
-npm test      # tests unitaires (node --test)
-npm run lint  # ESLint
+npm test      # tests Rust (cargo test)
+npm run lint  # ESLint (pages et outils)
 ```
+
+`WAKFU_OVERLAY_DATA_DIR` fait lire les réglages ailleurs que dans `%APPDATA%\Wakfu Combo Overlay`, pour tester sans toucher aux vrais. L'instance peut alors tourner à côté de celle déjà ouverte.
 
 ### Générer un installeur
 
@@ -194,7 +203,7 @@ npm run lint  # ESLint
 npm run dist
 ```
 
-Produit un installeur Windows (NSIS) dans `dist/`.
+Produit un installeur Windows (NSIS) dans `src-tauri/target/release/bundle/nsis/`. Pour qu'il soit signé pour l'updater, définis d'abord `TAURI_SIGNING_PRIVATE_KEY` (voir ci-dessous). `npm run tauri build -- --no-bundle` ne produit que l'exe.
 
 ### Publier une release
 
@@ -202,26 +211,35 @@ Le workflow `.github/workflows/release.yml` build l'installeur sur un runner Win
 
 1. Monte la version dans `package.json` (`npm version patch` / `minor` / `major`) et pousse le commit.
 2. Sur GitHub : **Actions** → **Build & Release (Windows)** → **Run workflow**.
-3. Une fois le workflow terminé, la release `vX.Y.Z` apparaît dans **Releases** avec l'installeur `.exe` et `latest.yml`.
+3. Une fois le workflow terminé, la release `vX.Y.Z` apparaît dans **Releases** avec l'installeur `.exe`, `latest.json` et `latest.yml`.
 
-Le workflow échoue explicitement si la version a déjà une release publiée : il faut alors monter `version` et relancer. Sinon, il crée et pousse le tag `vX.Y.Z`, crée la release en brouillon (ou réutilise le brouillon d'un essai raté), y envoie les fichiers avec electron-builder, puis la publie. Le brouillon créé à l'avance évite que plusieurs publieurs créent chacun leur propre release.
+Le workflow échoue explicitement si la version a déjà une release publiée : il faut alors monter `version` et relancer. Sinon, il crée et pousse le tag `vX.Y.Z`, crée la release en brouillon (ou réutilise le brouillon d'un essai raté), lance les tests, y envoie les fichiers, puis la publie. La release n'est donc visible qu'une fois complète.
 
-`latest.yml` est le fichier que lit l'auto-updater pour connaître la dernière version, et l'updater ne voit que les releases **publiées** (le flux public `releases.atom` n'affiche pas les brouillons).
+- `latest.json` est lu par l'updater de l'appli. Il contient la signature de l'installeur : l'updater refuse toute mise à jour qui ne correspond pas à la clé publique de `src-tauri/tauri.conf.json`. La clé privée est le secret GitHub `TAURI_SIGNING_PRIVATE_KEY` du dépôt. Sans elle, impossible de publier une mise à jour que les installations existantes accepteront : garde-en une copie.
+- `latest.yml` est lu par les anciennes versions 1.x (Electron), pour qu'elles proposent elles aussi la nouvelle version.
+
+Les deux updaters ne voient que les releases **publiées**, pas les brouillons.
 
 ### Fichiers et dossiers
 
-- `electron/main.js` : process principal (zone de notification, fenêtre, lien entre le lecteur de logs et l'overlay, auto-update)
-- `electron/preload.js` : pont IPC exposé à la fenêtre de réglages
-- `electron/settings/` : fenêtre de réglages et assistant de premier lancement
-- `electron/overlay/` : page servie à OBS
-- `src/wakfuCombatLogReader.js` : lecture incrémentale de `wakfu.log`
-- `src/characterMatcher.js` : tri entre héros suivis et autres joueurs ou mobs
-- `src/combatTurnTracker.js` : découpage du combat en tours, cumul des dégâts, rattachement des invocations
-- `src/settingsStore.js` : enregistrement des réglages
-- `src/obsLoaderPage.js` : génère `overlay-obs.html` (méthode Fichier local)
-- `overlay/server.js` : petit serveur HTTP/SSE
+- `src-tauri/src/lib.rs` : démarrage, zone de notification, fenêtre de réglages
+- `src-tauri/src/app_state.rs` : lien entre le lecteur de logs, le suivi des tours et l'overlay
+- `src-tauri/src/commands.rs` : commandes appelées par la fenêtre de réglages
+- `src-tauri/src/log_reader.rs` : lecture incrémentale de `wakfu.log`
+- `src-tauri/src/matcher.rs` : tri entre héros suivis et autres joueurs ou mobs
+- `src-tauri/src/turn_tracker.rs` : découpage du combat en tours, cumul des dégâts, rattachement des invocations
+- `src-tauri/src/settings.rs` : enregistrement des réglages
+- `src-tauri/src/overlay_server.rs` : petit serveur HTTP/SSE de l'overlay
+- `src-tauri/src/loader_page.rs` : génère `overlay-obs.html` (méthode Fichier local)
+- `src-tauri/src/catalog.rs` : icônes des sorts et des classes
+- `src-tauri/src/updates.rs`, `autostart.rs` : mises à jour, lancement avec Windows
+- `src-tauri/tests/` : tests
+- `ui/settings/` : fenêtre de réglages et assistant de premier lancement (`tauri-api.js` la relie aux commandes)
+- `ui/overlay/` : page servie à OBS
+- `ui/assets/icons/` : icônes des sorts (par classe) et logos de classe (`classes/`)
 - `data/spellIcons.json` : table nom de sort → icône, générée par `tools/scrape_spell_icons.js`
-- `assets/icons/` : icônes des sorts (par classe) et logos de classe (`classes/`)
+
+`ui/` et `data/` sont embarqués dans l'exe : la même copie sert la fenêtre de réglages et l'overlay.
 
 Les réglages sont enregistrés dans `%APPDATA%\Wakfu Combo Overlay\settings.json`. Ce dossier est séparé de l'installation : les réglages survivent à une réinstallation.
 
@@ -231,28 +249,30 @@ Les réglages sont enregistrés dans `%APPDATA%\Wakfu Combo Overlay\settings.jso
 node tools/scrape_spell_icons.js
 ```
 
-Le script récupère le nom officiel et l'icône de chaque sort des 18 classes depuis l'encyclopédie Wakfu. Il les range dans `assets/icons/<classe>/<id>.png` et `data/spellIcons.json`, une table par classe (`{classe: {nomDuSort: {iconId, icon}}}`) pour qu'un sort partagé comme « Rafale » n'écrase pas celui de l'autre classe. Il récupère aussi le logo de chaque classe dans `assets/icons/classes/<classe>.png`. Le script est volontairement lent : un premier lancement prend plusieurs dizaines de minutes, un relancement ne télécharge que ce qui manque.
+Le script récupère le nom officiel et l'icône de chaque sort des 18 classes depuis l'encyclopédie Wakfu. Il les range dans `ui/assets/icons/<classe>/<id>.png` et `data/spellIcons.json`, une table par classe (`{classe: {nomDuSort: {iconId, icon}}}`) pour qu'un sort partagé comme « Rafale » n'écrase pas celui de l'autre classe. Il récupère aussi le logo de chaque classe dans `ui/assets/icons/classes/<classe>.png`. Le script est volontairement lent : un premier lancement prend plusieurs dizaines de minutes, un relancement ne télécharge que ce qui manque.
 
-`assets/icons/` et `data/spellIcons.json` sont versionnés et embarqués dans l'installeur. Relancer le scraper ne sert qu'après une mise à jour du jeu (nouveaux sorts, icônes retouchées).
+`ui/assets/icons/` et `data/spellIcons.json` sont versionnés et embarqués dans l'exe. Relancer le scraper ne sert qu'après une mise à jour du jeu (nouveaux sorts, icônes retouchées).
 
 Deux cas sont gérés à la main parce que l'encyclopédie officielle ne les documente pas :
 
 - **Les 10 cartes de l'Écaflip** : noms et ids figés dans `ECAFLIP_CARDS`, repris de stratfu.fr et vérifiés un par un en combat (apostrophes droites comme en jeu).
-- **Les 3 sorts communs** (Maîtrise d'Armes, Charme de Masse, Os à Moelle) : ids figés dans `COMMON_QUEST_SPELLS`, rangés sous la pseudo-classe `"commun"`. La recherche d'icône (`findSpellIcon` dans `electron/main.js`) se rabat dessus pour n'importe quel héros.
+- **Les 3 sorts communs** (Maîtrise d'Armes, Charme de Masse, Os à Moelle) : ids figés dans `COMMON_QUEST_SPELLS`, rangés sous la pseudo-classe `"commun"`. La recherche d'icône (`Catalog::spell_icon` dans `src-tauri/src/catalog.rs`) se rabat dessus pour n'importe quel héros.
 
 Les images sont toujours téléchargées depuis Ankama. Les icônes restent la propriété d'Ankama et sont redistribuées ici dans le cadre d'un outil communautaire non commercial.
 
 ### Régénérer les captures d'écran
 
+Ces outils lancent la vraie appli (build release : `npm run tauri build -- --no-bundle`) sur un profil de démo isolé (héros fictifs, faux `wakfu.log`, port dédié). Electron n'y sert que de navigateur de capture, téléchargé à la demande par `npx`. Depuis un terminal VS Code, retire d'abord la variable `ELECTRON_RUN_AS_NODE`, sinon Electron démarre comme un simple Node.
+
 ```bash
-npx electron tools/capture_screenshots.js
+npx --yes electron@44 tools/capture_screenshots.js
 ```
 
-Ce script refait `doc/app-*.png` et `doc/overlay-rendu.png` sur l'appli réelle, lancée avec un profil de démo isolé (héros fictifs, faux `wakfu.log`, port 3499). Depuis un terminal VS Code, retire d'abord la variable `ELECTRON_RUN_AS_NODE`, sinon Electron démarre comme un simple Node. Les captures `doc/obs-*.png` sont faites à la main dans OBS.
+Ce script refait `doc/app-*.png` et `doc/overlay-rendu.png`. L'overlay est celui de l'appli ; la page de réglages est affichée avec des commandes simulées à partir du profil de démo (`tools/demo_settings_preload.js`). Les captures `doc/obs-*.png` sont faites à la main dans OBS.
 
 ```bash
-npx electron tools/capture_gif.js            # doc/overlay-demo.gif
-npx electron tools/capture_gif.js vertical   # doc/overlay-demo-vertical.gif
+npx --yes electron@44 tools/capture_gif.js            # doc/overlay-demo.gif
+npx --yes electron@44 tools/capture_gif.js vertical   # doc/overlay-demo-vertical.gif
 ```
 
 Ce script enregistre le vrai overlay pendant qu'il rejoue un combat scénarisé (sorts, compteur de dégâts, invocation Osamodas), écrit dans un faux `wakfu.log` au format du jeu.
