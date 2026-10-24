@@ -3,10 +3,10 @@
   "env": { "node": true, "es2022": true },
   "parserOptions": { "ecmaVersion": 2022, "sourceType": "script" },
   "extends": "eslint:recommended",
-  "ignorePatterns": ["node_modules/", "dist/"],
+  "ignorePatterns": ["node_modules/", "dist/", "draft/", "src-tauri/target/", "src-tauri/gen/"],
   "overrides": [
     {
-      "files": ["electron/overlay/**/*.js", "electron/settings/**/*.js"],
+      "files": ["ui/**/*.js"],
       "env": { "browser": true, "node": false }
     }
   ]
