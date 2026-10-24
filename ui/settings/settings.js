@@ -23,7 +23,7 @@ const LAYOUTS = [
   { id: 'v-rev', orientation: 'vertical', direction: 'bottom-to-top', label: 'Vertical', sub: 'bas → haut', flex: 'column-reverse' },
 ];
 
-// Mirrors electron/overlay/style.css + client.js: .cast-entry padding (4px * 2)
+// Mirrors ui/overlay/style.css + client.js: .cast-entry padding (4px * 2)
 // + border (2px * 2) around the icon, the gap between entries, the wrapper's
 // offset from the page edge, and the class icon (icon size + 12px) with its gap.
 const ENTRY_CHROME_PX = 4 * 2 + 2 * 2;
@@ -32,8 +32,8 @@ const EDGE_OFFSET_PX = 16;
 const CLASS_ICON_GAP_PX = 8;
 const CLASS_ICON_EXTRA_PX = 12;
 
-// The page lives in electron/settings/, the icons in <root>/assets/.
-const ASSET_PREFIX = '../../';
+// The page lives in ui/settings/, the icons in ui/assets/.
+const ASSET_PREFIX = '../';
 
 const $ = (id) => document.getElementById(id);
 
@@ -403,7 +403,7 @@ function layoutId(layout) {
 }
 
 /** Size of the OBS browser source that fits the whole overlay (matches the preview box). */
-/** Mirrors counterMetrics() in electron/overlay/client.js (K1 mockup drawn at 48 px icons). */
+/** Mirrors counterMetrics() in ui/overlay/client.js (K1 mockup drawn at 48 px icons). */
 function counterMetrics(iconSize) {
   const k = iconSize / 48;
   return {
