@@ -26,6 +26,18 @@ jobs:
         with:
           workspaces: src-tauri
 
+      # Without the key the build can't sign the installer, and an unsigned
+      # update would be refused by every installed copy — fail before tagging.
+      - name: Check the updater signing key is configured
+        shell: bash
+        run: |
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo "::error::Secret TAURI_SIGNING_PRIVATE_KEY missing (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+
       - name: Ensure this version hasn't already been released
         shell: bash
         run: |
@@ -64,13 +76,16 @@ jobs:
           if gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Draft release $VERSION already exists — reusing it."
           else
-            gh release create "$VERSION" --repo "$GITHUB_REPOSITORY" --verify-tag --draft --title "$VERSION"
+            gh release create "$VERSION" --repo "$GITHUB_REPOSITORY" --verify-tag --draft --title "$VERSION" --generate-notes
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Lint
+        run: npm run lint
 
       - name: Run tests
         run: npm test
@@ -89,7 +104,8 @@ jobs:
         run: |
           VERSION="$(node -p "require('./package.json').version")"
           node tools/release_manifests.js
-          gh release upload "v$VERSION" --repo "$GITHUB_REPOSITORY" --clobber             "dist/wakfu-combo-overlay-setup-$VERSION.exe" dist/latest.json dist/latest.yml
+          gh release upload "v$VERSION" --repo "$GITHUB_REPOSITORY" --clobber \
+            "dist/wakfu-combo-overlay-setup-$VERSION.exe" dist/latest.json dist/latest.yml
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
