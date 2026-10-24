@@ -10,3 +10,4 @@ Thumbs.db
 draft/
 src-tauri/target/
 src-tauri/gen/
+secret/
