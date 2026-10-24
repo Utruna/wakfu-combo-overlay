@@ -65,8 +65,8 @@ pub fn show_settings_window(app: &AppHandle) {
 
 fn quit(app: &AppHandle) {
     // A downloaded update is installed on the way out; the installer closes
-    // the app itself.
-    if !updates::install_pending(app) {
+    // the app itself (and doesn't start it again: the user asked to quit).
+    if !updates::install_pending(app, false) {
         app.exit(0);
     }
 }

@@ -154,7 +154,7 @@ async fn offer_restart(app: &AppHandle, version: String) {
     )
     .await;
     if restart {
-        install_pending(app);
+        install_pending(app, true);
     }
 }
 
@@ -171,13 +171,14 @@ async fn report_error(app: &AppHandle, manual: bool, message: String) {
     }
 }
 
-/// Runs the downloaded installer, if any — it closes this app itself and
-/// relaunches it once done. Returns false when there was nothing to install.
-pub fn install_pending(app: &AppHandle) -> bool {
+/// Runs the downloaded installer, if any — it closes this app itself, and
+/// relaunches it once done when `relaunch` is set. Returns false when there
+/// was nothing to install.
+pub fn install_pending(app: &AppHandle, relaunch: bool) -> bool {
     let Some((update, bytes)) = app.state::<UpdateState>().pending.lock().unwrap().take() else {
         return false;
     };
-    match update.install(bytes) {
+    match update.restart_after_install(relaunch).install(bytes) {
         Ok(()) => true,
         Err(err) => {
             eprintln!("[updates] Install failed: {err}");
