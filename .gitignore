@@ -7,4 +7,5 @@ yarn-debug.log*
 yarn-error.log*
 .DS_Store
 Thumbs.db
-draft/
+draft/src-tauri/target/
+src-tauri/gen/

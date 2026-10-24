@@ -1,0 +1,49 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Wakfu Combo Overlay",
+  "version": "../package.json",
+  "identifier": "com.colinliaud.wakfu-combo-overlay",
+  "build": {
+    "frontendDist": "../ui"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "createUpdaterArtifacts": true,
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper",
+        "silent": true
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["French"],
+        "installerHooks": "./installer-hooks.nsh"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEMwNTQyM0NEOTZCRDQ0QjIKUldTeVJMMld6U05Vd0ovR243NitMWmF2d3dNRWs5MWpTSjlKazM4T1BFR2JCWHBBbW4yM2F2T2YK",
+      "endpoints": [
+        "https://github.com/utruna/wakfu-combo-overlay/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}
