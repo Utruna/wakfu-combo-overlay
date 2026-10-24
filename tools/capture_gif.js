@@ -2,28 +2,24 @@
  * tools/capture_gif.js
  * Records doc/overlay-demo.gif: the real overlay replaying a scripted fight
  * (casts, damage counter, an Osamodas summon), written to a fake wakfu.log in
- * the same format as the game's. Isolated demo profile on port 3498, so a
- * running instance isn't disturbed.
+ * the same format as the game's. The app runs on an isolated demo profile on
+ * port 3498 (see demo_app.js), so a running instance isn't disturbed; Electron
+ * is only the offscreen browser that films the overlay.
  *
- * Usage: npx electron tools/capture_gif.js [horizontal|vertical]
- * (from a VS Code terminal, unset ELECTRON_RUN_AS_NODE first)
+ * Usage: npx --yes electron@44 tools/capture_gif.js [horizontal|vertical]
+ * (release build first; from a VS Code terminal, unset ELECTRON_RUN_AS_NODE)
  */
 
 'use strict';
 
 const path = require('path');
 const fs = require('fs');
-const os = require('os');
 const { app, BrowserWindow } = require('electron');
 const { GIFEncoder, quantize, applyPalette } = require('gifenc');
+const { REPO, hero, wait, createDemoProfile, startDemoApp } = require('./demo_app');
 
-const REPO = path.resolve(__dirname, '..');
 const ORIENTATION = process.argv.includes('vertical') ? 'vertical' : 'horizontal';
 const OUT = path.join(REPO, 'doc', ORIENTATION === 'vertical' ? 'overlay-demo-vertical.gif' : 'overlay-demo.gif');
-const WORK = path.join(os.tmpdir(), 'wakfu-combo-overlay-gif');
-const USER_DATA = path.join(WORK, 'userData');
-const LOGS = path.join(WORK, 'logs');
-const LOG_FILE = path.join(LOGS, 'wakfu.log');
 const PORT = 3498;
 const ICON_SIZE = 48;
 const FPS = 15;
@@ -31,39 +27,24 @@ const BACKGROUND = '#1b1f24';
 // Overlay size for 8 casts at 48 px with the damage counter (see overlaySize() in settings.js).
 const SIZE = ORIENTATION === 'vertical' ? { width: 188, height: 643 } : { width: 766, height: 130 };
 
-fs.rmSync(WORK, { recursive: true, force: true });
-fs.mkdirSync(USER_DATA, { recursive: true });
-fs.mkdirSync(LOGS, { recursive: true });
-fs.writeFileSync(LOG_FILE, '');
-
-const hero = (n, cls, r, g, b) => ({ name: n, characterName: n, class: cls, color: { r, g, b } });
-const heroes = [
-  hero('Lueur Ocre', 'iop', 74, 144, 226),
-  hero('Lueur Pourpre', 'sram', 220, 50, 50),
-  hero('Lueur Émeraude', 'osamodas', 76, 175, 80),
-  hero('Lueur Acérée', 'cra', 255, 167, 38),
-];
-fs.writeFileSync(path.join(USER_DATA, 'settings.json'), JSON.stringify({
-  heroes,
-  trackedCharacterNames: heroes.map((h) => h.characterName),
+const profile = createDemoProfile({
+  name: 'wakfu-combo-overlay-gif',
+  port: PORT,
+  heroes: [
+    hero('Lueur Ocre', 'iop', 74, 144, 226),
+    hero('Lueur Pourpre', 'sram', 220, 50, 50),
+    hero('Lueur Émeraude', 'osamodas', 76, 175, 80),
+    hero('Lueur Acérée', 'cra', 255, 167, 38),
+  ],
   comboLayout: {
     orientation: ORIENTATION, direction: ORIENTATION === 'vertical' ? 'top-to-bottom' : 'left-to-right',
     iconSize: ICON_SIZE, castLifetimeMs: 9000, maxVisibleCasts: 8, previewEnabled: false,
     // Like the "gauche → droite" layout preset: icon and counter where new casts arrive.
     classIconSide: 'right', damageCounterEnabled: true,
   },
-  overlayPort: PORT,
-  logsDir: LOGS,
-  onboardingDone: true,
-}, null, 2));
+});
+const LOG_FILE = profile.logFile;
 
-app.setPath('userData', USER_DATA);
-// main.js calls app.setName, which must not move userData away from the demo profile.
-const realSetName = app.setName.bind(app);
-app.setName = (n) => { realSetName(n); app.setPath('userData', USER_DATA); };
-require(path.join(REPO, 'electron', 'main.js'));
-
-const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const FIGHT_ID = '1552999001';
 
 function stamp() {
@@ -114,8 +95,7 @@ function rgba(image) {
 }
 
 app.whenReady().then(async () => {
-  while (!BrowserWindow.getAllWindows()[0]) await wait(100);
-  await wait(1500);
+  const demoApp = await startDemoApp(profile);
 
   const overlayWin = new BrowserWindow({
     ...SIZE, useContentSize: true, show: false, backgroundColor: BACKGROUND,
@@ -149,6 +129,6 @@ app.whenReady().then(async () => {
   console.log(`[gif] wrote ${path.relative(REPO, OUT)} — ${frames.length} frames, ${width}×${height}, `
     + `${Math.round(gif.bytes().length / 1024)} KB`);
 
-  app.isQuitting = true;
+  demoApp.kill();
   app.exit(0);
 });

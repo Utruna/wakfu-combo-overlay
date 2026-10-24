@@ -23,7 +23,7 @@ const path = require('path');
 
 const ROOT_DIR = path.resolve(__dirname, '..');
 const OUTPUT_PATH = path.join(ROOT_DIR, 'data', 'spellIcons.json');
-const CLASS_LOGOS_DIR = path.join(ROOT_DIR, 'assets', 'icons', 'classes');
+const CLASS_LOGOS_DIR = path.join(ROOT_DIR, 'ui', 'assets', 'icons', 'classes');
 
 const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
@@ -88,7 +88,7 @@ const ECAFLIP_CARDS = [
 // PNG at static.ankama.com/wakfu/portal/game/spell/<id>.png. Hardcoded for
 // the same reason as ECAFLIP_CARDS: a fixed, rarely-changing set, not worth
 // an ongoing scrape dependency on a second site. Stored under a "commun"
-// pseudo-class — findSpellIcon()'s cross-class fallback in electron/main.js
+// pseudo-class — Catalog::spell_icon()'s cross-class fallback in src-tauri/src/catalog.rs
 // resolves them for any hero regardless of their actual class.
 const COMMON_QUEST_SPELLS = [
   { id: '5622', name: "Maîtrise d'Armes" },
@@ -200,7 +200,7 @@ async function scrapeClass(entry, jar) {
 
 /** @returns {boolean} true if an actual network request was made (caller uses this to decide whether to sleep). */
 async function downloadIcon(spell) {
-  const destDir = path.join(ROOT_DIR, 'assets', 'icons', spell.class);
+  const destDir = path.join(ROOT_DIR, 'ui', 'assets', 'icons', spell.class);
   const destPath = path.join(destDir, `${spell.iconId}.png`);
 
   if (fs.existsSync(destPath)) {
@@ -248,7 +248,7 @@ async function downloadClassLogo(entry) {
   fs.mkdirSync(CLASS_LOGOS_DIR, { recursive: true });
   const buffer = Buffer.from(await res.arrayBuffer());
   fs.writeFileSync(destPath, buffer);
-  console.log(`[logo] ${entry.class} -> assets/icons/classes/${entry.class}.png`);
+  console.log(`[logo] ${entry.class} -> ui/assets/icons/classes/${entry.class}.png`);
   return true;
 }
 

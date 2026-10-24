@@ -1,34 +1,26 @@
 /**
  * tools/capture_screenshots.js
- * Regenerates the README screenshots (doc/app-*.png, doc/overlay-rendu.png)
- * by launching the real app on an isolated demo profile (fake heroes, fake
- * wakfu.log, port 3499 so a running instance isn't disturbed).
+ * Regenerates the README screenshots (doc/app-*.png, doc/overlay-rendu.png).
  *
- * Usage: npx electron tools/capture_screenshots.js
- * (from a VS Code terminal, unset ELECTRON_RUN_AS_NODE first)
+ * The overlay is the real app's, running on an isolated demo profile (fake
+ * heroes, fake wakfu.log, port 3499 — see demo_app.js). The settings page is
+ * rendered by Electron with its Tauri commands stood in for by
+ * demo_settings_preload.js, fed the same demo profile.
+ *
+ * Usage: npx --yes electron@44 tools/capture_screenshots.js
+ * (release build first; from a VS Code terminal, unset ELECTRON_RUN_AS_NODE)
  */
 
 'use strict';
 
 const path = require('path');
 const fs = require('fs');
-const os = require('os');
 const { app, BrowserWindow } = require('electron');
+const { REPO, hero, wait, createDemoProfile, startDemoApp } = require('./demo_app');
 
-const REPO = path.resolve(__dirname, '..');
 const OUT = path.join(REPO, 'doc');
-const WORK = path.join(os.tmpdir(), 'wakfu-combo-overlay-capture');
-const USER_DATA = path.join(WORK, 'userData');
-const LOGS = path.join(WORK, 'logs');
-const LOG_FILE = path.join(LOGS, 'wakfu.log');
 const PORT = 3499;
 
-fs.rmSync(WORK, { recursive: true, force: true });
-fs.mkdirSync(USER_DATA, { recursive: true });
-fs.mkdirSync(LOGS, { recursive: true });
-fs.writeFileSync(LOG_FILE, '');
-
-const hero = (n, cls, r, g, b) => ({ name: n, characterName: n, class: cls, color: { r, g, b } });
 const heroes = [
   hero('Lueur Ocre', 'iop', 74, 144, 226),
   hero('Lueur Pourpre', 'sram', 220, 50, 50),
@@ -36,72 +28,85 @@ const heroes = [
   hero('Lueur Acérée', 'cra', 255, 167, 38),
   hero('Lueur Etherique', 'huppermage', 171, 71, 188),
 ];
-fs.writeFileSync(path.join(USER_DATA, 'settings.json'), JSON.stringify({
+const tracked = heroes.slice(0, 4).map((h) => h.characterName);
+const profile = createDemoProfile({
+  name: 'wakfu-combo-overlay-capture',
+  port: PORT,
   heroes,
-  trackedCharacterNames: heroes.slice(0, 4).map((h) => h.characterName),
+  tracked,
   comboLayout: {
     orientation: 'horizontal', direction: 'left-to-right', iconSize: 48,
     castLifetimeMs: 60000, maxVisibleCasts: 8, previewEnabled: false, classIconSide: 'left',
+    damageCounterEnabled: true,
   },
-  overlayPort: PORT,
-  logsDir: LOGS,
-  onboardingDone: true,
-}, null, 2));
+});
+const LOG_FILE = profile.logFile;
 
-app.setPath('userData', USER_DATA);
-// main.js calls app.setName, which must not move userData away from the demo profile.
-const realSetName = app.setName.bind(app);
-app.setName = (n) => { realSetName(n); app.setPath('userData', USER_DATA); };
-
-const PKG_VERSION = require(path.join(REPO, 'package.json')).version;
-app.getVersion = () => PKG_VERSION;
-require(path.join(REPO, 'electron', 'main.js'));
-
-// Cosmetic: show the default port / logs path instead of the demo profile's.
-const POLISH = `
-  for (const id of ['overlay-url', 'wz-url']) { const e = document.getElementById(id); if (e) e.textContent = e.textContent.replace('${PORT}', '3457'); }
-  document.getElementById('overlay-port-input').value = '3457';
-  document.getElementById('logs-dir-input').value = 'C:\\\\Users\\\\toi\\\\AppData\\\\Roaming\\\\zaap\\\\gamesLogs\\\\wakfu\\\\logs';
-  document.getElementById('obs-loader-path').textContent = 'C:\\\\Users\\\\toi\\\\AppData\\\\Roaming\\\\Wakfu Combo Overlay\\\\overlay-obs.html';
-  document.getElementById('update-status').textContent = 'À jour';
-`;
-
-const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-const cast = (who, spell) => fs.appendFileSync(LOG_FILE,
-  `INFO 21:14:03,512 [AWT-EventQueue-0] (eQo:174) - [Information (combat)] ${who} lance le sort ${spell}\n`);
+function stamp() {
+  const d = new Date();
+  const p = (n, w = 2) => String(n).padStart(w, '0');
+  return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())},${p(d.getMilliseconds(), 3)}`;
+}
+const combat = (message) => fs.appendFileSync(LOG_FILE,
+  `INFO ${stamp()} [AWT-EventQueue-0] (eQo:174) - [Information (combat)] ${message}
+`);
+const cast = (who, spell) => combat(`${who} lance le sort ${spell}`);
 
 async function shot(win, name, js) {
   if (js) await win.webContents.executeJavaScript(js);
-  await wait(700);
-  await win.webContents.executeJavaScript(POLISH);
-  await wait(100);
+  await wait(800);
   const img = await win.webContents.capturePage();
   fs.writeFileSync(path.join(OUT, name), img.toPNG());
   console.log('[capture] wrote', name, img.getSize());
 }
 
+/** What the app's activity panel would show for a cast (see handle_cast in app_state.rs). */
+function debugEntry(who, spell) {
+  const h = heroes.find((x) => x.characterName === who);
+  const status = !h ? 'ignored-unmatched' : tracked.includes(who) ? 'broadcast' : 'ignored-untracked';
+  return {
+    status, characterName: who, heroName: h?.name, heroClass: h?.class,
+    spellName: spell, iconMissing: false, timestamp: Date.now(),
+  };
+}
+
 app.whenReady().then(async () => {
-  let win;
-  while (!(win = BrowserWindow.getAllWindows()[0])) await wait(100);
-  await new Promise((r) => (win.webContents.isLoading() ? win.webContents.once('did-finish-load', r) : r()));
+  const demoApp = await startDemoApp(profile);
+
+  process.env.DEMO_SETTINGS_FILE = path.join(profile.dataDir, 'settings.json');
+  const win = new BrowserWindow({
+    width: 980, height: 680, useContentSize: true, backgroundColor: '#131a1e', autoHideMenuBar: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'demo_settings_preload.js'),
+      contextIsolation: false, sandbox: false, nodeIntegration: false,
+    },
+  });
+  await win.loadFile(path.join(REPO, 'ui', 'settings', 'index.html'));
   await wait(1500);
 
   // Overlay "OBS" client, so the diagnostics show a connected source.
   const overlayWin = new BrowserWindow({
-    width: 622, height: 92, useContentSize: true, show: false, backgroundColor: '#1b1f24',
+    // Overlay size for 8 casts at 48 px with the damage counter (see overlaySize() in settings.js).
+    width: 766, height: 130, useContentSize: true, show: false, backgroundColor: '#1b1f24',
     webPreferences: { offscreen: false },
   });
   await overlayWin.loadURL(`http://localhost:${PORT}`);
   await wait(1000);
 
-  // Casts: tracked heroes, an untracked hero, a random player.
+  // Casts (and what they hit): tracked heroes, an untracked hero, a random player.
   const seq = [
-    ['Lueur Ocre', 'Épée céleste'], ['Lueur Pourpre', 'Saignée mortelle'],
-    ['Lueur Grenat', 'Mot soignant'], ['Lueur Acérée', 'Flèche tempête'],
-    ['Lueur Etherique', 'Résonance'], ['Kralamoure Pas-Content', 'Tentacule'],
-    ['Lueur Ocre', 'Fulgur'], ['Lueur Pourpre', 'Mise à mort'],
+    ['Lueur Ocre', 'Épée céleste', '2 431'], ['Lueur Pourpre', 'Saignée mortelle', '1 962'],
+    ['Lueur Grenat', 'Mot soignant'], ['Lueur Acérée', 'Flèche tempête', '2 604'],
+    ['Lueur Etherique', 'Résonance', '3 377'], ['Kralamoure Pas-Content', 'Tentacule'],
+    ['Lueur Ocre', 'Fulgur', '3 108'], ['Lueur Pourpre', 'Mise à mort', '6 715'],
   ];
-  for (const [who, spell] of seq) { cast(who, spell); await wait(800); }
+  for (const [who, spell, damage] of seq) {
+    cast(who, spell);
+    win.webContents.send('demo:debug', debugEntry(who, spell));
+    await wait(300);
+    if (damage) combat(`Sac à patates: -${damage} PV  (Feu)`);
+    await wait(500);
+  }
   await wait(1200);
 
   await shot(win, 'app-1-heros.png', "location.hash = '#heros'");
@@ -123,6 +128,6 @@ app.whenReady().then(async () => {
   `);
   await shot(win, 'app-0-assistant-2.png', "document.getElementById('wz-next').click()");
 
-  app.isQuitting = true;
+  demoApp.kill();
   app.exit(0);
 });

@@ -178,12 +178,17 @@ fn setup(app: &AppHandle, launched_at_login: bool) -> Result<(), Box<dyn std::er
 
 pub fn run() {
     let launched_at_login = std::env::args().any(|arg| arg == autostart::HIDDEN_ARG);
+    // An isolated profile (demo captures) runs next to the user's own instance.
+    let isolated_profile = std::env::var_os("WAKFU_OVERLAY_DATA_DIR").is_some();
 
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default();
+    if !isolated_profile {
         // Only one instance may run at a time — a second launch (e.g.
         // double-clicking the exe while it's already in the tray) would
         // otherwise fail to bind the overlay port. It just opens the settings.
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| show_settings_window(app)))
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| show_settings_window(app)));
+    }
+    builder
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(UpdateState::default())
