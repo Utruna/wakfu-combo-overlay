@@ -37,7 +37,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEMwNTQyM0NEOTZCRDQ0QjIKUldTeVJMMld6U05Vd0ovR243NitMWmF2d3dNRWs5MWpTSjlKazM4T1BFR2JCWHBBbW4yM2F2T2YK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDM5QzU3Qjk5MTgzNDc0MDMKUldRRGREUVltWHZGT1lkbCtWenVqWEEvWVFyVGplMHR4TzJ4dXMxbHJFRkV1VWM4YlhVVDE4amUK",
       "endpoints": [
         "https://github.com/utruna/wakfu-combo-overlay/releases/latest/download/latest.json"
       ],
