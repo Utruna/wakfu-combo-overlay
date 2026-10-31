@@ -52,6 +52,22 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # The release text is this version's section of CHANGELOG.md — checked
+      # before tagging, so a release never goes out without its notes.
+      - name: Extract this version's notes from CHANGELOG.md
+        shell: bash
+        run: |
+          VERSION="v$(node -p "require('./package.json').version")"
+          tr -d '' < CHANGELOG.md | awk -v v="$VERSION" '
+            /^## / { inside = ($2 == v); next }
+            inside { print }
+          ' > "$RUNNER_TEMP/release-notes.md"
+          if ! grep -q '[^[:space:]]' "$RUNNER_TEMP/release-notes.md"; then
+            echo "::error::No '## $VERSION' section in CHANGELOG.md. Add one before re-running this workflow."
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/release-notes.md"
+
       - name: Create and push the release tag
         shell: bash
         run: |
@@ -76,7 +92,9 @@ jobs:
           if gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Draft release $VERSION already exists — reusing it."
           else
-            gh release create "$VERSION" --repo "$GITHUB_REPOSITORY" --verify-tag --draft --title "$VERSION" --generate-notes
+            # The changelog first, then GitHub's list of merged PRs and the
+            # "Full Changelog" compare link.
+            gh release create "$VERSION" --repo "$GITHUB_REPOSITORY" --verify-tag --draft --title "$VERSION"               --notes-file "$RUNNER_TEMP/release-notes.md" --generate-notes
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
