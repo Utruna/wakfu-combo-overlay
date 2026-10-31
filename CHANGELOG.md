@@ -1,9 +1,3 @@
-# Changelog
-
-Chaque section devient le texte de la release GitHub de sa version (voir
-.github/workflows/release.yml) : ajoute celle de la nouvelle version avant de
-lancer le workflow.
-
 ## v2.1.0
 
 ### Nouveau : affichage tête haute
