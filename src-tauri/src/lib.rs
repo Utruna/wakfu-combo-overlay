@@ -86,7 +86,7 @@ fn quit(app: &AppHandle) {
 }
 
 fn create_tray(app: &AppHandle) -> tauri::Result<()> {
-    let ingame = CheckMenuItem::with_id(app, "ingame", "Overlay en jeu", true, false, None::<&str>)?;
+    let ingame = CheckMenuItem::with_id(app, "ingame", "Affichage tête haute", true, false, None::<&str>)?;
     app.manage(IngameMenuItem(ingame.clone()));
     let menu = Menu::with_items(
         app,

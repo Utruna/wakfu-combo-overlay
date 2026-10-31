@@ -1,4 +1,4 @@
-//! The in-game overlay: the OBS overlay page shown straight over Wakfu, in a
+//! The in-game overlay ("Affichage tête haute" in the app): the OBS overlay page shown straight over Wakfu, in a
 //! transparent, always-on-top window that lets every click through — for
 //! players who don't stream. Opt-in, and the window only exists while it's
 //! on: like the settings window, its web view is most of what it costs.
@@ -32,7 +32,7 @@ const FOREGROUND_POLL: Duration = Duration::from_millis(250);
 static EDITING: AtomicBool = AtomicBool::new(false);
 static SAVE_GENERATION: AtomicU64 = AtomicU64::new(0);
 
-/// The tray's "Overlay en jeu" item, kept in step with the setting.
+/// The tray's "Affichage tête haute" item, kept in step with the setting.
 pub struct IngameMenuItem(pub CheckMenuItem<Wry>);
 
 /// `?ingame` keeps the window out of the OBS client count (see overlay_server).
@@ -126,7 +126,7 @@ fn open(app: &AppHandle) {
     }
     EDITING.store(false, Ordering::Relaxed);
     let built = WebviewWindowBuilder::new(app, INGAME_WINDOW, WebviewUrl::External(page_url(port)))
-        .title("Wakfu Combo Overlay — en jeu")
+        .title("Wakfu Combo Overlay — tête haute")
         .inner_size(DEFAULT_WIDTH, DEFAULT_HEIGHT)
         .transparent(true)
         .decorations(false)

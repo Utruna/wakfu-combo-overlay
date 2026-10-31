@@ -91,6 +91,15 @@ Sans le compteur, la source est plus petite (ex. 478 × 76 en horizontal à 32 p
 
 > **Piège classique** : si la source OBS est plus petite que la taille indiquée, une partie des sorts sort du cadre. L'overlay garde alors ce qui tient à l'écran, en priorité les plus récents.
 
+### Affichage tête haute (sans OBS)
+
+Tu ne streames pas ? Active **Affichage tête haute** (page Affichage, ou clic droit sur l'icône de l'appli dans la zone de notification) : l'overlay s'affiche directement par-dessus Wakfu, dans une fenêtre transparente. Les clics passent au travers, tu joues normalement.
+
+- **Seulement quand Wakfu est au premier plan** (activé par défaut) : l'overlay se cache dès que tu passes sur une autre fenêtre, et revient quand tu retournes sur un client Wakfu.
+- **Déplacer / redimensionner** : la fenêtre prend une barre de titre et un cadre, avec des sorts factices pour voir sa taille. Place-la, puis clique sur **Verrouiller la position** : elle s'en souvient au prochain lancement.
+
+> Wakfu doit être en **fenêtré** ou en **plein écran fenêtré**. En plein écran exclusif, aucune fenêtre ne peut s'afficher par-dessus le jeu.
+
 ---
 
 ## Configurer OBS
