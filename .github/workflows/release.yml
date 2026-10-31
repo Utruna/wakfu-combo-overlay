@@ -58,10 +58,11 @@ jobs:
         shell: bash
         run: |
           VERSION="v$(node -p "require('./package.json').version")"
-          tr -d '' < CHANGELOG.md | awk -v v="$VERSION" '
+          awk -v v="$VERSION" '
+            { sub(/\r$/, "") }
             /^## / { inside = ($2 == v); next }
             inside { print }
-          ' > "$RUNNER_TEMP/release-notes.md"
+          ' CHANGELOG.md > "$RUNNER_TEMP/release-notes.md"
           if ! grep -q '[^[:space:]]' "$RUNNER_TEMP/release-notes.md"; then
             echo "::error::No '## $VERSION' section in CHANGELOG.md. Add one before re-running this workflow."
             exit 1
