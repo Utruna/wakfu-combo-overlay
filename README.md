@@ -3,7 +3,7 @@
 [![Téléchargements totaux](https://img.shields.io/github/downloads/utruna/wakfu-combo-overlay/total?label=T%C3%A9l%C3%A9chargements%20totaux&color=4a90e2)](https://github.com/utruna/wakfu-combo-overlay/releases)
 [![Dernière release](https://img.shields.io/github/v/release/utruna/wakfu-combo-overlay?label=Derni%C3%A8re%20release&color=7c4dff)](https://github.com/utruna/wakfu-combo-overlay/releases/latest)
 
-Affiche en direct sur ton stream les sorts lancés par tes personnages Wakfu, sous forme d'icônes qui défilent dans OBS.
+Affiche en direct sur ton stream les sorts lancés par tes personnages Wakfu, sous forme d'icônes qui défilent dans OBS. Tu ne streames pas ? L'**affichage tête haute** les montre directement par-dessus le jeu.
 
 ![L'overlay en combat : sorts des héros et compteur de dégâts du tour](doc/overlay-demo.gif)
 
@@ -19,6 +19,7 @@ L'application lit les logs de combat du client Wakfu en temps réel. Elle ne gar
 - [Gérer tes héros](#gérer-tes-héros)
 - [Régler l'affichage](#régler-laffichage)
 - [Configurer OBS](#configurer-obs)
+- [Affichage tête haute (sans OBS)](#affichage-tête-haute-sans-obs)
 - [Vérifier que tout tourne](#vérifier-que-tout-tourne)
 - [Dépannage](#dépannage)
 - [Développement](#développement)
@@ -91,15 +92,6 @@ Sans le compteur, la source est plus petite (ex. 478 × 76 en horizontal à 32 p
 
 > **Piège classique** : si la source OBS est plus petite que la taille indiquée, une partie des sorts sort du cadre. L'overlay garde alors ce qui tient à l'écran, en priorité les plus récents.
 
-### Affichage tête haute (sans OBS)
-
-Tu ne streames pas ? Active **Affichage tête haute** (page Affichage, ou clic droit sur l'icône de l'appli dans la zone de notification) : l'overlay s'affiche directement par-dessus Wakfu, dans une fenêtre transparente. Les clics passent au travers, tu joues normalement.
-
-- **Seulement quand Wakfu est au premier plan** (activé par défaut) : l'overlay se cache dès que tu passes sur une autre fenêtre, et revient quand tu retournes sur un client Wakfu.
-- **Déplacer / redimensionner** : la fenêtre prend une barre de titre et un cadre, avec des sorts factices pour voir sa taille. Place-la, puis clique sur **Verrouiller la position** : elle s'en souvient au prochain lancement.
-
-> Wakfu doit être en **fenêtré** ou en **plein écran fenêtré**. En plein écran exclusif, aucune fenêtre ne peut s'afficher par-dessus le jeu.
-
 ---
 
 ## Configurer OBS
@@ -124,6 +116,30 @@ La page **OBS & diagnostic** de l'appli rappelle toutes les étapes.
 Pour tester, clique sur **Tester** en face d'un héros : son icône doit apparaître aussitôt dans l'aperçu OBS, sans lancer le stream ni l'enregistrement.
 
 ![L'overlay dans la scène OBS](doc/obs-4-resultat.png)
+
+---
+
+## Affichage tête haute (sans OBS)
+
+Pas de stream, pas d'OBS ? L'appli peut afficher l'overlay **directement sur ton écran, par-dessus Wakfu**, comme un affichage tête haute : tu vois tes sorts et tes dégâts du tour pendant que tu joues.
+
+**L'activer**
+
+1. Ouvre la page **Affichage** de l'appli.
+2. Allume l'interrupteur **Affichage tête haute (sans OBS)**.
+3. Clique sur **Déplacer / redimensionner** : un cadre apparaît avec des sorts d'exemple. Attrape-le par sa barre de titre pour le placer où tu veux, et tire ses bords pour changer sa taille.
+4. Clique sur **Verrouiller la position**. C'est fini : l'appli retient cet emplacement pour les prochaines fois.
+
+Tu peux aussi l'allumer ou l'éteindre sans ouvrir l'appli : clic droit sur son icône près de l'horloge Windows, puis **Affichage tête haute**.
+
+**Ce qu'il faut savoir**
+
+- **Il ne gêne pas le jeu** : la fenêtre est transparente et tes clics passent au travers, comme si elle n'était pas là.
+- **Il n'apparaît que sur Wakfu** : dès que tu passes sur une autre fenêtre (navigateur, Discord…), il se cache, et il revient quand tu retournes en jeu. Tu préfères le voir tout le temps ? Éteins **Seulement quand Wakfu est au premier plan**.
+- **Les réglages de la page Affichage s'appliquent aussi** : disposition, taille des icônes, durée, compteur de dégâts…
+- **Mode d'affichage de Wakfu** : le jeu doit être en **fenêtré** ou en **plein écran fenêtré**. En plein écran « exclusif », Windows ne laisse aucune fenêtre s'afficher par-dessus le jeu.
+
+Tu peux utiliser l'affichage tête haute et OBS en même temps : les deux montrent les mêmes sorts.
 
 ---
 
@@ -158,6 +174,11 @@ L'appli installée vérifie toute seule s'il existe une nouvelle version quelque
 
 **Seuls les premiers sorts apparaissent**
 - La source OBS est plus petite que la liste. Donne-lui la taille indiquée dans la page Affichage, ou réduis la taille des icônes ou le nombre max de sorts.
+
+**L'affichage tête haute n'apparaît pas en jeu**
+- Il reste invisible tant qu'aucun sort n'est lancé : utilise **Tester** dans la page Héros, ou **Déplacer / redimensionner** pour voir où il se trouve.
+- Passe Wakfu en **fenêtré** ou **plein écran fenêtré** : le plein écran exclusif passe par-dessus toutes les fenêtres.
+- S'il disparaît dès que tu changes de fenêtre, c'est voulu : voir **Seulement quand Wakfu est au premier plan** dans la page Affichage.
 
 **Le dossier de logs est introuvable**
 - Wakfu n'a peut-être jamais été lancé sur cette machine, ou il est installé ailleurs que via Zaap. Indique le bon dossier dans **Configuration**. Par défaut : `%APPDATA%\zaap\gamesLogs\wakfu\logs`.
@@ -262,9 +283,10 @@ npm run dist
 
 Le workflow `.github/workflows/release.yml` compile l'installeur sur un runner Windows et le publie en **GitHub Release** : pas besoin de commiter l'exe.
 
-1. Monte la version dans `package.json` (`npm version patch` / `minor` / `major`) et pousse le commit sur `main`. C'est la seule version à changer : `src-tauri/tauri.conf.json` la lit dans `package.json`.
-2. Sur GitHub : **Actions** → **Build & Release (Windows)** → **Run workflow**.
-3. Une fois le workflow terminé (~10 min, moins quand le cache Rust est chaud), la release `vX.Y.Z` apparaît dans **Releases** avec l'installeur `wakfu-combo-overlay-setup-X.Y.Z.exe`, `latest.json` et `latest.yml`, et des notes générées à partir des commits.
+1. Monte la version dans `package.json` (`npm version patch` / `minor` / `major`). C'est la seule version à changer : `src-tauri/tauri.conf.json` la lit dans `package.json`.
+2. Ajoute en haut de `CHANGELOG.md` une section `## vX.Y.Z` : c'est le texte de la release. Sans elle, le workflow s'arrête avant de créer le tag. Pousse les commits sur `main`.
+3. Sur GitHub : **Actions** → **Build & Release (Windows)** → **Run workflow**.
+4. Une fois le workflow terminé (~10 min, moins quand le cache Rust est chaud), la release `vX.Y.Z` apparaît dans **Releases** avec l'installeur `wakfu-combo-overlay-setup-X.Y.Z.exe`, `latest.json` et `latest.yml`, et en notes la section du `CHANGELOG.md`, suivie de la liste des PR fusionnées générée par GitHub.
 
 Le workflow vérifie que la version n'a pas déjà de release publiée et que le secret de signature existe, crée et pousse le tag `vX.Y.Z`, crée la release en brouillon (ou réutilise le brouillon d'un essai raté), lance ESLint et les tests, compile, envoie les fichiers, puis publie la release. Elle n'est donc visible qu'une fois complète.
 
