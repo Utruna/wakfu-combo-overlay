@@ -182,6 +182,12 @@ impl CombatTurnTracker {
         TARGET_DUMMY_BREEDS.iter().map(|b| b.to_string()).collect()
     }
 
+    /// The turn being played, if any — the overlay replays the class icon's
+    /// entrance on the first cast of each turn.
+    pub fn current_turn_id(&self) -> Option<u64> {
+        self.turn.as_ref().map(|turn| turn.turn_id)
+    }
+
     /// How many clients the feed currently looks duplicated by.
     pub fn copies(&self) -> u32 {
         self.copies

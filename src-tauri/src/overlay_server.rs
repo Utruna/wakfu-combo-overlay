@@ -229,9 +229,20 @@ async fn read_request_head(stream: &mut TcpStream) -> Option<String> {
     Some(String::from_utf8_lossy(&head).into_owned())
 }
 
-async fn respond(stream: &mut TcpStream, status: &str, mime: &str, body: &[u8], head_only: bool) {
+/// Icons and fonts are kept by the browser: the class icon is re-created on
+/// every hero change, and refetching it each time made it pop in mid
+/// animation. The page, its script and its style are always revalidated, so
+/// an update shows on the next OBS refresh.
+fn cache_control(path: &str) -> &'static str {
+    match path.rsplit('.').next().unwrap_or_default() {
+        "png" | "jpg" | "gif" | "woff2" => "max-age=86400",
+        _ => "no-cache",
+    }
+}
+
+async fn respond(stream: &mut TcpStream, status: &str, mime: &str, cache: &str, body: &[u8], head_only: bool) {
     let header = format!(
-        "HTTP/1.1 {status}\r\nContent-Type: {mime}\r\nContent-Length: {}\r\nCache-Control: no-cache\r\nConnection: close\r\n\r\n",
+        "HTTP/1.1 {status}\r\nContent-Type: {mime}\r\nContent-Length: {}\r\nCache-Control: {cache}\r\nConnection: close\r\n\r\n",
         body.len()
     );
     let _ = stream.write_all(header.as_bytes()).await;
@@ -249,7 +260,7 @@ async fn handle(mut stream: TcpStream, hub: Arc<OverlayHub>, files: FileSource) 
     let method = parts.next().unwrap_or_default();
     let target = parts.next().unwrap_or("/");
     if method != "GET" && method != "HEAD" {
-        return respond(&mut stream, "405 Method Not Allowed", "text/plain", b"", false).await;
+        return respond(&mut stream, "405 Method Not Allowed", "text/plain", "no-cache", b"", false).await;
     }
     let pathname = percent_decode(target.split(['?', '#']).next().unwrap_or("/"));
 
@@ -258,11 +269,13 @@ async fn handle(mut stream: TcpStream, hub: Arc<OverlayHub>, files: FileSource) 
     }
 
     let Some(path) = ui_path(&pathname) else {
-        return respond(&mut stream, "403 Forbidden", "text/plain", b"", false).await;
+        return respond(&mut stream, "403 Forbidden", "text/plain", "no-cache", b"", false).await;
     };
     match files(&path) {
-        Some(body) => respond(&mut stream, "200 OK", mime_type(&path), &body, method == "HEAD").await,
-        None => respond(&mut stream, "404 Not Found", "text/plain", b"Not found", false).await,
+        Some(body) => {
+            respond(&mut stream, "200 OK", mime_type(&path), cache_control(&path), &body, method == "HEAD").await
+        }
+        None => respond(&mut stream, "404 Not Found", "text/plain", "no-cache", b"Not found", false).await,
     }
 }
 
@@ -313,6 +326,15 @@ mod tests {
         assert_eq!(ui_path("/assets/icons/cra/1.png").as_deref(), Some("assets/icons/cra/1.png"));
         assert_eq!(ui_path("/assets/../settings/index.html"), None);
         assert_eq!(ui_path("/..\\x"), None);
+    }
+
+    #[test]
+    fn caches_icons_but_not_the_page() {
+        assert_eq!(cache_control("assets/icons/cra/1420.png"), "max-age=86400");
+        assert_eq!(cache_control("overlay/fonts/ibm-plex-sans-latin.woff2"), "max-age=86400");
+        assert_eq!(cache_control("overlay/index.html"), "no-cache");
+        assert_eq!(cache_control("overlay/client.js"), "no-cache");
+        assert_eq!(cache_control("overlay/style.css"), "no-cache");
     }
 
     #[test]

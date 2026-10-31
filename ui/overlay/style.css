@@ -374,6 +374,14 @@ body {
   }
 }
 
+/* The class icon and its counter fold away with the last cast (same timing as
+   `cast-leave`); --lead-y keeps it level with where it was. */
+#lead-wrap.leaving { animation: lead-leave 0.77s ease-in forwards; }
+
+@keyframes lead-leave {
+  to { opacity: 0; transform: translateY(var(--lead-y)) scale(0.6); }
+}
+
 @keyframes lead-swap {
   0%   { opacity: 0; transform: scale(0.6); }
   100% { opacity: 1; transform: scale(1); }

@@ -141,6 +141,27 @@ fn consecutive_turns_of_the_same_fighter_are_split_by_the_turn_end_line() {
 }
 
 #[test]
+fn a_casts_turn_id_changes_with_each_new_turn_only() {
+    let mut tracker = CombatTurnTracker::new();
+    let mut turn_after = |line: String| {
+        tracker.process_line(&line, &no_extra_allies);
+        tracker.current_turn_id()
+    };
+    for line in fight_start() {
+        turn_after(line);
+    }
+    let first = turn_after(combat("Lueur Pourpre lance le sort Double"));
+    let same_turn = turn_after(combat("Lueur Pourpre lance le sort Effroi"));
+    turn_after(combat("150 secondes reportées pour le tour suivant."));
+    let next_turn = turn_after(combat("Lueur Pourpre lance le sort Effroi (Critiques)"));
+    let other_hero = turn_after(combat("Lueur Anthracite lance le sort Brasier"));
+    assert!(first.is_some());
+    assert_eq!(first, same_turn);
+    assert_ne!(first, next_turn);
+    assert_ne!(next_turn, other_hero);
+}
+
+#[test]
 fn emits_running_totals_on_each_hit() {
     let run = track(&with_start(&[
         "Lueur Pourpre lance le sort Effroi",

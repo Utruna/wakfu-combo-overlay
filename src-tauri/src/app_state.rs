@@ -172,6 +172,7 @@ fn handle_cast(state: &AppState, settings: &SettingsStore, tracker: &CombatTurnT
         "color": hero.get("color"),
         "timestamp": cast.timestamp,
         "icon": icon,
+        "turnId": tracker.current_turn_id(),
     }));
     json!({
         "status": "broadcast",

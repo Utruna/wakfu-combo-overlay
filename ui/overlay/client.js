@@ -162,45 +162,51 @@ function buildPreviewCasts() {
   }
 }
 
-/** Shows the class of the most recent cast; `animate` replays the swap-in (new cast). */
+// What the class icon box currently holds: the icon's path, PLACEHOLDER, or
+// null when it's empty.
+const PLACEHOLDER = '•';
+let leadIconKey = null;
+
+/**
+ * Shows the class of the most recent cast. The icon is only rebuilt when it
+ * actually changes (another hero) — rebuilding it on every cast or expiry made
+ * it flicker. `animate` replays the swap-in: the first cast of a turn.
+ */
 function updateClassLeadIcon({ animate = false, leaving = false } = {}) {
   const list = activeCasts();
   updateLeadPosition({ leaving });
+  // A cast arriving while it folds away (or the fold-out being over) cancels it.
+  leadWrap.classList.remove('leaving');
   if (!list.length) {
     classLeadIcon.classList.remove('visible', 'swap');
     classLeadIcon.innerHTML = '';
+    leadIconKey = null;
     renderTurnDamage();
     return;
   }
 
-  const latestClass = list[list.length - 1].cast.class;
-  const explicitClassIcon = list[list.length - 1].cast.classIcon;
-  const icon = explicitClassIcon || (latestClass ? classIcons[latestClass] : null);
+  const latest = list[list.length - 1].cast;
+  const icon = latest.classIcon || (latest.class ? classIcons[latest.class] : null);
+  const key = latest.class && icon ? icon : PLACEHOLDER;
 
-  classLeadIcon.innerHTML = '';
   classLeadIcon.classList.add('visible');
   renderTurnDamage();
-  if (animate) {
-    classLeadIcon.classList.remove('swap');
-    void classLeadIcon.offsetWidth; // restart the animation
-    classLeadIcon.classList.add('swap');
+  if (key !== leadIconKey) {
+    leadIconKey = key;
+    classLeadIcon.innerHTML = '';
+    if (key === PLACEHOLDER) {
+      classLeadIcon.appendChild(Object.assign(document.createElement('div'), { className: 'placeholder', textContent: PLACEHOLDER }));
+    } else {
+      const img = document.createElement('img');
+      img.src = '/' + icon.replace(/\\/g, '/');
+      img.alt = '';
+      img.onerror = () => {
+        classLeadIcon.innerHTML = `<div class="placeholder">${PLACEHOLDER}</div>`;
+      };
+      classLeadIcon.appendChild(img);
+    }
   }
-
-  if (!latestClass || !icon) {
-    const placeholder = document.createElement('div');
-    placeholder.className = 'placeholder';
-    placeholder.textContent = '•';
-    classLeadIcon.appendChild(placeholder);
-    return;
-  }
-
-  const img = document.createElement('img');
-  img.src = '/' + icon.replace(/\\/g, '/');
-  img.alt = '';
-  img.onerror = () => {
-    classLeadIcon.innerHTML = '<div class="placeholder">•</div>';
-  };
-  classLeadIcon.appendChild(img);
+  if (animate) replayClass(classLeadIcon, 'swap');
 }
 
 // ── Turn damage counter (K1) ──────────────────────────────────────────────────
@@ -344,6 +350,14 @@ function updateLeadPosition({ leaving = false } = {}) {
 /** Same hero behind both casts — a summon counts as its summoner (same heroName). */
 const sameHero = (a, b) => Boolean(a && b) && (a.heroName ?? a.characterName) === (b.heroName ?? b.characterName);
 
+/**
+ * The first cast of a turn (or the first since every cast faded away). Test
+ * casts carry no turn: for them, a change of hero counts as a new turn.
+ */
+const startsTurn = (previous, cast) => (cast.turnId != null
+  ? previous?.turnId !== cast.turnId
+  : !sameHero(previous, cast));
+
 function addLiveCast(cast) {
   const previous = liveCasts[liveCasts.length - 1]?.cast;
   const entry = { cast, addedAt: cast.timestamp || Date.now() };
@@ -360,8 +374,8 @@ function addLiveCast(cast) {
   }
   for (const old of removed) animateOut(old.el);
   updateEntryStyles();
-  // The class icon only swaps in when another hero takes over, not on each cast.
-  updateClassLeadIcon({ animate: !sameHero(previous, cast) });
+  // The class icon swaps in on a turn's first cast only, not on each cast.
+  updateClassLeadIcon({ animate: startsTurn(previous, cast) });
 }
 
 function applyOrientationAndDirection(config) {
@@ -411,8 +425,9 @@ setInterval(() => {
   if (!removed.length) return;
   for (const old of removed) animateOut(old.el);
   updateEntryStyles();
-  // Keep the class icon until the last cast has finished folding away.
+  // The class icon folds away together with the last cast, then goes.
   if (!liveCasts.length) {
+    leadWrap.classList.add('leaving');
     setTimeout(() => { if (!liveCasts.length && !previewEnabled) updateClassLeadIcon(); }, LEAVE_FALLBACK_MS);
   } else {
     updateClassLeadIcon({ leaving: true });
