@@ -32,6 +32,11 @@
     getLaunchAtLogin: () => invoke('get_launch_at_login'),
     setLaunchAtLogin: (enabled) => invoke('set_launch_at_login', { enabled }),
     getAppVersion: () => invoke('get_app_version'),
+    getIngameOverlay: () => invoke('get_ingame_overlay'),
+    setIngameOverlay: (enabled) => invoke('set_ingame_overlay', { enabled }),
+    setIngameOverlayEditing: (editing) => invoke('set_ingame_overlay_editing', { editing }),
+    setIngameOverlayOnlyOverWakfu: (only) => invoke('set_ingame_overlay_only_over_wakfu', { only }),
+    onIngameStatus: (callback) => on('ingame:status', callback),
     checkForUpdates: () => invoke('check_for_updates'),
     onUpdateStatus: (callback) => {
       const stop = on('update:status', callback);

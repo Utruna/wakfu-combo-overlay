@@ -397,6 +397,8 @@ legend.field-label { margin-bottom: 8px; }
 .size-text { display: flex; flex-direction: column; gap: 1px; }
 .size-text .muted-sm { color: var(--muted); }
 .switch-row { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+.ingame-options { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-top: 4px; }
+.ingame-options[hidden] { display: none; }
 
 /* ── OBS & diagnostic ────────────────────────────────────────────────── */
 

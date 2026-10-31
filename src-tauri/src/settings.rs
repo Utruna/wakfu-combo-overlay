@@ -288,6 +288,29 @@ impl SettingsStore {
         merged
     }
 
+    /// The in-game overlay window: `{ enabled, onlyOverWakfu, x, y, width,
+    /// height }`, the geometry (physical pixels) absent until it was first moved.
+    pub fn ingame_overlay(&self) -> Value {
+        self.state.get("ingameOverlay").filter(|v| v.is_object()).cloned().unwrap_or_else(|| json!({}))
+    }
+
+    /// `enabled`, or `onlyOverWakfu` (shown only while a Wakfu window is in front).
+    pub fn set_ingame_overlay_flag(&mut self, key: &str, value: bool) {
+        let mut overlay = self.ingame_overlay();
+        overlay[key] = json!(value);
+        self.state.insert("ingameOverlay".into(), overlay);
+        self.persist();
+    }
+
+    pub fn set_ingame_overlay_geometry(&mut self, x: i32, y: i32, width: u32, height: u32) {
+        let mut overlay = self.ingame_overlay();
+        for (key, value) in [("x", json!(x)), ("y", json!(y)), ("width", json!(width)), ("height", json!(height))] {
+            overlay[key] = value;
+        }
+        self.state.insert("ingameOverlay".into(), overlay);
+        self.persist();
+    }
+
     /// Remembers that the first-launch assistant was completed or skipped.
     pub fn set_onboarding_done(&mut self) {
         self.state.insert("onboardingDone".into(), json!(true));

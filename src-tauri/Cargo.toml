@@ -24,6 +24,8 @@ regex = "1"
 unicode-normalization = "0.1"
 tokio = { version = "1", features = ["rt", "net", "io-util", "sync", "macros", "time"] }
 winreg = "0.56"
+# Which window is in front, so the in-game overlay only shows over Wakfu.
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging"] }
 
 [profile.release]
 opt-level = "s"

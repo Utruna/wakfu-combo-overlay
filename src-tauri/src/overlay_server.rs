@@ -31,10 +31,16 @@ pub struct OverlayHub {
 
 #[derive(Default)]
 struct HubState {
-    clients: Vec<UnboundedSender<Arc<str>>>,
+    clients: Vec<Client>,
     last_config: Option<String>,
     cast_buffer: VecDeque<String>,
     last_turn_damage: Option<String>,
+}
+
+struct Client {
+    tx: UnboundedSender<Arc<str>>,
+    /// The app's own in-game window, rather than OBS.
+    ingame: bool,
 }
 
 fn frame(event: &str, data: &str) -> Arc<str> {
@@ -42,11 +48,12 @@ fn frame(event: &str, data: &str) -> Arc<str> {
 }
 
 impl OverlayHub {
-    /// Number of browser clients currently connected to /events.
+    /// Number of browser clients (OBS) currently connected to /events — the
+    /// in-game window doesn't count.
     pub fn client_count(&self) -> usize {
         let mut state = self.state.lock().unwrap();
-        state.clients.retain(|c| !c.is_closed());
-        state.clients.len()
+        state.clients.retain(|c| !c.tx.is_closed());
+        state.clients.iter().filter(|c| !c.ingame).count()
     }
 
     /// Push a display-config change (e.g. combo-list layout).
@@ -78,7 +85,7 @@ impl OverlayHub {
 
     /// Registers a new client and returns, atomically with that, what it must
     /// be replayed first — so no event can slip in between or show up twice.
-    fn subscribe(&self) -> (String, tokio::sync::mpsc::UnboundedReceiver<Arc<str>>) {
+    fn subscribe(&self, ingame: bool) -> (String, tokio::sync::mpsc::UnboundedReceiver<Arc<str>>) {
         let (tx, rx) = unbounded_channel();
         let mut state = self.state.lock().unwrap();
         let mut replay = String::from(": connected\n\n");
@@ -91,14 +98,14 @@ impl OverlayHub {
         if let Some(damage) = &state.last_turn_damage {
             replay.push_str(&frame("turn-damage", damage));
         }
-        state.clients.push(tx);
+        state.clients.push(Client { tx, ingame });
         (replay, rx)
     }
 }
 
 impl HubState {
     fn send(&mut self, payload: Arc<str>) {
-        self.clients.retain(|c| c.send(payload.clone()).is_ok());
+        self.clients.retain(|c| c.tx.send(payload.clone()).is_ok());
     }
 }
 
@@ -247,7 +254,7 @@ async fn handle(mut stream: TcpStream, hub: Arc<OverlayHub>, files: FileSource) 
     let pathname = percent_decode(target.split(['?', '#']).next().unwrap_or("/"));
 
     if pathname == "/events" {
-        return stream_events(stream, hub).await;
+        return stream_events(stream, hub, is_ingame(target)).await;
     }
 
     let Some(path) = ui_path(&pathname) else {
@@ -259,12 +266,18 @@ async fn handle(mut stream: TcpStream, hub: Arc<OverlayHub>, files: FileSource) 
     }
 }
 
-async fn stream_events(mut stream: TcpStream, hub: Arc<OverlayHub>) {
+/// The in-game window loads the page with `?ingame`, which client.js passes on to /events.
+fn is_ingame(target: &str) -> bool {
+    let query = target.split('#').next().unwrap_or_default().split_once('?').map_or("", |(_, q)| q);
+    query.split('&').any(|param| param == "ingame")
+}
+
+async fn stream_events(mut stream: TcpStream, hub: Arc<OverlayHub>, ingame: bool) {
     let header = "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\nConnection: keep-alive\r\n\r\n";
     if stream.write_all(header.as_bytes()).await.is_err() {
         return;
     }
-    let (replay, mut events) = hub.subscribe();
+    let (replay, mut events) = hub.subscribe(ingame);
     if stream.write_all(replay.as_bytes()).await.is_err() {
         return;
     }
@@ -300,6 +313,14 @@ mod tests {
         assert_eq!(ui_path("/assets/icons/cra/1.png").as_deref(), Some("assets/icons/cra/1.png"));
         assert_eq!(ui_path("/assets/../settings/index.html"), None);
         assert_eq!(ui_path("/..\\x"), None);
+    }
+
+    #[test]
+    fn tells_the_ingame_window_from_obs() {
+        assert!(is_ingame("/events?ingame"));
+        assert!(is_ingame("/events?a=1&ingame"));
+        assert!(!is_ingame("/events"));
+        assert!(!is_ingame("/events?ingame=0"));
     }
 
     #[test]

@@ -7,6 +7,7 @@ pub mod app_state;
 pub mod autostart;
 pub mod catalog;
 pub mod commands;
+pub mod ingame_window;
 pub mod loader_page;
 pub mod log_reader;
 pub mod matcher;
@@ -19,13 +20,14 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tauri::image::Image;
-use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
+use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Manager, RunEvent, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Manager, RunEvent, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
 
 use app_state::{AppState, Core, LogReaderThread, SETTINGS_WINDOW};
 use catalog::Catalog;
+use ingame_window::IngameMenuItem;
 use overlay_server::{FileSource, OverlayHub};
 use settings::{Defaults, SettingsStore, DEFAULT_OVERLAY_PORT};
 use turn_tracker::CombatTurnTracker;
@@ -58,12 +60,24 @@ pub fn show_settings_window(app: &AppHandle) {
         .background_color(tauri::window::Color(0x13, 0x1a, 0x1e, 0xff))
         .center()
         .build();
-    if let Err(err) = built {
-        eprintln!("[main] Failed to open the settings window: {err}");
+    match built {
+        // The in-game overlay is moved from these settings: never leave it
+        // catching clicks over the game once they're closed.
+        Ok(window) => {
+            let app = app.clone();
+            window.on_window_event(move |event| {
+                if let WindowEvent::Destroyed = event {
+                    ingame_window::set_editing(&app, false);
+                }
+            });
+        }
+        Err(err) => eprintln!("[main] Failed to open the settings window: {err}"),
     }
 }
 
 fn quit(app: &AppHandle) {
+    // Saves where the in-game overlay was left if it was being moved.
+    ingame_window::set_editing(app, false);
     // A downloaded update is installed on the way out; the installer closes
     // the app itself (and doesn't start it again: the user asked to quit).
     if !updates::install_pending(app, false) {
@@ -72,10 +86,13 @@ fn quit(app: &AppHandle) {
 }
 
 fn create_tray(app: &AppHandle) -> tauri::Result<()> {
+    let ingame = CheckMenuItem::with_id(app, "ingame", "Overlay en jeu", true, false, None::<&str>)?;
+    app.manage(IngameMenuItem(ingame.clone()));
     let menu = Menu::with_items(
         app,
         &[
             &MenuItem::with_id(app, "open", "Ouvrir les réglages", true, None::<&str>)?,
+            &ingame,
             &MenuItem::with_id(app, "updates", "Vérifier les mises à jour", true, None::<&str>)?,
             &PredefinedMenuItem::separator(app)?,
             &MenuItem::with_id(app, "quit", "Quitter", true, None::<&str>)?,
@@ -88,6 +105,10 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id.as_ref() {
             "open" => show_settings_window(app),
+            "ingame" => {
+                let enabled = ingame_window::status(app)["enabled"] == true;
+                ingame_window::set_enabled(app, !enabled);
+            }
             "updates" => updates::check(app, true),
             "quit" => quit(app),
             _ => {}
@@ -160,6 +181,7 @@ fn setup(app: &AppHandle, launched_at_login: bool) -> Result<(), Box<dyn std::er
 
     autostart::migrate_from_electron();
     create_tray(app)?;
+    ingame_window::refresh(app);
     // At login the app starts straight in the tray: don't even create the
     // web view until the user opens the settings.
     if !launched_at_login {
@@ -212,6 +234,10 @@ pub fn run() {
             commands::check_for_updates,
             commands::get_update_status,
             commands::get_app_version,
+            commands::get_ingame_overlay,
+            commands::set_ingame_overlay,
+            commands::set_ingame_overlay_editing,
+            commands::set_ingame_overlay_only_over_wakfu,
         ])
         .setup(move |app| setup(app.handle(), launched_at_login))
         .build(tauri::generate_context!())

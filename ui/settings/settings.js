@@ -45,6 +45,7 @@ const state = {
   classIcons: {},
   previewPool: [],
   diag: null,
+  ingame: { enabled: false, onlyOverWakfu: true, editing: false, online: true },
   editing: null, // characterName being edited, NEW_HERO for the add form, or null
   draft: null, // { characterName, class, color } while the edit form is open
 };
@@ -629,6 +630,29 @@ $('copy-size').addEventListener('click', (e) => {
   copyText(`${width}x${height}`, e.currentTarget);
 });
 
+// Overlay en jeu: the app's own always-on-top window (src-tauri/src/ingame_window.rs).
+function renderIngame(status) {
+  state.ingame = status;
+  setSwitch($('ingame-enabled'), status.enabled);
+  setSwitch($('ingame-only-wakfu'), status.onlyOverWakfu);
+  $('ingame-options').hidden = !status.enabled || !status.online;
+  $('ingame-edit').textContent = status.editing ? 'Verrouiller la position' : 'Déplacer / redimensionner';
+  $('ingame-edit').classList.toggle('primary', status.editing);
+  $('ingame-error').textContent = status.enabled && !status.online
+    ? "L'overlay est hors ligne : change le port dans OBS & diagnostic."
+    : '';
+}
+
+$('ingame-enabled').addEventListener('click', async () => {
+  renderIngame(await api.setIngameOverlay(!state.ingame.enabled));
+});
+$('ingame-only-wakfu').addEventListener('click', async () => {
+  renderIngame(await api.setIngameOverlayOnlyOverWakfu(!state.ingame.onlyOverWakfu));
+});
+$('ingame-edit').addEventListener('click', async () => {
+  renderIngame(await api.setIngameOverlayEditing(!state.ingame.editing));
+});
+
 // ── OBS & diagnostic ─────────────────────────────────────────────────────
 
 const ICON_CHECK = '<path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>';
@@ -991,6 +1015,8 @@ async function init() {
   showEmptyDebugLog();
   api.onDebugEvent(addDebugEntry);
   renderLaunchAtLogin(await api.getLaunchAtLogin());
+  renderIngame(await api.getIngameOverlay());
+  api.onIngameStatus(renderIngame);
   $('app-version').textContent = `v${await api.getAppVersion()}`;
   await loadDiagnostics();
 

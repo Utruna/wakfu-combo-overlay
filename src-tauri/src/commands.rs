@@ -12,7 +12,7 @@ use crate::settings::{
     parse_port, DEFAULT_CAST_LIFETIME_MS, DEFAULT_ICON_SIZE, DEFAULT_MAX_VISIBLE_CASTS, MAX_CAST_LIFETIME_MS,
     MAX_ICON_SIZE, MAX_MAX_VISIBLE_CASTS, MIN_CAST_LIFETIME_MS, MIN_ICON_SIZE, MIN_MAX_VISIBLE_CASTS,
 };
-use crate::{autostart, loader_page, updates};
+use crate::{autostart, ingame_window, loader_page, updates};
 
 fn overlay_url(port: u16) -> String {
     format!("http://localhost:{port}")
@@ -144,7 +144,7 @@ pub fn show_obs_loader(state: State<AppState>) {
 }
 
 #[tauri::command]
-pub async fn set_overlay_port(state: State<'_, AppState>, port: Value) -> Result<Value, ()> {
+pub async fn set_overlay_port(app: AppHandle, state: State<'_, AppState>, port: Value) -> Result<Value, ()> {
     let (current, failed) = {
         let core = state.core.lock().unwrap();
         (core.settings.overlay_port(), core.overlay_error.is_some())
@@ -167,10 +167,13 @@ pub async fn set_overlay_port(state: State<'_, AppState>, port: Value) -> Result
         Err(error) => return Ok(json!({ "ok": false, "error": error })),
     };
     *state.overlay.lock().unwrap() = Some(server);
-    let mut core = state.core.lock().unwrap();
-    core.overlay_error = None;
-    core.settings.set_overlay_port(port);
-    core.obs_loader_path = loader_page::write_loader_page(&state.data_dir, port);
+    {
+        let mut core = state.core.lock().unwrap();
+        core.overlay_error = None;
+        core.settings.set_overlay_port(port);
+        core.obs_loader_path = loader_page::write_loader_page(&state.data_dir, port);
+    }
+    ingame_window::refresh(&app);
     Ok(json!({ "ok": true, "overlayUrl": overlay_url(port) }))
 }
 
@@ -247,4 +250,29 @@ pub fn get_update_status(app: AppHandle) -> Option<Value> {
 #[tauri::command]
 pub fn get_app_version(app: AppHandle) -> String {
     app.package_info().version.to_string()
+}
+
+#[tauri::command]
+pub fn get_ingame_overlay(app: AppHandle) -> Value {
+    ingame_window::status(&app)
+}
+
+// Async: a sync command runs on the main thread, and creating a window from
+// there deadlocks on Windows.
+#[tauri::command]
+pub async fn set_ingame_overlay(app: AppHandle, enabled: bool) -> Value {
+    ingame_window::set_enabled(&app, enabled);
+    ingame_window::status(&app)
+}
+
+#[tauri::command]
+pub async fn set_ingame_overlay_editing(app: AppHandle, editing: bool) -> Value {
+    ingame_window::set_editing(&app, editing);
+    ingame_window::status(&app)
+}
+
+#[tauri::command]
+pub async fn set_ingame_overlay_only_over_wakfu(app: AppHandle, only: bool) -> Value {
+    ingame_window::set_only_over_wakfu(&app, only);
+    ingame_window::status(&app)
 }

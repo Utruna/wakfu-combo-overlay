@@ -397,3 +397,22 @@ body {
   font: 600 calc(var(--icon-size) * 0.42) / 1 'Segoe UI', system-ui, sans-serif;
   flex-shrink: 0;
 }
+
+/* ── In-game window, while it's being moved (see setIngameEditMode) ── */
+
+html.ingame-edit body {
+  background: rgba(10, 12, 16, 0.6);
+  outline: 2px dashed rgba(255, 255, 255, 0.55);
+  outline-offset: -2px;
+}
+
+html.ingame-edit body::after {
+  content: 'Déplace la fenêtre par sa barre de titre, redimensionne-la par ses bords, puis verrouille-la dans les réglages.';
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  color: var(--text);
+  font: 500 12px / 1.4 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+  text-align: center;
+}

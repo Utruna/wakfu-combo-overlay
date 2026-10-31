@@ -136,6 +136,22 @@
             </div>
             <span class="help">Cumul des dégâts infligés depuis le premier sort du tour, à côté de l'icône de classe (dessous en vertical).</span>
           </div>
+
+          <div class="field">
+            <div class="switch-row">
+              <button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="lbl-ingame" id="ingame-enabled"><span></span></button>
+              <span id="lbl-ingame">Overlay en jeu (sans OBS)</span>
+            </div>
+            <span class="help">Affiché par-dessus Wakfu, les clics passent au travers. Wakfu doit être en fenêtré ou plein écran fenêtré.</span>
+            <div class="ingame-options" id="ingame-options" hidden>
+              <div class="switch-row">
+                <button type="button" class="switch" role="switch" aria-checked="true" aria-labelledby="lbl-ingame-wakfu" id="ingame-only-wakfu"><span></span></button>
+                <span id="lbl-ingame-wakfu">Seulement quand Wakfu est au premier plan</span>
+              </div>
+              <button type="button" class="btn sm" id="ingame-edit">Déplacer / redimensionner</button>
+            </div>
+            <p class="error" id="ingame-error"></p>
+          </div>
         </div>
 
         <section class="preview-col" aria-label="Aperçu de l'overlay">

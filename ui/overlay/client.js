@@ -20,6 +20,8 @@ let castLifetimeMs = 6000;
 let iconSize = 32;
 let maxVisibleCasts = 8;
 let previewEnabled = false;
+let configPreview = false; // the setting; edit mode forces the preview on top of it
+let ingameEditing = false;
 let classIcons = {};
 let previewPool = [];
 let damageCounterEnabled = true;
@@ -394,7 +396,8 @@ function applyConfig(config) {
     castLifetimeMs = config.castLifetimeMs;
   }
   if (config.maxVisibleCasts !== undefined) maxVisibleCasts = Math.max(1, config.maxVisibleCasts);
-  if (typeof config.previewEnabled === 'boolean') previewEnabled = config.previewEnabled;
+  if (typeof config.previewEnabled === 'boolean') configPreview = config.previewEnabled;
+  previewEnabled = configPreview || ingameEditing;
   if (typeof config.damageCounterEnabled === 'boolean') damageCounterEnabled = config.damageCounterEnabled;
   if (config.classIcons && typeof config.classIcons === 'object') classIcons = config.classIcons;
   if (Array.isArray(config.previewPool)) previewPool = config.previewPool;
@@ -418,10 +421,22 @@ setInterval(() => {
 
 window.addEventListener('resize', rerenderForCurrentMode);
 
+/**
+ * Called by the app on its in-game window (src-tauri/src/ingame_window.rs)
+ * while it's being moved: sample casts and a frame show the overlay's extent.
+ */
+window.setIngameEditMode = (on) => {
+  ingameEditing = Boolean(on);
+  document.documentElement.classList.toggle('ingame-edit', ingameEditing);
+  previewEnabled = configPreview || ingameEditing;
+  rerenderForCurrentMode();
+};
+
 // ── SSE connection ────────────────────────────────────────────────────────────
 
 function connect() {
-  const source = new EventSource('/events');
+  // `?ingame` (the app's own window) is passed on, so it isn't counted as OBS.
+  const source = new EventSource(`/events${window.location.search}`);
 
   source.addEventListener('cast', (e) => {
     try { addLiveCast(JSON.parse(e.data)); } catch { /* ignore */ }
