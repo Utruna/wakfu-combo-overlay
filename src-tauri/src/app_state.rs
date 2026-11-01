@@ -12,7 +12,7 @@ use tauri::{AppHandle, Emitter, Manager};
 use crate::catalog::Catalog;
 use crate::log_reader::{now_ms, CastEvent, LogEvent, WakfuCombatLogReader};
 use crate::matcher::find_hero_index;
-use crate::overlay_server::{FileSource, OverlayHub, OverlayServer};
+use crate::overlay_server::{FileSource, HudHandler, OverlayHub, OverlayServer};
 use crate::settings::SettingsStore;
 use crate::turn_tracker::{CombatTurnTracker, TurnUpdateKind};
 
@@ -36,6 +36,8 @@ pub struct AppState {
     pub catalog: Catalog,
     pub hub: Arc<OverlayHub>,
     pub files: FileSource,
+    /// Answers the in-game window's clicks (see overlay_server::HudRequest).
+    pub hud: HudHandler,
     pub overlay: Mutex<Option<OverlayServer>>,
     pub reader: Mutex<Option<LogReaderThread>>,
     /// %APPDATA%\Wakfu Combo Overlay — settings.json and the OBS loader page.
@@ -52,7 +54,14 @@ impl AppState {
     }
 
     pub async fn start_overlay(&self, port: u16) -> Result<OverlayServer, String> {
-        OverlayServer::start(port, self.hub.clone(), self.files.clone()).await
+        OverlayServer::start(port, self.hub.clone(), self.files.clone(), self.hud.clone()).await
+    }
+
+    /// Saves a layout change and pushes it to every overlay (OBS and in-game).
+    pub fn change_combo_layout(&self, change: &serde_json::Map<String, Value>) -> Value {
+        let layout = self.core.lock().unwrap().settings.set_combo_layout(change);
+        self.hub.broadcast_config(&self.overlay_config(&layout));
+        layout
     }
 }
 
@@ -108,6 +117,7 @@ fn handle_events(app: &AppHandle, state: &AppState, events: Vec<LogEvent>) {
                             "color": hero.get("color"),
                             "turnId": update.turn_id,
                             "total": update.total,
+                            "fightTotal": update.fight_total,
                             "amount": update.amount.unwrap_or(0),
                             "ended": update.kind == TurnUpdateKind::End,
                             "timestamp": now_ms(),

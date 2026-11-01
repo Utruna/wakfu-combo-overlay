@@ -48,8 +48,7 @@ pub fn set_tracked_heroes(state: State<AppState>, character_names: Vec<Value>) {
 
 #[tauri::command]
 pub fn set_combo_layout(state: State<AppState>, layout: Map<String, Value>) {
-    let layout = state.core.lock().unwrap().settings.set_combo_layout(&layout);
-    state.hub.broadcast_config(&state.overlay_config(&layout));
+    state.change_combo_layout(&layout);
 }
 
 #[tauri::command]

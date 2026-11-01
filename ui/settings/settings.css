@@ -184,6 +184,7 @@ h2 { margin: 0; font-size: 14px; font-weight: 600; }
   display: flex; padding: 3px; gap: 3px; border-radius: 10px;
   background: var(--bg-well); border: 1px solid var(--border-well);
 }
+.segmented[hidden] { display: none; }
 .segmented button {
   flex-grow: 1; height: 32px; padding: 0 12px; border-radius: 7px; border: none;
   background: transparent; color: var(--muted-2);

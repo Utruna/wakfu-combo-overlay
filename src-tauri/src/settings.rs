@@ -89,6 +89,11 @@ fn is_valid_class_icon_side(side: Option<&Value>) -> bool {
     matches!(side.and_then(Value::as_str), Some("left" | "right"))
 }
 
+/// What the damage counter adds up: the current turn, or the whole fight.
+fn is_valid_damage_counter_mode(mode: Option<&Value>) -> bool {
+    matches!(mode.and_then(Value::as_str), Some("turn" | "fight"))
+}
+
 /// An integer in the unprivileged TCP range.
 pub fn parse_port(value: &Value) -> Option<u16> {
     let f = to_number(value)?;
@@ -109,6 +114,7 @@ pub fn default_combo_layout() -> Value {
         "maxVisibleCasts": DEFAULT_MAX_VISIBLE_CASTS,
         "previewEnabled": false,
         "damageCounterEnabled": true,
+        "damageCounterMode": "turn",
         "classIconSide": "left",
     })
 }
@@ -160,6 +166,10 @@ impl SettingsStore {
                         layout.insert(key.into(), defaults[key].clone());
                         changed = true;
                     }
+                }
+                if !is_valid_damage_counter_mode(layout.get("damageCounterMode")) {
+                    layout.insert("damageCounterMode".into(), defaults["damageCounterMode"].clone());
+                    changed = true;
                 }
                 // Before this was a setting, the class icon's side followed
                 // the list direction — derive it from that so existing
@@ -276,6 +286,10 @@ impl SettingsStore {
             if let Some(v) = change.get(key) {
                 merged.insert(key.into(), json!(truthy(Some(v))));
             }
+        }
+        if change.contains_key("damageCounterMode") && !is_valid_damage_counter_mode(change.get("damageCounterMode")) {
+            let old = current.get("damageCounterMode").cloned().unwrap_or_else(|| json!("turn"));
+            merged.insert("damageCounterMode".into(), old);
         }
         if change.contains_key("classIconSide") && !is_valid_class_icon_side(change.get("classIconSide")) {
             let old = current.get("classIconSide").cloned().unwrap_or_else(|| json!("left"));

@@ -161,6 +161,20 @@ fn turns_the_damage_counter_on_for_layouts_saved_before_the_setting_existed() {
 }
 
 #[test]
+fn counts_damage_per_turn_by_default_and_ignores_an_invalid_counter_mode() {
+    let file = tmp_settings_path();
+    fs::write(&file, r#"{"comboLayout": {"orientation": "vertical", "direction": "top-to-bottom", "iconSize": 32}}"#)
+        .unwrap();
+    let mut store = SettingsStore::open(&file);
+    store.ensure_defaults(&defaults());
+    assert_eq!(store.combo_layout()["damageCounterMode"], "turn");
+
+    store.set_combo_layout(&layout_change(json!({ "damageCounterMode": "fight" })));
+    store.set_combo_layout(&layout_change(json!({ "damageCounterMode": "forever" })));
+    assert_eq!(store.combo_layout()["damageCounterMode"], "fight");
+}
+
+#[test]
 fn persists_the_onboarding_flag() {
     let file = tmp_settings_path();
     assert!(!SettingsStore::open(&file).onboarding_done());

@@ -6,6 +6,9 @@ const classLeadIcon = document.getElementById('class-lead-icon');
 const leadWrap = document.getElementById('lead-wrap');
 const turnDamageEl = document.getElementById('turn-damage');
 const turnDamageValue = turnDamageEl.querySelector('.td-value');
+const turnDamageTag = turnDamageEl.querySelector('.td-tag');
+// The app's own in-game window loads the page with `?ingame`.
+const isHud = new URLSearchParams(window.location.search).has('ingame');
 
 // Mirrors style.css: .cast-entry padding (4px * 2) + border (2px * 2), and
 // the wrapper edge offset.
@@ -25,13 +28,15 @@ let ingameEditing = false;
 let classIcons = {};
 let previewPool = [];
 let damageCounterEnabled = true;
+let damageCounterMode = 'turn'; // 'turn' or 'fight': what the counter adds up
+let renderedListLayout = null; // the config the cast list was last rebuilt for (see applyConfig)
 
 // Latest `turn-damage` event, and the value currently drawn (it counts up to
 // the event's total rather than jumping).
 let turnDamage = null;
 let shownDamage = 0;
 let damageAnimFrame = null;
-let pendingSwapTurnId = null; // new turn waiting for the old total to fold away
+let pendingSwapKey = null; // new total waiting for the old one to fold away
 const DAMAGE_COUNT_UP_MS = 500;
 const TURN_SWAP_MS = 200; // the fold-out third of `td-swap` in style.css
 const PREVIEW_DAMAGE = 87412;
@@ -241,6 +246,12 @@ function countDamageTo(target) {
   damageAnimFrame = requestAnimationFrame(step);
 }
 
+/** What the counter shows of a `turn-damage` event: the turn's total, or the hero's whole fight. */
+const counterValue = (event) => (damageCounterMode === 'fight' ? event.fightTotal ?? event.total : event.total);
+
+/** Events adding to the same total: one turn, or one hero over the fight. */
+const counterKey = (event) => (damageCounterMode === 'fight' ? `fight:${event.characterName}` : `turn:${event.turnId}`);
+
 function resetCounterTo(event) {
   cancelAnimationFrame(damageAnimFrame);
   shownDamage = 0;
@@ -262,6 +273,7 @@ function renderTurnDamage() {
     return;
   }
   turnDamageEl.hidden = false;
+  turnDamageTag.textContent = damageCounterMode === 'fight' ? 'Combat' : 'Tour';
   if (previewEnabled) {
     const list = activeCasts();
     setDamageColor(list[list.length - 1]?.cast.color);
@@ -284,31 +296,51 @@ function showHitAmount(amount) {
   turnDamageEl.appendChild(hit);
 }
 
+/** Folds the shown total away, then counts the latest event's total up from 0. */
+function swapCounter(key) {
+  pendingSwapKey = key;
+  replayClass(turnDamageEl, 'swap');
+  setTimeout(() => {
+    if (pendingSwapKey !== key) return;
+    pendingSwapKey = null;
+    resetCounterTo(turnDamage);
+    countDamageTo(counterValue(turnDamage));
+  }, TURN_SWAP_MS);
+}
+
+/** Turn or fight total — from the settings, or the in-game window's switch. */
+function setCounterMode(mode) {
+  if (mode !== 'turn' && mode !== 'fight') return;
+  if (counterSwitch) counterSwitch.setAttribute('aria-checked', String(mode === 'fight'));
+  if (mode === damageCounterMode) return;
+  damageCounterMode = mode;
+  turnDamageTag.textContent = mode === 'fight' ? 'Combat' : 'Tour';
+  const showing = turnDamage && !previewEnabled && !turnDamageEl.hidden && !turnDamageEl.classList.contains('idle');
+  if (showing) swapCounter(counterKey(turnDamage));
+}
+
 function applyTurnDamage(event) {
   const previous = turnDamage;
   turnDamage = event;
   if (previewEnabled) return;
 
-  if (previous?.turnId !== event.turnId) {
+  const key = counterKey(event);
+  if (!previous || counterKey(previous) !== key) {
     const showingPrevious = previous && !turnDamageEl.hidden && !turnDamageEl.classList.contains('idle');
     if (showingPrevious) {
-      // The old total folds away first (see `td-swap`), then the new turn's frame comes in.
-      pendingSwapTurnId = event.turnId;
-      replayClass(turnDamageEl, 'swap');
-      setTimeout(() => {
-        if (pendingSwapTurnId !== event.turnId) return;
-        pendingSwapTurnId = null;
-        resetCounterTo(turnDamage);
-        countDamageTo(turnDamage.total);
-      }, TURN_SWAP_MS);
+      // The old total folds away first (see `td-swap`), then the new one comes in.
+      swapCounter(key);
     } else {
-      pendingSwapTurnId = null;
+      pendingSwapKey = null;
       resetCounterTo(event);
     }
+  } else if (counterValue(event) < shownDamage) {
+    // Same hero, new fight: its fight total starts over.
+    resetCounterTo(event);
   }
   renderTurnDamage();
-  if (pendingSwapTurnId !== null) return;
-  countDamageTo(event.total);
+  if (pendingSwapKey !== null) return;
+  countDamageTo(counterValue(event));
   if (event.amount > 0 && damageCounterEnabled) showHitAmount(event.amount);
 }
 
@@ -413,10 +445,29 @@ function applyConfig(config) {
   if (typeof config.previewEnabled === 'boolean') configPreview = config.previewEnabled;
   previewEnabled = configPreview || ingameEditing;
   if (typeof config.damageCounterEnabled === 'boolean') damageCounterEnabled = config.damageCounterEnabled;
+  if (config.damageCounterMode) setCounterMode(config.damageCounterMode);
   if (config.classIcons && typeof config.classIcons === 'object') classIcons = config.classIcons;
   if (Array.isArray(config.previewPool)) previewPool = config.previewPool;
   applyCounterLayout();
-  rerenderForCurrentMode();
+  rerenderIfLayoutChanged();
+}
+
+/**
+ * Every config push (a counter mode switch, say) used to rebuild the whole
+ * list, whose fresh icons then blinked out while they loaded: it's only
+ * rebuilt when something it depends on changed.
+ */
+function rerenderIfLayoutChanged() {
+  const listLayout = JSON.stringify([
+    comboOverlay.dataset.orientation, comboOverlay.dataset.direction, comboOverlay.dataset.classIconSide,
+    iconSize, maxVisibleCasts, previewEnabled, damageCounterEnabled, previewPool.length,
+  ]);
+  if (listLayout !== renderedListLayout) {
+    renderedListLayout = listLayout;
+    rerenderForCurrentMode();
+  } else {
+    renderTurnDamage();
+  }
 }
 
 setInterval(() => {
@@ -444,8 +495,48 @@ window.setIngameEditMode = (on) => {
   ingameEditing = Boolean(on);
   document.documentElement.classList.toggle('ingame-edit', ingameEditing);
   previewEnabled = configPreview || ingameEditing;
-  rerenderForCurrentMode();
+  rerenderIfLayoutChanged();
 };
+
+// ── In-game window: the counter's turn/fight switch ──────────────────────────
+
+/**
+ * Only in the app's in-game window, which lets every click through to the game
+ * except on this switch: the page tells the app where it is, and the app makes
+ * just that spot clickable (src-tauri/src/ingame_window.rs).
+ */
+const counterSwitch = isHud ? Object.assign(document.createElement('button'), {
+  type: 'button',
+  className: 'td-switch',
+  title: 'Dégâts du tour ou du combat',
+}) : null;
+
+if (counterSwitch) {
+  document.documentElement.classList.add('hud');
+  counterSwitch.setAttribute('role', 'switch');
+  counterSwitch.setAttribute('aria-checked', 'false');
+  counterSwitch.appendChild(Object.assign(document.createElement('span'), { className: 'td-switch-knob' }));
+  turnDamageEl.appendChild(counterSwitch);
+  counterSwitch.addEventListener('click', () => {
+    const mode = damageCounterMode === 'fight' ? 'turn' : 'fight';
+    setCounterMode(mode);
+    // Saved by the app, which also passes it on to OBS and the settings.
+    fetch(`/hud/counter-mode?mode=${mode}`).catch(() => {});
+  });
+
+  let reportedRect = null;
+  setInterval(() => {
+    const r = counterSwitch.getBoundingClientRect();
+    const shown = r.width > 0 && getComputedStyle(turnDamageEl).visibility === 'visible'
+      && !leadWrap.classList.contains('leaving');
+    const rect = shown
+      ? `x=${Math.floor(r.left)}&y=${Math.floor(r.top)}&w=${Math.ceil(r.width)}&h=${Math.ceil(r.height)}`
+      : 'none';
+    if (rect === reportedRect) return;
+    reportedRect = rect;
+    fetch(`/hud/switch-rect?${rect}`).catch(() => { reportedRect = null; });
+  }, 150);
+}
 
 // ── SSE connection ────────────────────────────────────────────────────────────
 

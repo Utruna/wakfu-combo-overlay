@@ -37,6 +37,7 @@
     setIngameOverlayEditing: (editing) => invoke('set_ingame_overlay_editing', { editing }),
     setIngameOverlayOnlyOverWakfu: (only) => invoke('set_ingame_overlay_only_over_wakfu', { only }),
     onIngameStatus: (callback) => on('ingame:status', callback),
+    onLayoutChanged: (callback) => on('layout:changed', callback),
     checkForUpdates: () => invoke('check_for_updates'),
     onUpdateStatus: (callback) => {
       const stop = on('update:status', callback);

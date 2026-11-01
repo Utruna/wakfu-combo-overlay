@@ -98,6 +98,8 @@ pub struct TurnUpdate {
     pub character_name: String,
     pub turn_id: u64,
     pub total: u64,
+    /// Everything this fighter has dealt since the fight started.
+    pub fight_total: u64,
     /// The hit's amount, on `Damage` updates only.
     pub amount: Option<u64>,
 }
@@ -142,6 +144,8 @@ pub struct CombatTurnTracker {
     pending_summon: Option<Summon>,
     /// Breeds that are targets even when summoned.
     enemy_breeds: HashSet<String>,
+    /// Fighter -> damage dealt this fight (summons count for their summoner).
+    fight_totals: HashMap<String, u64>,
     /// Clients currently writing the feed.
     copies: u32,
     /// Cast message -> group, in insertion order (the order matters when
@@ -171,6 +175,7 @@ impl CombatTurnTracker {
             last_spell: HashMap::new(),
             pending_summon: None,
             enemy_breeds: Self::default_enemy_breeds(),
+            fight_totals: HashMap::new(),
             copies: 1,
             cast_groups: Vec::new(),
             lone_cast: None,
@@ -309,6 +314,7 @@ impl CombatTurnTracker {
             if let Some(turn) = self.turn.as_mut() {
                 turn.total += amount;
             }
+            *self.fight_totals.entry(turn_owner).or_insert(0) += amount;
             self.emit(&mut out, TurnUpdateKind::Damage, Some(amount));
         }
         out
@@ -433,6 +439,7 @@ impl CombatTurnTracker {
         self.pending_summon = None;
         self.last_turn = None;
         self.enemy_breeds = Self::default_enemy_breeds();
+        self.fight_totals.clear();
     }
 
     fn end_fight(&mut self, out: &mut Vec<TurnUpdate>) {
@@ -448,6 +455,7 @@ impl CombatTurnTracker {
                 character_name: turn.character_name.clone(),
                 turn_id: turn.turn_id,
                 total: turn.total,
+                fight_total: self.fight_totals.get(&turn.character_name).copied().unwrap_or(0),
                 amount,
             });
         }

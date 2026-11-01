@@ -478,6 +478,8 @@ function renderLayout() {
   $('max-inc').disabled = layout.maxVisibleCasts >= state.maxVisibleRange.max;
   setSwitch($('preview-enabled'), layout.previewEnabled);
   setSwitch($('damage-counter-enabled'), layout.damageCounterEnabled !== false);
+  setSegmented($('damage-counter-mode'), layout.damageCounterMode || 'turn');
+  $('damage-counter-mode').hidden = layout.damageCounterEnabled === false;
   renderPreview();
 }
 
@@ -568,6 +570,7 @@ function renderPreview() {
   overlay.style.setProperty('--td-light',
     [r, g, b].map((v) => Math.round(v + (255 - v) * 0.55)).join(', '));
   $('pv-damage').hidden = !counterOn;
+  $('pv-damage-tag').textContent = layout.damageCounterMode === 'fight' ? 'Combat' : 'Tour';
   scale.style.paddingTop = `${EDGE_OFFSET_PX + (horizontal && counterOn ? Math.ceil(counterMetrics(iconSize).deltaRoom) : 0)}px`;
 
   // V3: in a top-to-bottom column the icon sits level with the newest (last) cast.
@@ -622,6 +625,14 @@ $('preview-enabled').addEventListener('click', () => {
 $('damage-counter-enabled').addEventListener('click', () => {
   state.layout.damageCounterEnabled = state.layout.damageCounterEnabled === false;
   api.setComboLayout({ damageCounterEnabled: state.layout.damageCounterEnabled });
+  renderLayout();
+});
+
+$('damage-counter-mode').addEventListener('click', (e) => {
+  const value = e.target.closest('button')?.dataset.value;
+  if (!value) return;
+  state.layout.damageCounterMode = value;
+  api.setComboLayout({ damageCounterMode: value });
   renderLayout();
 });
 
@@ -1017,6 +1028,11 @@ async function init() {
   renderLaunchAtLogin(await api.getLaunchAtLogin());
   renderIngame(await api.getIngameOverlay());
   api.onIngameStatus(renderIngame);
+  // The in-game window's counter switch changes the layout too.
+  api.onLayoutChanged((layout) => {
+    state.layout = { ...state.layout, ...layout };
+    renderLayout();
+  });
   $('app-version').textContent = `v${await api.getAppVersion()}`;
   await loadDiagnostics();
 

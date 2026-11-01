@@ -355,6 +355,41 @@ fn training_dummies_a_hero_summons_are_targets_not_pets() {
 }
 
 #[test]
+fn adds_up_each_fighters_damage_over_the_fight_until_the_next_one() {
+    let mut lines = with_start(&[
+        "Lueur Pourpre lance le sort Effroi",
+        "Kamarachnide: -1 000 PV (Air)",
+        "Lueur Pourpre: Passe son tour",
+        "Lueur Anthracite lance le sort Brasier",
+        "Kamarachnide: -500 PV (Feu)",
+        "Lueur Pourpre lance le sort Kleptosram",
+        "Kamarachnide: -200 PV (Air)",
+        "Combat terminé, cliquez ici pour rouvrir l'écran de fin de combat. ",
+    ]);
+    lines.push(join_in("Lueur Pourpre", false, "42", 4));
+    lines.push(combat("Lueur Pourpre lance le sort Attaque perfide"));
+    lines.push(combat("Kamarachnide: -50 PV (Air)"));
+    let run = track(&lines);
+    let fight_totals: Vec<(String, u64, u64)> = run
+        .events
+        .iter()
+        .filter(|e| e.kind == TurnUpdateKind::Damage)
+        .map(|e| (e.character_name.clone(), e.total, e.fight_total))
+        .collect();
+    assert_eq!(
+        fight_totals,
+        [
+            ("Lueur Pourpre".to_string(), 1000, 1000),
+            ("Lueur Anthracite".to_string(), 500, 500),
+            // A new turn starts from 0, the fight total carries on…
+            ("Lueur Pourpre".to_string(), 200, 1200),
+            // …until the next fight.
+            ("Lueur Pourpre".to_string(), 50, 50),
+        ]
+    );
+}
+
+#[test]
 fn a_new_fight_forgets_the_previous_fights_allies() {
     let mut lines = fight_start();
     lines.push(combat("Lueur Anthracite: Invoque un(e) Bombe Paralysante "));

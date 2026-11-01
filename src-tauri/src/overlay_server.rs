@@ -22,6 +22,27 @@ const REQUEST_HEAD_TIMEOUT: Duration = Duration::from_secs(10);
 /// Looks up a file of ui/ by its path relative to it ("overlay/index.html").
 pub type FileSource = Arc<dyn Fn(&str) -> Option<Vec<u8>> + Send + Sync>;
 
+/// Where the in-game window's counter switch is, in CSS pixels of its page.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct HudRect {
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
+}
+
+/// What the in-game window's page asks of the app. It's a plain page served
+/// from here, with no Tauri IPC: it sends these as GETs on /hud/….
+#[derive(Debug, Clone, PartialEq)]
+pub enum HudRequest {
+    /// The switch moved, or `None` when it isn't shown.
+    SwitchRect(Option<HudRect>),
+    /// The switch was clicked: "turn" or "fight".
+    CounterMode(String),
+}
+
+pub type HudHandler = Arc<dyn Fn(HudRequest) + Send + Sync>;
+
 /// What every connected overlay receives, plus what a newly connected one is
 /// replayed so it shows the current state right away.
 #[derive(Default)]
@@ -118,7 +139,7 @@ pub struct OverlayServer {
 impl OverlayServer {
     /// Binds 127.0.0.1:`port`. Never panics on a bind failure (e.g. port
     /// already in use): the error comes back as a message for the user.
-    pub async fn start(port: u16, hub: Arc<OverlayHub>, files: FileSource) -> Result<Self, String> {
+    pub async fn start(port: u16, hub: Arc<OverlayHub>, files: FileSource, hud: HudHandler) -> Result<Self, String> {
         let listener = TcpListener::bind(("127.0.0.1", port)).await.map_err(|e| describe_listen_error(&e))?;
         println!("[OverlayServer] http://localhost:{port}");
         let task = tauri::async_runtime::spawn(async move {
@@ -129,7 +150,7 @@ impl OverlayServer {
                 tokio::select! {
                     accepted = listener.accept() => {
                         if let Ok((stream, _)) = accepted {
-                            connections.spawn(handle(stream, hub.clone(), files.clone()));
+                            connections.spawn(handle(stream, hub.clone(), files.clone(), hud.clone()));
                         }
                     }
                     Some(_) = connections.join_next() => {}
@@ -252,7 +273,29 @@ async fn respond(stream: &mut TcpStream, status: &str, mime: &str, cache: &str, 
     let _ = stream.shutdown().await;
 }
 
-async fn handle(mut stream: TcpStream, hub: Arc<OverlayHub>, files: FileSource) {
+/// A query string's `key=value` pairs (values here are plain words and numbers).
+fn query_params(target: &str) -> impl Iterator<Item = (&str, &str)> {
+    let query = target.split('#').next().unwrap_or_default().split_once('?').map_or("", |(_, q)| q);
+    query.split('&').filter_map(|param| param.split_once('='))
+}
+
+fn hud_request(command: &str, target: &str) -> Option<HudRequest> {
+    let param = |key: &str| query_params(target).find(|(k, _)| *k == key).map(|(_, v)| v);
+    let number = |key: &str| param(key)?.parse::<f64>().ok().filter(|n| n.is_finite());
+    match command {
+        "switch-rect" => {
+            let rect = (|| {
+                let rect = HudRect { x: number("x")?, y: number("y")?, width: number("w")?, height: number("h")? };
+                (rect.width > 0.0 && rect.height > 0.0).then_some(rect)
+            })();
+            Some(HudRequest::SwitchRect(rect))
+        }
+        "counter-mode" => param("mode").filter(|m| matches!(*m, "turn" | "fight")).map(|m| HudRequest::CounterMode(m.into())),
+        _ => None,
+    }
+}
+
+async fn handle(mut stream: TcpStream, hub: Arc<OverlayHub>, files: FileSource, hud: HudHandler) {
     let Ok(Some(head)) = tokio::time::timeout(REQUEST_HEAD_TIMEOUT, read_request_head(&mut stream)).await else {
         return;
     };
@@ -266,6 +309,15 @@ async fn handle(mut stream: TcpStream, hub: Arc<OverlayHub>, files: FileSource) 
 
     if pathname == "/events" {
         return stream_events(stream, hub, is_ingame(target)).await;
+    }
+    if let Some(command) = pathname.strip_prefix("/hud/") {
+        return match hud_request(command, target) {
+            Some(request) => {
+                hud(request);
+                respond(&mut stream, "204 No Content", "text/plain", "no-cache", b"", false).await
+            }
+            None => respond(&mut stream, "400 Bad Request", "text/plain", "no-cache", b"", false).await,
+        };
     }
 
     let Some(path) = ui_path(&pathname) else {
@@ -326,6 +378,22 @@ mod tests {
         assert_eq!(ui_path("/assets/icons/cra/1.png").as_deref(), Some("assets/icons/cra/1.png"));
         assert_eq!(ui_path("/assets/../settings/index.html"), None);
         assert_eq!(ui_path("/..\\x"), None);
+    }
+
+    #[test]
+    fn reads_the_in_game_windows_requests() {
+        let rect = HudRect { x: 10.0, y: 20.5, width: 24.0, height: 14.0 };
+        assert_eq!(
+            hud_request("switch-rect", "/hud/switch-rect?x=10&y=20.5&w=24&h=14"),
+            Some(HudRequest::SwitchRect(Some(rect)))
+        );
+        assert_eq!(hud_request("switch-rect", "/hud/switch-rect?none"), Some(HudRequest::SwitchRect(None)));
+        assert_eq!(
+            hud_request("counter-mode", "/hud/counter-mode?mode=fight"),
+            Some(HudRequest::CounterMode("fight".into()))
+        );
+        assert_eq!(hud_request("counter-mode", "/hud/counter-mode?mode=forever"), None);
+        assert_eq!(hud_request("shutdown", "/hud/shutdown"), None);
     }
 
     #[test]

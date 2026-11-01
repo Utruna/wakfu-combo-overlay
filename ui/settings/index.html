@@ -132,9 +132,13 @@
           <div class="field">
             <div class="switch-row">
               <button type="button" class="switch" role="switch" aria-checked="true" aria-labelledby="lbl-damage" id="damage-counter-enabled"><span></span></button>
-              <span id="lbl-damage">Compteur de dégâts du tour</span>
+              <span id="lbl-damage">Compteur de dégâts</span>
             </div>
-            <span class="help">Cumul des dégâts infligés depuis le premier sort du tour, à côté de l'icône de classe (dessous en vertical).</span>
+            <div class="segmented" id="damage-counter-mode" role="group" aria-label="Ce que compte le compteur">
+              <button type="button" data-value="turn">Du tour</button>
+              <button type="button" data-value="fight">Du combat</button>
+            </div>
+            <span class="help">Dégâts infligés depuis le premier sort du tour, ou depuis le début du combat pour chaque héros. À côté de l'icône de classe (dessous en vertical). Basculable aussi en jeu, d'un clic sur le petit interrupteur du compteur dans l'affichage tête haute.</span>
           </div>
 
           <div class="field">
@@ -168,7 +172,7 @@
                     <div class="pv-damage" id="pv-damage">
                       <div class="td-frame"></div>
                       <div class="td-fill"></div>
-                      <div class="td-body"><span class="td-tag">Tour</span><span class="td-value">87 412</span></div>
+                      <div class="td-body"><span class="td-tag" id="pv-damage-tag">Tour</span><span class="td-value">87 412</span></div>
                     </div>
                   </div>
                   <div class="pv-log" id="pv-log"></div>

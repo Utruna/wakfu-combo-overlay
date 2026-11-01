@@ -22,13 +22,13 @@ use std::time::Duration;
 use tauri::image::Image;
 use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Manager, RunEvent, WebviewUrl, WebviewWindowBuilder, WindowEvent};
+use tauri::{AppHandle, Emitter, Manager, RunEvent, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
 
 use app_state::{AppState, Core, LogReaderThread, SETTINGS_WINDOW};
 use catalog::Catalog;
 use ingame_window::IngameMenuItem;
-use overlay_server::{FileSource, OverlayHub};
+use overlay_server::{FileSource, HudHandler, HudRequest, OverlayHub};
 use settings::{Defaults, SettingsStore, DEFAULT_OVERLAY_PORT};
 use turn_tracker::CombatTurnTracker;
 use updates::UpdateState;
@@ -143,6 +143,20 @@ fn setup(app: &AppHandle, launched_at_login: bool) -> Result<(), Box<dyn std::er
     let files: FileSource = Arc::new(move |path: &str| resolver.get(path.to_string()).map(|asset| asset.bytes));
     let catalog = Catalog::load(|path| files(path).is_some());
 
+    let handle = app.clone();
+    let hud: HudHandler = Arc::new(move |request| match request {
+        HudRequest::SwitchRect(rect) => ingame_window::set_switch_rect(rect),
+        HudRequest::CounterMode(mode) => {
+            let mut change = serde_json::Map::new();
+            change.insert("damageCounterMode".into(), mode.into());
+            let layout = handle.state::<AppState>().change_combo_layout(&change);
+            // The settings page shows the mode too: keep it in step.
+            if handle.get_webview_window(SETTINGS_WINDOW).is_some() {
+                let _ = handle.emit_to(SETTINGS_WINDOW, "layout:changed", layout);
+            }
+        }
+    });
+
     app.manage(AppState {
         core: Mutex::new(Core {
             settings,
@@ -154,6 +168,7 @@ fn setup(app: &AppHandle, launched_at_login: bool) -> Result<(), Box<dyn std::er
         catalog,
         hub: Arc::new(OverlayHub::default()),
         files,
+        hud,
         overlay: Mutex::new(None),
         reader: Mutex::new(None),
         data_dir,

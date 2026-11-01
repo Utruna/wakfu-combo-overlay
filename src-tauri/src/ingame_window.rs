@@ -12,11 +12,13 @@
 
 use serde_json::{json, Value};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::Mutex;
 use std::time::Duration;
 use tauri::menu::CheckMenuItem;
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent, Wry};
 
 use crate::app_state::{AppState, SETTINGS_WINDOW};
+use crate::overlay_server::HudRect;
 
 pub const INGAME_WINDOW: &str = "ingame";
 
@@ -26,11 +28,22 @@ const DEFAULT_WIDTH: f64 = 400.0;
 const DEFAULT_HEIGHT: f64 = 640.0;
 /// Moves and resizes come in bursts while dragging: save once it settles.
 const SAVE_DELAY: Duration = Duration::from_millis(500);
-/// How often the window in front is checked.
-const FOREGROUND_POLL: Duration = Duration::from_millis(250);
+/// How often the window in front, and the mouse, are checked — often enough
+/// that the counter switch catches the mouse as soon as it's over it.
+const POLL_INTERVAL: Duration = Duration::from_millis(50);
+/// Extra room around the switch, in CSS pixels, so its edge isn't fiddly.
+const SWITCH_MARGIN: f64 = 2.0;
 
 static EDITING: AtomicBool = AtomicBool::new(false);
 static SAVE_GENERATION: AtomicU64 = AtomicU64::new(0);
+/// Where the page last said its counter switch is (None: not shown).
+static SWITCH_RECT: Mutex<Option<HudRect>> = Mutex::new(None);
+
+/// The page reports where its counter switch is — the one spot of the window
+/// that takes clicks.
+pub fn set_switch_rect(rect: Option<HudRect>) {
+    *SWITCH_RECT.lock().unwrap() = rect;
+}
 
 /// The tray's "Affichage tête haute" item, kept in step with the setting.
 pub struct IngameMenuItem(pub CheckMenuItem<Wry>);
@@ -161,16 +174,44 @@ fn open(app: &AppHandle) {
     tauri::async_runtime::spawn(follow_foreground(app.clone()));
 }
 
-/// Shows the window while Wakfu is in front, hides it otherwise — until the
-/// window is closed.
+/// Shows the window while Wakfu is in front, hides it otherwise, and lets
+/// clicks through everywhere but on the counter switch — until the window is
+/// closed.
 async fn follow_foreground(app: AppHandle) {
+    // Whether the window currently catches the mouse (it starts click-through).
+    let mut catching = false;
     while let Some(window) = app.get_webview_window(INGAME_WINDOW) {
         if let Ok(hwnd) = window.hwnd() {
-            let show = !only_over_wakfu(&app) || EDITING.load(Ordering::Relaxed) || foreground::wakfu_or_settings_in_front(hwnd.0);
+            let editing = EDITING.load(Ordering::Relaxed);
+            let show = !only_over_wakfu(&app) || editing || foreground::wakfu_or_settings_in_front(hwnd.0);
             foreground::set_shown(hwnd.0, show);
+            if editing {
+                // Edit mode catches every click (see set_editing).
+                catching = true;
+            } else {
+                let over_switch = show && cursor_over_switch(&window);
+                if over_switch != catching {
+                    let _ = window.set_ignore_cursor_events(!over_switch);
+                    catching = over_switch;
+                }
+            }
         }
-        tokio::time::sleep(FOREGROUND_POLL).await;
+        tokio::time::sleep(POLL_INTERVAL).await;
     }
+}
+
+fn cursor_over_switch(window: &WebviewWindow) -> bool {
+    let Some(rect) = *SWITCH_RECT.lock().unwrap() else { return false };
+    let (Some((cursor_x, cursor_y)), Ok(origin), Ok(scale)) =
+        (foreground::cursor_position(), window.inner_position(), window.scale_factor())
+    else {
+        return false;
+    };
+    // Physical screen pixels -> the page's CSS pixels.
+    let x = f64::from(cursor_x - origin.x) / scale;
+    let y = f64::from(cursor_y - origin.y) / scale;
+    (rect.x - SWITCH_MARGIN..rect.x + rect.width + SWITCH_MARGIN).contains(&x)
+        && (rect.y - SWITCH_MARGIN..rect.y + rect.height + SWITCH_MARGIN).contains(&y)
 }
 
 fn close(app: &AppHandle) {
@@ -253,8 +294,9 @@ fn save_geometry(window: &WebviewWindow) {
 /// (Tauri's `show` would take the focus from the game).
 mod foreground {
     use std::ffi::c_void;
+    use windows_sys::Win32::Foundation::POINT;
     use windows_sys::Win32::UI::WindowsAndMessaging::{
-        GetForegroundWindow, GetWindowTextW, GetWindowThreadProcessId, IsWindowVisible, ShowWindow, SW_HIDE,
+        GetCursorPos, GetForegroundWindow, GetWindowTextW, GetWindowThreadProcessId, IsWindowVisible, ShowWindow, SW_HIDE,
         SW_SHOWNOACTIVATE,
     };
 
@@ -283,6 +325,13 @@ mod foreground {
             let len = GetWindowTextW(hwnd, buffer.as_mut_ptr(), buffer.len() as i32);
             len > 0 && is_wakfu_title(&String::from_utf16_lossy(&buffer[..len as usize]))
         }
+    }
+
+    /// The mouse, in physical screen pixels.
+    pub fn cursor_position() -> Option<(i32, i32)> {
+        let mut point = POINT { x: 0, y: 0 };
+        // SAFETY: GetCursorPos only writes the POINT it's given.
+        (unsafe { GetCursorPos(&mut point) } != 0).then_some((point.x, point.y))
     }
 
     pub fn set_shown(hwnd: *mut c_void, show: bool) {
