@@ -12,7 +12,7 @@ use crate::settings::{
     parse_port, DEFAULT_CAST_LIFETIME_MS, DEFAULT_ICON_SIZE, DEFAULT_MAX_VISIBLE_CASTS, MAX_CAST_LIFETIME_MS,
     MAX_ICON_SIZE, MAX_MAX_VISIBLE_CASTS, MIN_CAST_LIFETIME_MS, MIN_ICON_SIZE, MIN_MAX_VISIBLE_CASTS,
 };
-use crate::{autostart, ingame_window, loader_page, updates};
+use crate::{autostart, ingame_window, loader_page, updates, whats_new};
 
 fn overlay_url(port: u16) -> String {
     format!("http://localhost:{port}")
@@ -249,6 +249,17 @@ pub fn get_update_status(app: AppHandle) -> Option<Value> {
 #[tauri::command]
 pub fn get_app_version(app: AppHandle) -> String {
     app.package_info().version.to_string()
+}
+
+/// For the "Nouveautés" window (ui/whatsnew).
+#[tauri::command]
+pub fn get_release_notes(app: AppHandle, since: Option<String>) -> Value {
+    whats_new::release_notes(&app, since.as_deref())
+}
+
+#[tauri::command]
+pub fn show_whats_new(app: AppHandle) {
+    whats_new::show(&app, None);
 }
 
 #[tauri::command]

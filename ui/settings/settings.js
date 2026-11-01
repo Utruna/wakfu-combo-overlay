@@ -857,6 +857,7 @@ function renderUpdateStatus(payload) {
 }
 
 $('update-check-btn').addEventListener('click', () => api.checkForUpdates());
+$('app-version').addEventListener('click', () => api.showWhatsNew());
 api.onUpdateStatus(renderUpdateStatus);
 
 // ── Assistant de premier lancement ───────────────────────────────────────

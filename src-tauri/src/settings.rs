@@ -224,6 +224,12 @@ impl SettingsStore {
         truthy(self.state.get("onboardingDone"))
     }
 
+    /// The version whose release notes were last shown (None: before 2.2.0,
+    /// or never launched).
+    pub fn last_seen_version(&self) -> Option<&str> {
+        self.state.get("lastSeenVersion").and_then(Value::as_str)
+    }
+
     pub fn set_overlay_port(&mut self, port: u16) {
         self.state.insert("overlayPort".into(), json!(port));
         self.persist();
@@ -328,6 +334,11 @@ impl SettingsStore {
     /// Remembers that the first-launch assistant was completed or skipped.
     pub fn set_onboarding_done(&mut self) {
         self.state.insert("onboardingDone".into(), json!(true));
+        self.persist();
+    }
+
+    pub fn set_last_seen_version(&mut self, version: &str) {
+        self.state.insert("lastSeenVersion".into(), json!(version));
         self.persist();
     }
 

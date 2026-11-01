@@ -15,6 +15,7 @@ pub mod overlay_server;
 pub mod settings;
 pub mod turn_tracker;
 pub mod updates;
+pub mod whats_new;
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -70,6 +71,8 @@ pub fn show_settings_window(app: &AppHandle) {
                     ingame_window::set_editing(&app, false);
                 }
             });
+            // Built after the settings, so it opens on top of them.
+            whats_new::show_if_updated(window.app_handle());
         }
         Err(err) => eprintln!("[main] Failed to open the settings window: {err}"),
     }
@@ -94,6 +97,7 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
             &MenuItem::with_id(app, "open", "Ouvrir les réglages", true, None::<&str>)?,
             &ingame,
             &MenuItem::with_id(app, "updates", "Vérifier les mises à jour", true, None::<&str>)?,
+            &MenuItem::with_id(app, "whatsnew", "Nouveautés", true, None::<&str>)?,
             &PredefinedMenuItem::separator(app)?,
             &MenuItem::with_id(app, "quit", "Quitter", true, None::<&str>)?,
         ],
@@ -110,6 +114,7 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                 ingame_window::set_enabled(app, !enabled);
             }
             "updates" => updates::check(app, true),
+            "whatsnew" => whats_new::show(app, None),
             "quit" => quit(app),
             _ => {}
         })
@@ -249,6 +254,8 @@ pub fn run() {
             commands::check_for_updates,
             commands::get_update_status,
             commands::get_app_version,
+            commands::get_release_notes,
+            commands::show_whats_new,
             commands::get_ingame_overlay,
             commands::set_ingame_overlay,
             commands::set_ingame_overlay_editing,

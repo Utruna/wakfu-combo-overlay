@@ -32,6 +32,7 @@
     getLaunchAtLogin: () => invoke('get_launch_at_login'),
     setLaunchAtLogin: (enabled) => invoke('set_launch_at_login', { enabled }),
     getAppVersion: () => invoke('get_app_version'),
+    showWhatsNew: () => invoke('show_whats_new'),
     getIngameOverlay: () => invoke('get_ingame_overlay'),
     setIngameOverlay: (enabled) => invoke('set_ingame_overlay', { enabled }),
     setIngameOverlayEditing: (editing) => invoke('set_ingame_overlay_editing', { editing }),

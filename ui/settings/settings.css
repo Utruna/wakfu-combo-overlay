@@ -136,6 +136,8 @@ h2 { margin: 0; font-size: 14px; font-weight: 600; }
 .version-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .version-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .version-text .mono { font-size: 12px; }
+.version-link { align-self: flex-start; padding: 0; border: none; background: none; }
+.version-link:hover { color: var(--accent); text-decoration: underline; }
 
 .icon-btn {
   width: 34px; height: 34px; border-radius: 9px; border: none;
