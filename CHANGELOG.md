@@ -1,3 +1,19 @@
+## v2.2.0
+
+### Nouveau : compteur de dégâts du tour ou du combat
+
+Le compteur de dégâts peut maintenant afficher, au choix, les dégâts **du tour** (comme avant) ou le cumul **du combat** pour chaque héros.
+
+- Choisis le mode dans la page Affichage, sous **Compteur de dégâts** (« Du tour » / « Du combat »). L'étiquette du compteur indique « Tour » ou « Combat ».
+- En mode combat, chaque héros garde son propre total, invocations comprises, et repart de zéro au combat suivant.
+- Dans l'**affichage tête haute**, un petit interrupteur sous le compteur permet de basculer d'un clic sans quitter le jeu. C'est le seul endroit de la fenêtre qui capte la souris : le reste laisse toujours passer les clics vers Wakfu. Le choix est retenu et s'applique aussi à OBS.
+
+### Corrections
+
+- Les icônes ne clignotent plus quand on change un réglage d'affichage qui ne touche pas à la liste des sorts.
+
+Dans OBS, pense à actualiser la source navigateur après la mise à jour.
+
 ## v2.1.1
 
 ### Corrections de l'icône de classe
