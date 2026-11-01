@@ -1,3 +1,9 @@
+## v2.2.1
+
+### Nouveau : fenêtre des nouveautés
+
+Après chaque mise à jour, une petite fenêtre présente ce qui a changé, à l'ouverture des réglages. Tu peux la rouvrir quand tu veux en cliquant sur le numéro de version en bas des réglages, ou depuis **Nouveautés** dans le menu de l'icône de l'appli.
+
 ## v2.2.0
 
 ### Nouveau : compteur de dégâts du tour ou du combat
