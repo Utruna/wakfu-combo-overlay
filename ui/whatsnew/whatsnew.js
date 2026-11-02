@@ -49,10 +49,16 @@ function renderMarkdown(markdown) {
   return html.join('\n');
 }
 
-async function init() {
-  const since = new URLSearchParams(window.location.search).get('since');
+// Every version: those newer than 0.0.0.
+const ALL_VERSIONS = '0.0.0';
+
+/** `since`: the notes after that version (after an update); null: the latest few (opened by hand). */
+async function render(since) {
   const { version, notes } = await invoke('get_release_notes', { since });
-  document.getElementById('wn-title').textContent = `Version ${version}`;
+  const all = since === ALL_VERSIONS;
+  document.getElementById('wn-title').textContent = all ? 'Historique des versions' : `Version ${version}`;
+  // Opened by hand: the rest of the changelog is one click away.
+  document.getElementById('wn-all').hidden = since !== null;
   // Several versions (skipped updates, or opened by hand): each gets its label.
   const labelled = notes.length > 1;
   document.getElementById('wn-notes').innerHTML = notes.length
@@ -62,9 +68,11 @@ async function init() {
       renderMarkdown(note.markdown),
     ].join('')).join('\n')
     : '<p>Pas de notes pour cette version.</p>';
+  document.getElementById('wn-notes').scrollTop = 0;
 }
 
+document.getElementById('wn-all').addEventListener('click', () => render(ALL_VERSIONS));
 document.getElementById('wn-close').addEventListener('click', () => getCurrentWindow().close());
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') getCurrentWindow().close(); });
 
-init();
+render(new URLSearchParams(window.location.search).get('since'));

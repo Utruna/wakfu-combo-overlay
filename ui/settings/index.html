@@ -33,6 +33,12 @@
         </a>
       </div>
 
+      <button type="button" class="recap-btn" id="open-recap">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15v-4"/><path d="M12 15V7"/><path d="M17 15v-6"/></svg>
+        <span class="grow">Récap des combats</span>
+        <span class="recap-new" id="recap-new" hidden>nouveau</span>
+      </button>
+
       <div class="grow"></div>
 
       <a href="#obs" class="status-card">
@@ -53,6 +59,10 @@
         <button type="button" class="link-btn" id="rerun-wizard">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 21 9-9"/><path d="M15 4V2"/><path d="M15 16v-2"/><path d="M8 9h2"/><path d="M20 9h2"/><path d="M17.8 11.8 19 13"/><path d="M17.8 6.2 19 5"/><path d="M12.2 6.2 11 5"/></svg>
           <span>Relancer l'assistant</span>
+        </button>
+        <button type="button" class="link-btn" id="open-changelog">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h5"/></svg>
+          <span>Nouveautés et historique</span>
         </button>
         <div class="version-row">
           <div class="version-text">
@@ -138,21 +148,24 @@
               <button type="button" data-value="turn">Du tour</button>
               <button type="button" data-value="fight">Du combat</button>
             </div>
-            <span class="help">Dégâts infligés depuis le premier sort du tour, ou depuis le début du combat pour chaque héros. À côté de l'icône de classe (dessous en vertical). Basculable aussi en jeu, d'un clic sur le petit interrupteur du compteur dans l'affichage tête haute.</span>
+            <span class="help">Dégâts infligés depuis le premier sort du tour, ou depuis le début du combat pour chaque héros, avec à côté les soins et l'armure qu'il a donnés (masqués tant qu'ils valent 0). À côté de l'icône de classe (dessous en vertical). Basculable aussi en jeu, depuis la barre de l'affichage tête haute.</span>
           </div>
 
           <div class="field">
             <div class="switch-row">
               <button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="lbl-ingame" id="ingame-enabled"><span></span></button>
-              <span id="lbl-ingame">Affichage tête haute (sans OBS)</span>
+              <span id="lbl-ingame" class="grow">Affichage tête haute (sans OBS)</span>
+              <button type="button" class="btn xs tuto-btn" id="open-hud-tuto">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+                <span>Tuto</span>
+              </button>
             </div>
-            <span class="help">L'overlay directement par-dessus Wakfu, les clics passent au travers. Wakfu doit être en fenêtré ou plein écran fenêtré.</span>
+            <span class="help">L'overlay directement par-dessus Wakfu, les clics passent au travers sauf sur sa barre : la poignée pour le déplacer, Tour / Combat et le récap. Wakfu doit être en fenêtré ou plein écran fenêtré.</span>
             <div class="ingame-options" id="ingame-options" hidden>
               <div class="switch-row">
                 <button type="button" class="switch" role="switch" aria-checked="true" aria-labelledby="lbl-ingame-wakfu" id="ingame-only-wakfu"><span></span></button>
                 <span id="lbl-ingame-wakfu">Seulement quand Wakfu est au premier plan</span>
               </div>
-              <button type="button" class="btn sm" id="ingame-edit">Déplacer / redimensionner</button>
             </div>
             <p class="error" id="ingame-error"></p>
           </div>
@@ -173,6 +186,10 @@
                       <div class="td-frame"></div>
                       <div class="td-fill"></div>
                       <div class="td-body"><span class="td-tag" id="pv-damage-tag">Tour</span><span class="td-value">87 412</span></div>
+                    </div>
+                    <div class="pv-support" id="pv-support">
+                      <div class="sp sp-heal"><div class="sp-frame"></div><div class="sp-fill"></div><div class="sp-body"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7-4.4-9.5-8.5C.5 9 2.5 5 6.5 5c2.2 0 3.6 1.2 5.5 3.2C13.9 6.2 15.3 5 17.5 5c4 0 6 4 4 7.5C19 16.6 12 21 12 21z"/></svg><span class="sp-value">12,4 k</span></div></div>
+                      <div class="sp sp-armor"><div class="sp-frame"></div><div class="sp-fill"></div><div class="sp-body"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l8 3v6c0 5-3.5 9.5-8 11-4.5-1.5-8-6-8-11V5z"/></svg><span class="sp-value">3 500</span></div></div>
                     </div>
                   </div>
                   <div class="pv-log" id="pv-log"></div>
@@ -309,7 +326,7 @@
           <span class="brand-name">Wakfu Combo</span>
         </div>
         <div class="page-title">
-          <h1 class="wizard-title">Prêt en trois étapes</h1>
+          <h1 class="wizard-title">Prêt en quatre étapes</h1>
           <p>Tout reste modifiable ensuite dans les réglages.</p>
         </div>
         <ol class="wizard-steps" id="wizard-steps"></ol>
@@ -319,7 +336,7 @@
       <div class="wizard-main">
         <section class="wizard-step" data-step="1">
           <div class="step-head">
-            <span class="eyebrow accent">Étape 1 sur 3</span>
+            <span class="eyebrow accent">Étape 1 sur 4</span>
             <h2>Quel personnage suivre ?</h2>
           </div>
           <div class="field tight narrow">
@@ -333,9 +350,34 @@
           <p class="error" id="wz-error"></p>
         </section>
 
-        <section class="wizard-step narrow-560" data-step="2" hidden>
+        <section class="wizard-step" data-step="2" hidden>
           <div class="step-head">
-            <span class="eyebrow accent">Étape 2 sur 3</span>
+            <span class="eyebrow accent">Étape 2 sur 4</span>
+            <h2>Tu streames ou tu joues ?</h2>
+            <p class="lead">Choisis où afficher tes sorts. Les deux peuvent marcher en même temps, et tu peux changer d'avis quand tu veux dans les réglages.</p>
+          </div>
+          <div class="mode-grid" role="radiogroup" aria-label="Où afficher les sorts" id="wz-modes">
+            <button type="button" class="mode-option" role="radio" aria-checked="false" data-mode="obs">
+              <span class="mode-icon">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.9 19.1a10 10 0 0 1 0-14.2"/><path d="M7.8 16.2a6 6 0 0 1 0-8.4"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8a6 6 0 0 1 0 8.4"/><path d="M19.1 4.9a10 10 0 0 1 0 14.2"/></svg>
+              </span>
+              <span class="mode-name">Mode streamer</span>
+              <span class="mode-text">Tes sorts apparaissent sur ton stream, dans une source navigateur d'<strong>OBS</strong>.</span>
+            </button>
+            <button type="button" class="mode-option" role="radio" aria-checked="false" data-mode="hud">
+              <span class="mode-icon">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4"/><path d="M8 10v4"/><path d="M15 13h.01"/><path d="M18 11h.01"/></svg>
+              </span>
+              <span class="mode-name">Mode joueur</span>
+              <span class="mode-text">Tes sorts apparaissent <strong>par-dessus Wakfu</strong>, sur ton écran. Pas besoin d'OBS.</span>
+            </button>
+          </div>
+          <p class="error" id="wz-mode-error"></p>
+        </section>
+
+        <section class="wizard-step narrow-560" data-step="3" data-mode="obs" hidden>
+          <div class="step-head">
+            <span class="eyebrow accent">Étape 3 sur 4</span>
             <h2>Ajoute l'overlay dans OBS</h2>
           </div>
           <ol class="big-steps">
@@ -358,11 +400,27 @@
           </div>
         </section>
 
-        <section class="wizard-step narrow-560" data-step="3" hidden>
+        <section class="wizard-step narrow-640" data-step="3" data-mode="hud" hidden>
           <div class="step-head">
-            <span class="eyebrow accent">Étape 3 sur 3</span>
+            <span class="eyebrow accent">Étape 3 sur 4</span>
+            <h2>L'affichage tête haute</h2>
+            <p class="lead">L'overlay s'affiche directement par-dessus Wakfu, en haut à droite de ton écran principal. Voici comment t'en servir.</p>
+          </div>
+          <div class="hud-activate">
+            <div class="switch-row">
+              <button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="lbl-wz-ingame" id="wz-ingame"><span></span></button>
+              <span id="lbl-wz-ingame">Affichage tête haute activé</span>
+            </div>
+            <p class="error" id="wz-ingame-error"></p>
+          </div>
+          <div id="wz-hud-tuto"></div>
+        </section>
+
+        <section class="wizard-step narrow-560" data-step="4" hidden>
+          <div class="step-head">
+            <span class="eyebrow accent">Étape 4 sur 4</span>
             <h2>Vérifie que tout s'affiche</h2>
-            <p class="lead">Envoie un sort factice, puis regarde ta scène OBS.</p>
+            <p class="lead" id="wz-test-lead"></p>
           </div>
           <button type="button" class="btn test-big" id="wz-test">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>
@@ -381,6 +439,65 @@
         </div>
       </div>
     </div>
+
+    <!-- ── Tuto de l'affichage tête haute ────────────────────────────── -->
+    <div class="modal" id="hud-tuto-modal" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="hud-tuto-title">
+        <div class="modal-head">
+          <div class="step-head">
+            <span class="eyebrow accent">Tuto</span>
+            <h2 id="hud-tuto-title">L'affichage tête haute</h2>
+          </div>
+          <button type="button" class="icon-btn" id="hud-tuto-close" aria-label="Fermer">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div id="modal-hud-tuto"></div>
+        <div class="modal-foot">
+          <button type="button" class="btn primary md" id="hud-tuto-ok">C'est compris</button>
+        </div>
+      </div>
+    </div>
+
+    <template id="hud-tuto-tpl">
+      <div class="hud-tuto">
+        <div class="tuto-scene" aria-hidden="true">
+          <span class="tuto-zone">Ton écran de jeu</span>
+          <div class="tuto-hud">
+            <div class="pv-overlay tuto-overlay" data-orientation="horizontal">
+              <div class="pv-lead-wrap">
+                <div class="pv-lead"></div>
+                <div class="pv-damage">
+                  <div class="td-frame"></div>
+                  <div class="td-fill"></div>
+                  <div class="td-body"><span class="td-tag">Tour</span><span class="td-value">87 412</span></div>
+                </div>
+                <div class="pv-support">
+                  <div class="sp sp-heal"><div class="sp-frame"></div><div class="sp-fill"></div><div class="sp-body"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7-4.4-9.5-8.5C.5 9 2.5 5 6.5 5c2.2 0 3.6 1.2 5.5 3.2C13.9 6.2 15.3 5 17.5 5c4 0 6 4 4 7.5C19 16.6 12 21 12 21z"/></svg><span class="sp-value">12,4 k</span></div></div>
+                  <div class="sp sp-armor"><div class="sp-frame"></div><div class="sp-fill"></div><div class="sp-body"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l8 3v6c0 5-3.5 9.5-8 11-4.5-1.5-8-6-8-11V5z"/></svg><span class="sp-value">3 500</span></div></div>
+                </div>
+              </div>
+              <div class="pv-log"></div>
+            </div>
+            <div class="tuto-bar">
+              <span class="tuto-handle" data-part="1"><span></span><span></span><span></span><span></span><span></span><span></span><b class="tuto-pin">1</b></span>
+              <span class="tuto-modes" data-part="2"><span class="on">Tour</span><span>Combat</span><b class="tuto-pin">2</b></span>
+              <span class="tuto-recap" data-part="3"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15v-4"/><path d="M12 15V7"/><path d="M17 15v-6"/></svg>Récap<b class="tuto-pin">3</b></span>
+            </div>
+          </div>
+        </div>
+        <ol class="big-steps tuto-steps">
+          <li data-part="1"><span class="num">1</span><span><strong>La poignée</strong> : maintiens le clic dessus et fais glisser pour placer l'affichage où tu veux. L'appli retient l'emplacement.</span></li>
+          <li data-part="2"><span class="num">2</span><span><strong>Tour / Combat</strong> : le compteur montre les dégâts du tour, ou le cumul du combat pour chaque héros. À côté, en rose et en vert, les soins et l'armure qu'il a donnés.</span></li>
+          <li data-part="3"><span class="num">3</span><span><strong>Récap</strong> : ouvre le récap des combats (dégâts, soins, meilleur tour…).</span></li>
+        </ol>
+        <ul class="tuto-notes">
+          <li>Le reste de la fenêtre laisse passer tes clics vers Wakfu : seule la barre capte la souris.</li>
+          <li>Wakfu doit être en <strong>fenêtré</strong> ou <strong>plein écran fenêtré</strong> : en plein écran exclusif, rien ne peut s'afficher par-dessus.</li>
+          <li>Par défaut, il ne s'affiche que quand Wakfu est au premier plan (réglable dans la page Affichage).</li>
+        </ul>
+      </div>
+    </template>
 
     <div class="toast" role="status" id="toast" hidden>
       <span id="toast-text"></span>

@@ -3,46 +3,83 @@
 //! players who don't stream. Opt-in, and the window only exists while it's
 //! on: like the settings window, its web view is most of what it costs.
 //!
-//! "Edit mode" gives it a title bar and borders for a while, to move and
-//! resize it; its place is remembered when it's locked again.
+//! Its one clickable spot is the page's control bar: a handle to drag the
+//! window around (its place is remembered), the counter's turn/fight switch
+//! and a button opening the fight recap. The page sizes the window to what
+//! the overlay can take up, its top-right corner staying put.
 //!
 //! By default it only shows while a Wakfu window ("Pseudo - WAKFU") — or one
 //! of the app's own — is in front, so it doesn't sit over everything else.
 //! It stays over a windowed or borderless game, not over exclusive fullscreen.
 
 use serde_json::{json, Value};
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::Duration;
 use tauri::menu::CheckMenuItem;
-use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent, Wry};
+use tauri::{AppHandle, Emitter, LogicalSize, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent, Wry};
 
 use crate::app_state::{AppState, SETTINGS_WINDOW};
 use crate::overlay_server::HudRect;
 
 pub const INGAME_WINDOW: &str = "ingame";
 
-/// Room for the longest default list; the page is transparent and lets
-/// clicks through, so a window larger than the overlay costs nothing.
+/// Until the page says how much room it needs (see `fit`).
 const DEFAULT_WIDTH: f64 = 400.0;
 const DEFAULT_HEIGHT: f64 = 640.0;
-/// Moves and resizes come in bursts while dragging: save once it settles.
-const SAVE_DELAY: Duration = Duration::from_millis(500);
 /// How often the window in front, and the mouse, are checked — often enough
-/// that the counter switch catches the mouse as soon as it's over it.
+/// that the control bar catches the mouse as soon as it's over it.
 const POLL_INTERVAL: Duration = Duration::from_millis(50);
-/// Extra room around the switch, in CSS pixels, so its edge isn't fiddly.
-const SWITCH_MARGIN: f64 = 2.0;
+/// How often the window follows the mouse while it's dragged.
+const DRAG_INTERVAL: Duration = Duration::from_millis(8);
+/// Extra room around the bar, in CSS pixels, so its edge isn't fiddly.
+const CONTROLS_MARGIN: f64 = 2.0;
 
-static EDITING: AtomicBool = AtomicBool::new(false);
-static SAVE_GENERATION: AtomicU64 = AtomicU64::new(0);
-/// Where the page last said its counter switch is (None: not shown).
-static SWITCH_RECT: Mutex<Option<HudRect>> = Mutex::new(None);
+static DRAGGING: AtomicBool = AtomicBool::new(false);
+/// Where the page last said its control bar is (None: not shown).
+static CONTROLS_RECT: Mutex<Option<HudRect>> = Mutex::new(None);
 
-/// The page reports where its counter switch is — the one spot of the window
+/// The page reports where its control bar is — the one spot of the window
 /// that takes clicks.
-pub fn set_switch_rect(rect: Option<HudRect>) {
-    *SWITCH_RECT.lock().unwrap() = rect;
+pub fn set_controls_rect(rect: Option<HudRect>) {
+    *CONTROLS_RECT.lock().unwrap() = rect;
+}
+
+/// Sizes the window to the room the overlay needs (CSS pixels), keeping its
+/// top-right corner where it is: the overlay is anchored there.
+pub fn fit(app: &AppHandle, width: f64, height: f64) {
+    let Some(window) = app.get_webview_window(INGAME_WINDOW) else { return };
+    let (Ok(pos), Ok(old), Ok(scale)) = (window.outer_position(), window.outer_size(), window.scale_factor()) else { return };
+    let new: PhysicalSize<u32> = LogicalSize::new(width.ceil(), height.ceil()).to_physical(scale);
+    if new == old {
+        return;
+    }
+    let right = pos.x + old.width as i32;
+    let _ = window.set_size(new);
+    let _ = window.set_position(PhysicalPosition::new(right - new.width as i32, pos.y));
+    save_geometry(&window);
+}
+
+/// The bar's handle was pressed: the window follows the mouse until its
+/// button is released, then stays there.
+pub fn start_drag(app: &AppHandle) {
+    let Some(window) = app.get_webview_window(INGAME_WINDOW) else { return };
+    if DRAGGING.swap(true, Ordering::Relaxed) {
+        return;
+    }
+    tauri::async_runtime::spawn(async move {
+        let start = (foreground::cursor_position(), window.outer_position());
+        if let (Some((start_x, start_y)), Ok(origin)) = start {
+            while foreground::left_button_down() {
+                if let Some((x, y)) = foreground::cursor_position() {
+                    let _ = window.set_position(PhysicalPosition::new(origin.x + x - start_x, origin.y + y - start_y));
+                }
+                tokio::time::sleep(DRAG_INTERVAL).await;
+            }
+            save_geometry(&window);
+        }
+        DRAGGING.store(false, Ordering::Relaxed);
+    });
 }
 
 /// The tray's "Affichage tête haute" item, kept in step with the setting.
@@ -73,7 +110,6 @@ pub fn status(app: &AppHandle) -> Value {
     json!({
         "enabled": is_enabled(app),
         "onlyOverWakfu": only_over_wakfu(app),
-        "editing": EDITING.load(Ordering::Relaxed),
         "online": online,
     })
 }
@@ -113,7 +149,6 @@ pub fn refresh(app: &AppHandle) {
     };
     match app.get_webview_window(INGAME_WINDOW) {
         Some(window) if online => {
-            set_editing(app, false);
             let _ = window.navigate(page_url(port));
         }
         Some(_) => close(app),
@@ -137,7 +172,6 @@ fn open(app: &AppHandle) {
     if !online {
         return;
     }
-    EDITING.store(false, Ordering::Relaxed);
     let built = WebviewWindowBuilder::new(app, INGAME_WINDOW, WebviewUrl::External(page_url(port)))
         .title("Wakfu Combo Overlay — tête haute")
         .inner_size(DEFAULT_WIDTH, DEFAULT_HEIGHT)
@@ -163,45 +197,39 @@ fn open(app: &AppHandle) {
     let _ = window.set_ignore_cursor_events(true);
     place(&window, &geometry);
 
-    let handle = window.clone();
-    window.on_window_event(move |event| match event {
-        WindowEvent::Moved(_) | WindowEvent::Resized(_) => schedule_save(&handle),
-        // Only "off" closes it (Alt+F4 while moving it, say, would leave
-        // the setting on with no window).
-        WindowEvent::CloseRequested { api, .. } => api.prevent_close(),
-        _ => {}
+    window.on_window_event(|event| {
+        // Only "off" closes it (Alt+F4, say, would leave the setting on with
+        // no window).
+        if let WindowEvent::CloseRequested { api, .. } = event {
+            api.prevent_close();
+        }
     });
     tauri::async_runtime::spawn(follow_foreground(app.clone()));
 }
 
 /// Shows the window while Wakfu is in front, hides it otherwise, and lets
-/// clicks through everywhere but on the counter switch — until the window is
+/// clicks through everywhere but on the control bar — until the window is
 /// closed.
 async fn follow_foreground(app: AppHandle) {
     // Whether the window currently catches the mouse (it starts click-through).
     let mut catching = false;
     while let Some(window) = app.get_webview_window(INGAME_WINDOW) {
         if let Ok(hwnd) = window.hwnd() {
-            let editing = EDITING.load(Ordering::Relaxed);
-            let show = !only_over_wakfu(&app) || editing || foreground::wakfu_or_settings_in_front(hwnd.0);
+            let dragging = DRAGGING.load(Ordering::Relaxed);
+            let show = !only_over_wakfu(&app) || dragging || foreground::wakfu_or_settings_in_front(hwnd.0);
             foreground::set_shown(hwnd.0, show);
-            if editing {
-                // Edit mode catches every click (see set_editing).
-                catching = true;
-            } else {
-                let over_switch = show && cursor_over_switch(&window);
-                if over_switch != catching {
-                    let _ = window.set_ignore_cursor_events(!over_switch);
-                    catching = over_switch;
-                }
+            let over_controls = show && (dragging || cursor_over_controls(&window));
+            if over_controls != catching {
+                let _ = window.set_ignore_cursor_events(!over_controls);
+                catching = over_controls;
             }
         }
         tokio::time::sleep(POLL_INTERVAL).await;
     }
 }
 
-fn cursor_over_switch(window: &WebviewWindow) -> bool {
-    let Some(rect) = *SWITCH_RECT.lock().unwrap() else { return false };
+fn cursor_over_controls(window: &WebviewWindow) -> bool {
+    let Some(rect) = *CONTROLS_RECT.lock().unwrap() else { return false };
     let (Some((cursor_x, cursor_y)), Ok(origin), Ok(scale)) =
         (foreground::cursor_position(), window.inner_position(), window.scale_factor())
     else {
@@ -210,37 +238,14 @@ fn cursor_over_switch(window: &WebviewWindow) -> bool {
     // Physical screen pixels -> the page's CSS pixels.
     let x = f64::from(cursor_x - origin.x) / scale;
     let y = f64::from(cursor_y - origin.y) / scale;
-    (rect.x - SWITCH_MARGIN..rect.x + rect.width + SWITCH_MARGIN).contains(&x)
-        && (rect.y - SWITCH_MARGIN..rect.y + rect.height + SWITCH_MARGIN).contains(&y)
+    (rect.x - CONTROLS_MARGIN..rect.x + rect.width + CONTROLS_MARGIN).contains(&x)
+        && (rect.y - CONTROLS_MARGIN..rect.y + rect.height + CONTROLS_MARGIN).contains(&y)
 }
 
 fn close(app: &AppHandle) {
-    set_editing(app, false);
     if let Some(window) = app.get_webview_window(INGAME_WINDOW) {
         let _ = window.destroy();
     }
-}
-
-/// Edit mode: title bar, borders, clicks caught, and sample casts so the
-/// overlay's extent shows. Locking again saves where it was left.
-pub fn set_editing(app: &AppHandle, editing: bool) {
-    let Some(window) = app.get_webview_window(INGAME_WINDOW) else {
-        EDITING.store(false, Ordering::Relaxed);
-        return;
-    };
-    if EDITING.swap(editing, Ordering::Relaxed) == editing {
-        return;
-    }
-    if !editing {
-        SAVE_GENERATION.fetch_add(1, Ordering::Relaxed);
-        save_geometry(&window);
-    }
-    let _ = window.set_decorations(editing);
-    let _ = window.set_ignore_cursor_events(!editing);
-    // No focus taken: the settings window keeps it, so its "lock" button
-    // answers the first click.
-    let _ = window.eval(format!("window.setIngameEditMode && window.setIngameEditMode({editing})"));
-    notify(app);
 }
 
 /// Back where it was left — unless that was on a monitor that's gone since,
@@ -269,21 +274,6 @@ fn on_screen(window: &WebviewWindow, x: i32, y: i32) -> bool {
     })
 }
 
-fn schedule_save(window: &WebviewWindow) {
-    // Placing the window on open moves it too: only the user's moves count.
-    if !EDITING.load(Ordering::Relaxed) {
-        return;
-    }
-    let generation = SAVE_GENERATION.fetch_add(1, Ordering::Relaxed) + 1;
-    let window = window.clone();
-    tauri::async_runtime::spawn(async move {
-        tokio::time::sleep(SAVE_DELAY).await;
-        if SAVE_GENERATION.load(Ordering::Relaxed) == generation {
-            save_geometry(&window);
-        }
-    });
-}
-
 fn save_geometry(window: &WebviewWindow) {
     let (Ok(pos), Ok(size)) = (window.outer_position(), window.outer_size()) else { return };
     let state = window.app_handle().state::<AppState>();
@@ -295,6 +285,7 @@ fn save_geometry(window: &WebviewWindow) {
 mod foreground {
     use std::ffi::c_void;
     use windows_sys::Win32::Foundation::POINT;
+    use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_LBUTTON};
     use windows_sys::Win32::UI::WindowsAndMessaging::{
         GetCursorPos, GetForegroundWindow, GetWindowTextW, GetWindowThreadProcessId, IsWindowVisible, ShowWindow, SW_HIDE,
         SW_SHOWNOACTIVATE,
@@ -332,6 +323,12 @@ mod foreground {
         let mut point = POINT { x: 0, y: 0 };
         // SAFETY: GetCursorPos only writes the POINT it's given.
         (unsafe { GetCursorPos(&mut point) } != 0).then_some((point.x, point.y))
+    }
+
+    /// Whether the (primary) mouse button is held, wherever the mouse is.
+    pub fn left_button_down() -> bool {
+        // SAFETY: a plain state query; the high bit means "down".
+        unsafe { GetAsyncKeyState(i32::from(VK_LBUTTON)) as u16 & 0x8000 != 0 }
     }
 
     pub fn set_shown(hwnd: *mut c_void, show: bool) {

@@ -42,6 +42,8 @@ use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
 
+use crate::fight_recap::{parse_tags, FightRecorder};
+
 fn re(pattern: &str) -> Regex {
     Regex::new(pattern).expect("valid regex")
 }
@@ -49,7 +51,12 @@ fn re(pattern: &str) -> Regex {
 static COMBAT_PREFIX: LazyLock<Regex> = LazyLock::new(|| re(r"\[Information\s+\(combat\)\]\s+(.*?)\s*$"));
 pub static CAST: LazyLock<Regex> = LazyLock::new(|| re(r"^(.+?)\s+lance\s+le\s+sort\s+(.+?)(?:\s*\(|$)"));
 // "-1 375 PV" — thousands are grouped with a space (\s also covers the no-break ones).
-static DAMAGE: LazyLock<Regex> = LazyLock::new(|| re(r"^(.+?):\s+-([0-9][0-9\s]*)\s+PV\b"));
+static DAMAGE: LazyLock<Regex> = LazyLock::new(|| re(r"^(.+?):\s+-([0-9][0-9\s]*)\s+PV\b(.*)$"));
+static HEAL: LazyLock<Regex> = LazyLock::new(|| re(r"^(.+?):\s+\+([0-9][0-9\s]*)\s+PV\b(.*)$"));
+static ARMOR: LazyLock<Regex> = LazyLock::new(|| re(r"^(.+?):\s+([0-9][0-9\s]*)\s+Armure\b(.*)$"));
+static CRITICAL: LazyLock<Regex> = LazyLock::new(|| re(r"\(Critiques\)\s*$"));
+// Written for each player just before a won fight ends.
+static XP_GAINED: LazyLock<Regex> = LazyLock::new(|| re(r"points\s+d'XP"));
 static INVOKE: LazyLock<Regex> = LazyLock::new(|| re(r"^(.+?):\s+Invoque\s+(?:un\(e\)\s+(.+?)\s*$)?"));
 static TURN_END: LazyLock<Regex> = LazyLock::new(|| {
     re(r"secondes\s+report[ée]es\s+pour\s+le\s+tour\s+suivant|^[^:]+:\s+Passe\s+son\s+tour")
@@ -73,6 +80,11 @@ const CAST_COPY_PROOF_MS: i64 = 150;
 // Housekeeping only: past this many tracked line groups, expired ones are swept.
 const MAX_GROUPS: usize = 500;
 
+/// "1 375" (thousands grouped with any kind of space) -> 1375.
+fn parse_amount(text: &str) -> u64 {
+    text.chars().filter(char::is_ascii_digit).collect::<String>().parse().unwrap_or(0)
+}
+
 /// Milliseconds since midnight from the "HH:MM:SS,mmm" stamp, or None.
 fn log_time_ms(line: &str) -> Option<i64> {
     let c = LOG_TIME.captures(line)?;
@@ -89,7 +101,16 @@ fn expired(at: i64, now: i64) -> bool {
 pub enum TurnUpdateKind {
     Start,
     Damage,
+    /// A heal or armour given by the fighter playing.
+    Support,
     End,
+}
+
+/// What an ally gives: heals, or armour.
+#[derive(Debug, Clone, Copy)]
+enum Support {
+    Heal,
+    Armor,
 }
 
 #[derive(Debug, Clone)]
@@ -102,6 +123,12 @@ pub struct TurnUpdate {
     pub fight_total: u64,
     /// The hit's amount, on `Damage` updates only.
     pub amount: Option<u64>,
+    /// Heals and armour this fighter gave, this turn and since the fight
+    /// started (see FightRecorder::heal for who gets them).
+    pub heal: u64,
+    pub fight_heal: u64,
+    pub armor: u64,
+    pub fight_armor: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -109,6 +136,8 @@ struct Turn {
     character_name: String,
     turn_id: u64,
     total: u64,
+    heal: u64,
+    armor: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -146,6 +175,8 @@ pub struct CombatTurnTracker {
     enemy_breeds: HashSet<String>,
     /// Fighter -> damage dealt this fight (summons count for their summoner).
     fight_totals: HashMap<String, u64>,
+    fight_heals: HashMap<String, u64>,
+    fight_armor: HashMap<String, u64>,
     /// Clients currently writing the feed.
     copies: u32,
     /// Cast message -> group, in insertion order (the order matters when
@@ -155,6 +186,8 @@ pub struct CombatTurnTracker {
     lone_cast: Option<String>,
     /// Any combat message -> group.
     line_groups: HashMap<String, LineGroup>,
+    /// What the "Récap des combats" window shows.
+    pub recorder: FightRecorder,
 }
 
 impl Default for CombatTurnTracker {
@@ -176,10 +209,13 @@ impl CombatTurnTracker {
             pending_summon: None,
             enemy_breeds: Self::default_enemy_breeds(),
             fight_totals: HashMap::new(),
+            fight_heals: HashMap::new(),
+            fight_armor: HashMap::new(),
             copies: 1,
             cast_groups: Vec::new(),
             lone_cast: None,
             line_groups: HashMap::new(),
+            recorder: FightRecorder::default(),
         }
     }
 
@@ -203,6 +239,7 @@ impl CombatTurnTracker {
     /// log (the configured heroes).
     pub fn process_line(&mut self, line: &str, is_ally: &dyn Fn(&str) -> bool) -> Vec<TurnUpdate> {
         let mut out = Vec::new();
+        self.recorder.set_clock(log_time_ms(line));
 
         if let Some(join) = FIGHTER_JOIN.captures(line) {
             let fight_id = &join[1];
@@ -212,9 +249,11 @@ impl CombatTurnTracker {
             if self.fight_id.as_deref() != Some(fight_id) {
                 self.fight_id = Some(fight_id.to_string());
                 self.forget_fighters();
+                self.recorder.start();
             }
             let pending = self.pending_summon.take();
             if !ai_controlled {
+                self.recorder.add_ally(&name);
                 self.allies.insert(name);
             } else {
                 let summoned_by_ally = pending.as_ref().is_some_and(|p| self.is_ally_fighter(&p.owner, is_ally));
@@ -253,26 +292,34 @@ impl CombatTurnTracker {
             self.close_turn(&mut out);
             return out;
         }
+        if XP_GAINED.is_match(message) {
+            self.recorder.victory();
+            return out;
+        }
 
         if let Some(cast) = CAST.captures(message) {
             let caster = cast[1].trim().to_string();
-            self.last_spell.insert(caster.clone(), cast[2].trim().to_string());
+            let spell = cast[2].trim().to_string();
+            self.last_spell.insert(caster.clone(), spell.clone());
             let actor = self.owner_of(&caster).unwrap_or_else(|| caster.clone());
-            if self.turn.as_ref().is_some_and(|t| t.character_name == actor) {
-                return out;
+            if !self.turn.as_ref().is_some_and(|t| t.character_name == actor) {
+                self.close_turn(&mut out);
+                let carried = self.last_turn.take().filter(|t| actor != caster && t.character_name == actor);
+                self.turn = Some(match carried {
+                    // A summon playing right after its summoner: same turn, same total.
+                    Some(turn) => turn,
+                    None => {
+                        let turn_id = self.next_turn_id;
+                        self.next_turn_id += 1;
+                        Turn { character_name: actor.clone(), turn_id, total: 0, heal: 0, armor: 0 }
+                    }
+                });
+                self.emit(&mut out, TurnUpdateKind::Start, None);
             }
-            self.close_turn(&mut out);
-            let carried = self.last_turn.take().filter(|t| actor != caster && t.character_name == actor);
-            self.turn = Some(match carried {
-                // A summon playing right after its summoner: same turn, same total.
-                Some(turn) => turn,
-                None => {
-                    let turn_id = self.next_turn_id;
-                    self.next_turn_id += 1;
-                    Turn { character_name: actor, turn_id, total: 0 }
-                }
-            });
-            self.emit(&mut out, TurnUpdateKind::Start, None);
+            let turn_id = self.turn.as_ref().map_or(0, |t| t.turn_id);
+            let summoning_spell = self.summoning_spell_of(&caster);
+            let crit = CRITICAL.is_match(message);
+            self.recorder.cast(&actor, turn_id, &caster, &spell, crit, summoning_spell);
             return out;
         }
 
@@ -293,29 +340,74 @@ impl CombatTurnTracker {
         }
 
         if let Some(damage) = DAMAGE.captures(message) {
-            let Some(turn_owner) = self.turn.as_ref().map(|t| t.character_name.clone()) else {
-                return out;
-            };
             let target = damage[1].trim();
-            let amount: u64 = damage[2]
-                .chars()
-                .filter(char::is_ascii_digit)
-                .collect::<String>()
-                .parse()
-                .unwrap_or(0);
+            let amount = parse_amount(&damage[2]);
             if amount == 0 {
                 return out;
             }
+            let turn_owner = self.turn.as_ref().map(|t| t.character_name.clone());
+            let owner_is_ally = turn_owner.as_deref().is_some_and(|owner| self.is_ally(owner, is_ally));
+            let target_is_ally = self.is_ally(target, is_ally);
+            // Taken from the other side (a monster's turn, or a delayed hit
+            // landing between turns) — not an ally's own friendly fire.
+            if target_is_ally && !owner_is_ally {
+                let hurt = self.owner_of(target).unwrap_or_else(|| target.to_string());
+                self.recorder.taken(&hurt, amount);
+            }
+            let Some(turn_owner) = turn_owner else {
+                return out;
+            };
             // Friendly fire only counts against allies hitting allies; a
             // monster hurting a player is that monster's damage.
-            if self.is_ally(&turn_owner, is_ally) && self.is_ally(target, is_ally) {
+            if owner_is_ally && target_is_ally {
                 return out;
             }
+            let turn_id = self.turn.as_ref().map_or(0, |t| t.turn_id);
+            self.recorder.hit(&turn_owner, turn_id, target, amount, parse_tags(&damage[3]), owner_is_ally);
             if let Some(turn) = self.turn.as_mut() {
                 turn.total += amount;
             }
             *self.fight_totals.entry(turn_owner).or_insert(0) += amount;
             self.emit(&mut out, TurnUpdateKind::Damage, Some(amount));
+            return out;
+        }
+
+        // Effects named during an ally's turn are that ally's (see FightRecorder::heal).
+        let ally_turn = self
+            .turn
+            .as_ref()
+            .filter(|t| self.is_ally(&t.character_name, is_ally))
+            .map(|t| (t.character_name.clone(), t.turn_id));
+        if let Some((owner, _)) = &ally_turn {
+            if let Some(effect) = parse_tags(message).source {
+                self.recorder.observe_effect(&effect, owner);
+            }
+        }
+
+        if let Some(heal) = HEAL.captures(message) {
+            // Allies healed (not a monster healed by a bounce).
+            let target = heal[1].trim();
+            if self.is_ally(target, is_ally) {
+                let healed = self.owner_of(target).unwrap_or_else(|| target.to_string());
+                let turn = ally_turn.as_ref().map(|(owner, id)| (owner.as_str(), *id));
+                let amount = parse_amount(&heal[2]);
+                if let Some(healer) = self.recorder.heal(turn, &healed, target, amount, parse_tags(&heal[3])) {
+                    self.add_support(&mut out, Support::Heal, &healer, amount);
+                }
+            }
+            return out;
+        }
+
+        if let Some(armor) = ARMOR.captures(message) {
+            let target = armor[1].trim();
+            if self.is_ally(target, is_ally) {
+                let gainer = self.owner_of(target).unwrap_or_else(|| target.to_string());
+                let turn = ally_turn.as_ref().map(|(owner, id)| (owner.as_str(), *id));
+                let amount = parse_amount(&armor[2]);
+                if let Some(giver) = self.recorder.armor(turn, &gainer, target, amount, parse_tags(&armor[3])) {
+                    self.add_support(&mut out, Support::Armor, &giver, amount);
+                }
+            }
         }
         out
     }
@@ -440,10 +532,29 @@ impl CombatTurnTracker {
         self.last_turn = None;
         self.enemy_breeds = Self::default_enemy_breeds();
         self.fight_totals.clear();
+        self.fight_heals.clear();
+        self.fight_armor.clear();
+    }
+
+    /// A heal or armour credited to `giver`: its fight total, and the turn's
+    /// counter when it's the one playing.
+    fn add_support(&mut self, out: &mut Vec<TurnUpdate>, kind: Support, giver: &str, amount: u64) {
+        let fight = match kind {
+            Support::Heal => &mut self.fight_heals,
+            Support::Armor => &mut self.fight_armor,
+        };
+        *fight.entry(giver.to_string()).or_insert(0) += amount;
+        let Some(turn) = self.turn.as_mut().filter(|t| t.character_name == giver) else { return };
+        match kind {
+            Support::Heal => turn.heal += amount,
+            Support::Armor => turn.armor += amount,
+        }
+        self.emit(out, TurnUpdateKind::Support, None);
     }
 
     fn end_fight(&mut self, out: &mut Vec<TurnUpdate>) {
         self.close_turn(out);
+        self.recorder.finish();
         self.fight_id = None;
         self.forget_fighters();
     }
@@ -457,6 +568,10 @@ impl CombatTurnTracker {
                 total: turn.total,
                 fight_total: self.fight_totals.get(&turn.character_name).copied().unwrap_or(0),
                 amount,
+                heal: turn.heal,
+                fight_heal: self.fight_heals.get(&turn.character_name).copied().unwrap_or(0),
+                armor: turn.armor,
+                fight_armor: self.fight_armor.get(&turn.character_name).copied().unwrap_or(0),
             });
         }
     }

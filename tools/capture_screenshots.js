@@ -1,6 +1,7 @@
 /**
  * tools/capture_screenshots.js
- * Regenerates the README screenshots (doc/app-*.png, doc/overlay-rendu.png).
+ * Regenerates the README screenshots (doc/app-*.png, doc/overlay-rendu.png):
+ * settings, fight recap, release notes and in-game window.
  *
  * The overlay is the real app's, running on an isolated demo profile (fake
  * heroes, fake wakfu.log, port 3499 — see demo_app.js). The settings page is
@@ -8,7 +9,8 @@
  * demo_settings_preload.js, fed the same demo profile.
  *
  * Usage: npx --yes electron@44 tools/capture_screenshots.js
- * (release build first; from a VS Code terminal, unset ELECTRON_RUN_AS_NODE)
+ * (release build first; from a VS Code terminal, unset ELECTRON_RUN_AS_NODE;
+ * if captures keep failing with UnknownVizError, add --disable-gpu)
  */
 
 'use strict';
@@ -55,7 +57,17 @@ const cast = (who, spell) => combat(`${who} lance le sort ${spell}`);
 async function shot(win, name, js) {
   if (js) await win.webContents.executeJavaScript(js);
   await wait(800);
-  const img = await win.webContents.capturePage();
+  // Chromium sometimes refuses a capture (UnknownVizError): try again.
+  let img;
+  for (let attempt = 1; !img; attempt += 1) {
+    try {
+      img = await win.webContents.capturePage();
+    } catch (err) {
+      if (attempt === 5) throw err;
+      win.show();
+      await wait(1000);
+    }
+  }
   fs.writeFileSync(path.join(OUT, name), img.toPNG());
   console.log('[capture] wrote', name, img.getSize());
 }
@@ -126,7 +138,48 @@ app.whenReady().then(async () => {
     const n = document.getElementById('wz-name'); n.value = 'Lueur Ocre'; n.dispatchEvent(new Event('input'));
     [...document.querySelectorAll('#wz-classes [role=radio], #wz-classes button')].find((b) => /iop/i.test(b.textContent + (b.dataset.value||'') + (b.getAttribute('aria-label')||'')))?.click();
   `);
-  await shot(win, 'app-0-assistant-2.png', "document.getElementById('wz-next').click()");
+  await shot(win, 'app-0-assistant-2.png', `
+    document.getElementById('wz-next').click();
+    setTimeout(() => document.querySelector('#wz-modes [data-mode=hud]').click(), 300);
+  `);
+  await shot(win, 'app-0-assistant-3.png', "document.getElementById('wz-next').click()");
+
+  // The other windows, with the same stand-in commands (demo fights, release notes).
+  const page = async (file, width, height) => {
+    const w = new BrowserWindow({
+      width, height, useContentSize: true, backgroundColor: '#131a1e', autoHideMenuBar: true,
+      webPreferences: {
+        preload: path.join(__dirname, 'demo_settings_preload.js'),
+        contextIsolation: false, sandbox: false, nodeIntegration: false,
+      },
+    });
+    await w.loadFile(path.join(REPO, 'ui', file));
+    await wait(1200);
+    return w;
+  };
+  // Opens a hero's row in the recap, then hovers its best turn's `n`th spell.
+  const openHero = (name, n) => `
+    [...document.querySelectorAll('.rc-row-btn')].find((b) => b.getAttribute('aria-label').startsWith('${name} :')).click();
+    document.querySelectorAll('.rc-detail .rc-spells button')[${n}]?.dispatchEvent(new MouseEvent('mouseenter'));
+  `;
+  const recapWin = await page(path.join('recap', 'index.html'), 1200, 820);
+  await shot(recapWin, 'app-5-recap.png', openHero('Lueur Pourpre', 1));
+  await shot(recapWin, 'app-6-recap-soins.png', `
+    [...document.querySelectorAll('[role=tab]')].find((b) => b.textContent.includes('Soins')).click();
+    ${openHero('Lueur Grenat', 0)}
+  `);
+  await shot(await page(path.join('whatsnew', 'index.html'), 560, 600), 'app-7-nouveautes.png');
+
+  // The in-game window: the overlay page as the app shows it (`?ingame`),
+  // sized like the app sizes it, over a stand-in for the game.
+  const hudWin = new BrowserWindow({ width: 600, height: 300, useContentSize: true, show: false });
+  await hudWin.loadURL(`http://localhost:${PORT}/?ingame`);
+  await wait(1500);
+  const room = await hudWin.webContents.executeJavaScript('hudRoom()');
+  hudWin.setContentSize(room.width + 120, room.height);
+  await shot(hudWin, 'app-8-tete-haute.png', `
+    document.documentElement.style.background = 'radial-gradient(90% 120% at 30% 80%, #1d2a22, #0e1412 75%)';
+  `);
 
   demoApp.kill();
   app.exit(0);

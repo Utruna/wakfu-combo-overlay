@@ -1,8 +1,44 @@
-## v2.2.1
+## v2.3.0
+
+### Nouveau : récap des combats
+
+Une nouvelle fenêtre revient sur chaque combat de la session : qui a fait quoi, et comment.
+
+- Ouvre-la avec le bouton **Récap des combats** des réglages, depuis le menu de l'icône de l'appli, ou avec le bouton **Récap** de l'affichage tête haute. Un badge « nouveau » signale un combat que tu n'as pas encore regardé.
+- Pour chaque combat : les adversaires, la durée, le nombre de tours, la victoire, et le classement de tes héros en **Dégâts**, **Soins**, **Armure** ou **Dégâts subis**.
+- Clique sur un héros pour voir son **meilleur tour** avec les sorts lancés : survole un sort pour voir ce qu'il a fait, coup par coup et cible par cible. Tu as aussi le total de chaque sort sur le combat (les sorts sans dégâts, comme les buffs et invocations, sont listés en grisé à la fin), la répartition par élément, et ses soins, son armure et ses dégâts subis.
+- Dans l'onglet **Soins**, tout passe aux soins : meilleur tour de soins, soins par sort et personnes soignées. Les soins qui ne viennent pas d'un sort (vol de vie, marques, passifs) sont comptés à part, sous leur nom. L'onglet **Armure** fait de même pour l'armure donnée : elle compte pour celui qui la donne (une Faille qui protège deux alliés compte pour son lanceur), avec les alliés protégés.
+- Le récap se remplit en direct pendant le combat. L'interrupteur **Autres joueurs du groupe** affiche aussi les joueurs que tu ne suis pas.
+
+Pour t'y retrouver dans tes combats :
+
+- **Chercher un monstre**, au-dessus de la liste, propose les monstres rencontrés dans une liste déroulante et ne garde que les combats où ce monstre était présent (majuscules et accents ignorés).
+- **Sauvegarder**, à droite des onglets, garde le combat affiché même après la fermeture de l'appli. Les combats sauvegardés des sessions précédentes s'affichent sous **Sauvegardés**, avec leur date.
+- Survole un combat terminé pour faire apparaître sa **corbeille**. Un second clic sur « Supprimer ? » le retire du récap (et du disque s'il était sauvegardé).
+
+Le jeu n'indique pas quel sort a fait quels dégâts : l'appli attribue chaque coup au sort lancé juste avant, ou au sort que le jeu nomme quand il le fait. Les soins et l'armure comptent pour celui qui les donne. Un soin sur un allié déjà plein de vie (« +0 PV » dans le jeu) ne compte pas. Les combats sont gardés jusqu'à ce que tu quittes l'appli, sauf ceux que tu sauvegardes.
+
+### Nouveau : compteurs de soins et d'armure
+
+À côté du compteur de dégâts, deux petits compteurs montrent les **soins** (rose) et l'**armure** (vert) que le héros a donnés, dans OBS comme dans l'affichage tête haute. Ils suivent le réglage **Tour / Combat** et restent masqués tant qu'ils valent 0.
+
+Soins et armure comptent pour celui qui les donne : le héros qui joue, le propriétaire d'une marque ou d'un passif (« Marque Husse », « Radiance »…), et le vol de vie pour celui qui se soigne. **Pense à agrandir ta source OBS** : en horizontal, elle gagne environ 90 px de large (854 × 130 au lieu de 766 × 130 pour 8 sorts à 48 px), et en vertical environ 60 px de haut. La taille exacte s'affiche dans la page Affichage et dans l'assistant.
+
+### Affichage tête haute : nouvelle barre de contrôle
+
+- Sous l'overlay, une petite barre réunit tout ce qui se clique : une **poignée** pour déplacer la fenêtre en la faisant glisser, **Tour / Combat** pour le compteur, et **Récap**. Le reste de la fenêtre laisse toujours passer les clics vers Wakfu.
+- La fenêtre prend toute seule la bonne taille selon tes réglages d'affichage, avec de la marge, pour que rien ne soit jamais coupé. Le mode « Déplacer / redimensionner » des réglages disparaît.
+
+### Assistant : mode streamer ou mode joueur
+
+- L'assistant de premier lancement te demande maintenant comment tu utilises l'appli. En **mode streamer**, il t'aide à ajouter l'overlay dans OBS, comme avant. En **mode joueur**, il active l'affichage tête haute et te montre comment t'en servir.
+- Ce tuto de l'affichage tête haute reste disponible avec le bouton **Tuto**, à côté de son interrupteur dans la page Affichage.
 
 ### Nouveau : fenêtre des nouveautés
 
-Après chaque mise à jour, une petite fenêtre présente ce qui a changé, à l'ouverture des réglages. Tu peux la rouvrir quand tu veux en cliquant sur le numéro de version en bas des réglages, ou depuis **Nouveautés** dans le menu de l'icône de l'appli.
+Après chaque mise à jour, une petite fenêtre présente ce qui a changé, à l'ouverture des réglages. Tu peux la rouvrir quand tu veux avec **Nouveautés et historique** en bas des réglages (ou en cliquant sur le numéro de version), ou depuis **Nouveautés** dans le menu de l'icône de l'appli. **Voir tout l'historique des versions** affiche le changelog complet.
+
+Dans OBS, pense à actualiser la source navigateur après la mise à jour.
 
 ## v2.2.0
 

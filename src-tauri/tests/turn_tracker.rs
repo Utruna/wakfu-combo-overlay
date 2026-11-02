@@ -399,3 +399,46 @@ fn a_new_fight_forgets_the_previous_fights_allies() {
     assert!(!run.tracker.is_ally("Lueur Pourpre", &no_extra_allies));
     assert!(!run.tracker.is_ally("Bombe Paralysante", &no_extra_allies));
 }
+
+#[test]
+fn counts_the_heals_and_armour_the_player_gives() {
+    let lines = [
+        join("Lueur Grenat", false),
+        join("Lueur Etherique", false),
+        join("Sac à patates", true),
+        combat("Lueur Grenat lance le sort Revitalisation"),
+        combat("Lueur Etherique: +5 561 PV (Eau)"),
+        combat("Lueur Grenat: +3 569 PV (Eau)"),
+        combat("Lueur Etherique: +0 PV (Eau)"),
+        combat("30 secondes reportées pour le tour suivant."),
+        combat("Lueur Etherique lance le sort Faille"),
+        // Given to an ally and to herself: both Etherique's.
+        combat("Lueur Grenat: 1 732 Armure"),
+        combat("Lueur Etherique: 1 732 Armure"),
+        combat("Lueur Etherique: +700 PV (Neutre - Vol de vie)"),
+        combat("30 secondes reportées pour le tour suivant."),
+        // (Not the same line again: it would pass for another client's copy.)
+        combat("Lueur Grenat lance le sort Mot de régénération"),
+        combat("Lueur Etherique: +1 000 PV (Eau)"),
+    ];
+    let run = track_with(&lines, &lueur);
+    let support: Vec<(String, u64, u64, u64, u64)> = run
+        .events
+        .iter()
+        .filter(|e| e.kind == TurnUpdateKind::Support)
+        .map(|e| (e.character_name.clone(), e.heal, e.fight_heal, e.armor, e.fight_armor))
+        .collect();
+    let s = |n: &str, h, fh, a, fa| (n.to_string(), h, fh, a, fa);
+    assert_eq!(
+        support,
+        [
+            s("Lueur Grenat", 5561, 5561, 0, 0),
+            s("Lueur Grenat", 9130, 9130, 0, 0),
+            s("Lueur Etherique", 0, 0, 1732, 1732),
+            s("Lueur Etherique", 0, 0, 3464, 3464),
+            s("Lueur Etherique", 700, 700, 3464, 3464),
+            // A new turn starts from 0; the fight goes on adding up.
+            s("Lueur Grenat", 1000, 10130, 0, 0),
+        ]
+    );
+}

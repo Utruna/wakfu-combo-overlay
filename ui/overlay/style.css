@@ -304,6 +304,80 @@ body {
   100%     { opacity: 1; transform: scale(1); }
 }
 
+/* Heals (pink) and armour (green) the hero gave: two small frames beside the
+   counter (horizontal) or under it (vertical). Each stays invisible while at
+   0, its room kept so nothing shifts. */
+#support {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: calc(4px * var(--k));
+}
+#support[hidden] { display: none; }
+#combo-overlay[data-orientation="vertical"] #support { gap: calc(6px * var(--k)); }
+.sp {
+  --sp-cut: max(4px, calc(6px * var(--k)));
+  position: relative;
+  filter: drop-shadow(0 0 3px rgba(var(--sp-rgb), 0.3));
+}
+.sp.empty { visibility: hidden; }
+.sp-heal { --sp-rgb: 255, 92, 138; --sp-light: 255, 184, 203; }
+.sp-armor { --sp-rgb: 52, 210, 123; --sp-light: 174, 242, 202; }
+#combo-overlay[data-orientation="horizontal"] .sp {
+  /* Both together as tall as the counter. */
+  height: calc((var(--icon-size) + 12px - 4px * var(--k)) / 2);
+  min-width: calc(80px * var(--k));
+}
+#combo-overlay[data-orientation="vertical"] .sp {
+  height: calc(24px * var(--k));
+  min-width: calc(88px * var(--k));
+}
+.sp-frame, .sp-fill { position: absolute; pointer-events: none; }
+.sp-frame {
+  inset: 0;
+  clip-path: polygon(var(--sp-cut) 0, calc(100% - var(--sp-cut)) 0, 100% var(--sp-cut), 100% calc(100% - var(--sp-cut)),
+    calc(100% - var(--sp-cut)) 100%, var(--sp-cut) 100%, 0 calc(100% - var(--sp-cut)), 0 var(--sp-cut));
+  background: linear-gradient(135deg, rgb(var(--sp-light)), rgb(var(--sp-rgb)) 50%, rgb(var(--sp-light)));
+}
+.sp-fill {
+  --cut: calc(var(--sp-cut) - 1px);
+  inset: 2px;
+  clip-path: polygon(var(--cut) 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%, var(--cut) 100%, 0 calc(100% - var(--cut)), 0 var(--cut));
+  background: radial-gradient(120% 160% at 100% 0%, rgba(var(--sp-rgb), 0.3), rgba(10, 12, 16, 0.94) 62%);
+}
+.sp-body {
+  position: relative;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 0 calc(8px * var(--k));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+.sp-body svg {
+  width: max(9px, calc(12px * var(--k)));
+  height: max(9px, calc(12px * var(--k)));
+  flex-shrink: 0;
+  color: rgb(var(--sp-light));
+}
+.sp-value {
+  font: 700 max(9px, calc(13px * var(--k))) / 1 'IBM Plex Sans', system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  color: #f4f4f6;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+/* Each gain flares the frame, like a hit on the counter. */
+.sp.gain { animation: sp-glow 0.56s ease-out; }
+@keyframes sp-glow {
+  from { filter: drop-shadow(0 0 12px rgba(var(--sp-rgb), 0.85)); }
+  to   { filter: drop-shadow(0 0 3px rgba(var(--sp-rgb), 0.3)); }
+}
+/* New turn: they fold away and come back with the counter. */
+#support.swap .sp-body { animation: td-swap 0.6s ease-out; }
+
 /* "+N" — rises off the frame (horizontal), drops below it (vertical). */
 .td-hit {
   position: absolute;
@@ -320,7 +394,8 @@ body {
 }
 #combo-overlay[data-orientation="horizontal"][data-class-icon-side="left"] .td-hit { right: auto; left: calc(12px * var(--k)); }
 #combo-overlay[data-orientation="vertical"] .td-hit {
-  top: 100%;
+  /* Below the heal and armour frames hanging under the counter. */
+  top: calc(100% + var(--support-room, 0px));
   left: 50%;
   margin-top: 6px;
   font-size: max(9px, calc(13px * var(--k)));
@@ -406,55 +481,44 @@ body {
   flex-shrink: 0;
 }
 
-/* ── In-game window: the counter's turn/fight switch (client.js) ──────
-   Straddles the frame's bottom edge, so it takes no room of its own. It's
-   the only spot of the window that takes clicks; the rest goes to the game. */
+/* ── In-game window: the control bar (client.js) ──────────────────────
+   Under the overlay, right-aligned with it: the window's only clickable
+   spot. It sits at the bottom of the room the overlay can take up (the
+   window is sized to it), so it never moves while casts come and go. */
 
-.td-switch {
-  position: absolute;
-  left: 50%;
-  bottom: -8px;
-  width: 26px;
-  height: 14px;
-  transform: translateX(-50%);
-  border: 1px solid rgb(var(--td-light));
-  border-radius: 7px;
-  background: rgba(10, 12, 16, 0.94);
-  cursor: pointer;
-  opacity: 0.75;
-  transition: opacity 0.15s, box-shadow 0.15s;
-}
-.td-switch:hover { opacity: 1; box-shadow: 0 0 6px rgba(var(--td-rgb), 0.9); }
-.td-switch-knob {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: rgb(var(--td-light));
-  transition: transform 0.2s ease-out;
-}
-.td-switch[aria-checked="true"] .td-switch-knob { transform: translateX(12px); }
-
-/* Vertical: the "+N" drops below the frame, past the switch. */
-html.hud #combo-overlay[data-orientation="vertical"] .td-hit { margin-top: 12px; }
-
-/* ── In-game window, while it's being moved (see setIngameEditMode) ── */
-
-html.ingame-edit body {
-  background: rgba(10, 12, 16, 0.6);
-  outline: 2px dashed rgba(255, 255, 255, 0.55);
-  outline-offset: -2px;
-}
-
-html.ingame-edit body::after {
-  content: 'Déplace la fenêtre par sa barre de titre, redimensionne-la par ses bords, puis verrouille-la dans les réglages.';
+#hud-bar {
   position: fixed;
-  left: 12px;
-  right: 12px;
-  bottom: 12px;
-  color: var(--text);
-  font: 500 12px / 1.4 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
-  text-align: center;
+  bottom: 16px;
+  right: 16px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 10px;
+  background: rgba(10, 14, 16, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font: 600 12px 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+  user-select: none;
 }
+.hud-handle {
+  display: grid;
+  grid-template-columns: repeat(2, 3px);
+  gap: 3px;
+  padding: 4px 6px;
+  cursor: grab;
+}
+.hud-handle span { width: 3px; height: 3px; border-radius: 50%; background: #6f8089; }
+.hud-handle:hover span { background: #c3cfd4; }
+.hud-modes { display: flex; padding: 2px; gap: 2px; border-radius: 7px; background: rgba(255, 255, 255, 0.06); }
+.hud-modes button {
+  height: 24px; padding: 0 10px; border-radius: 5px; border: none;
+  background: transparent; color: #8fa1a9; font: inherit; cursor: pointer;
+}
+.hud-modes button:hover { color: #e8eef0; }
+.hud-modes button[aria-checked="true"] { background: #2a3a42; color: #e8eef0; }
+.hud-recap {
+  display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px;
+  border-radius: 7px; border: none; background: #43d1c1; color: #062522; font: inherit; font-weight: 700; cursor: pointer;
+}
+.hud-recap:hover { background: #5adbcc; }

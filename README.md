@@ -3,7 +3,7 @@
 [![Téléchargements totaux](https://img.shields.io/github/downloads/utruna/wakfu-combo-overlay/total?label=T%C3%A9l%C3%A9chargements%20totaux&color=4a90e2)](https://github.com/utruna/wakfu-combo-overlay/releases)
 [![Dernière release](https://img.shields.io/github/v/release/utruna/wakfu-combo-overlay?label=Derni%C3%A8re%20release&color=7c4dff)](https://github.com/utruna/wakfu-combo-overlay/releases/latest)
 
-Affiche en direct sur ton stream les sorts lancés par tes personnages Wakfu, sous forme d'icônes qui défilent dans OBS. Tu ne streames pas ? L'**affichage tête haute** les montre directement par-dessus le jeu.
+Affiche en direct sur ton stream les sorts lancés par tes personnages Wakfu, sous forme d'icônes qui défilent dans OBS. Tu ne streames pas ? L'**affichage tête haute** les montre directement par-dessus le jeu. Après chaque combat, le **récap des combats** te montre qui a fait quoi : dégâts, soins, meilleur tour, sort par sort.
 
 ![L'overlay en combat : sorts des héros et compteur de dégâts du tour](doc/overlay-demo.gif)
 
@@ -20,6 +20,7 @@ L'application lit les logs de combat du client Wakfu en temps réel. Elle ne gar
 - [Régler l'affichage](#régler-laffichage)
 - [Configurer OBS](#configurer-obs)
 - [Affichage tête haute (sans OBS)](#affichage-tête-haute-sans-obs)
+- [Récap des combats](#récap-des-combats)
 - [Vérifier que tout tourne](#vérifier-que-tout-tourne)
 - [Dépannage](#dépannage)
 - [Développement](#développement)
@@ -33,15 +34,20 @@ L'application lit les logs de combat du client Wakfu en temps réel. Elle ne gar
 
 Tu avais une version 1.x ? L'installeur la désinstalle tout seul et reprend tes réglages (héros, affichage, port, lancement avec Windows) : rien à refaire, ni dans l'appli ni dans OBS.
 
-Au premier lancement, un **assistant en trois étapes** te guide :
+Au premier lancement, un **assistant en quatre étapes** te guide :
 
 ![Assistant — étape 1 : choisir le personnage](doc/app-0-assistant-1.png)
 
 1. **Ton personnage** : saisis son **nom exact en jeu** et choisis sa **classe**.
-2. **Ajouter à OBS** : l'assistant te donne le lien à coller et la taille de la source, puis t'indique quand OBS est bien connecté.
-3. **Tester** : envoie un sort factice et vérifie qu'il apparaît dans ta scène OBS.
+2. **Stream ou jeu** : choisis le **mode streamer** (les sorts sur ton stream, dans OBS) ou le **mode joueur** (les sorts par-dessus Wakfu, sur ton écran, sans OBS).
+3. Selon ton choix :
+   - **Ajouter à OBS** : l'assistant te donne le lien à coller et la taille de la source, puis t'indique quand OBS est bien connecté ;
+   - **Affichage tête haute** : l'assistant l'active et te montre en un coup d'œil comment t'en servir.
+4. **Tester** : envoie un sort factice et vérifie qu'il apparaît, dans ta scène OBS ou en haut à droite de ton écran.
 
-![Assistant — étape 2 : ajouter l'overlay dans OBS](doc/app-0-assistant-2.png)
+![Assistant — étape 2 : mode streamer ou mode joueur](doc/app-0-assistant-2.png)
+
+![Assistant — étape 3 en mode joueur : le tuto de l'affichage tête haute](doc/app-0-assistant-3.png)
 
 Tu peux passer l'assistant et tout configurer à la main. Tu peux aussi le relancer plus tard avec **Relancer l'assistant**, en bas de la barre latérale.
 
@@ -75,20 +81,21 @@ Chaque réglage s'applique tout de suite à l'overlay, et l'**aperçu** à droit
 - **Taille des icônes** : de 16 à 128 px. Les icônes du jeu font 32 px : au-delà, elles sont agrandies en pixel art net, sans flou.
 - **Durée d'affichage d'un sort** : de 1 à 60 s (6 s par défaut).
 - **Nombre max de sorts visibles** : quand la limite est atteinte, le plus ancien disparaît.
-- **Compteur de dégâts du tour** : cumul des dégâts infligés depuis le premier sort du tour, avec un « +N » à chaque coup. Il s'affiche à côté de l'icône de classe (dessous en vertical), à la couleur du héros. Les bombes du Roublard et les coups des invocations sont comptés ; le tir allié ne l'est pas. Activé par défaut.
+- **Compteur de dégâts** : cumul des dégâts infligés, avec un « +N » à chaque coup. **Du tour** compte depuis le premier sort du tour, **Du combat** additionne tout le combat pour chaque héros (il repart de zéro au combat suivant). Il s'affiche à côté de l'icône de classe (dessous en vertical), à la couleur du héros. Les bombes du Roublard et les coups des invocations sont comptés ; le tir allié ne l'est pas. Activé par défaut, en mode « Du tour ».
+  - À côté, deux petits compteurs montrent les **soins** (rose) et l'**armure** (vert) que le héros a donnés, sur le tour ou le combat selon le même réglage. Ils restent masqués tant qu'ils valent 0. Comme dans le récap, ils comptent pour celui qui les donne : le héros qui joue, le propriétaire d'une marque ou d'un passif nommé par le jeu, et le vol de vie pour celui qui se soigne.
 - **Envoyer aussi ces sorts factices à OBS** : affiche les sorts de l'aperçu dans OBS, pour positionner la source précisément dans ta scène.
 
 Sous l'aperçu, la carte **Source navigateur OBS** indique la taille exacte à donner à la source dans OBS (bouton **Copier**). Elle dépend de la disposition, de la taille des icônes, du nombre max de sorts et du compteur de dégâts. Pour 8 sorts visibles, compteur activé :
 
 | Taille icône | Horizontale (L × H) | Verticale (L × H) |
 |---|---|---|
-| 32 px | 577 × 108 | 143 × 497 |
-| 48 px | 766 × 130 | 188 × 643 |
-| 64 px | 956 × 152 | 234 × 791 |
-| 96 px | 1334 × 196 | 324 × 1087 |
-| 128 px | 1713 × 240 | 415 × 1382 |
+| 32 px | 638 × 108 | 143 × 541 |
+| 48 px | 854 × 130 | 188 × 705 |
+| 64 px | 1070 × 152 | 234 × 871 |
+| 96 px | 1502 × 196 | 324 × 1203 |
+| 128 px | 1934 × 240 | 415 × 1534 |
 
-Sans le compteur, la source est plus petite (ex. 478 × 76 en horizontal à 32 px) : fie-toi toujours à la valeur affichée dans l'appli.
+Sans les compteurs, la source est plus petite (ex. 478 × 76 en horizontal à 32 px) : fie-toi toujours à la valeur affichée dans l'appli.
 
 > **Piège classique** : si la source OBS est plus petite que la taille indiquée, une partie des sorts sort du cadre. L'overlay garde alors ce qui tient à l'écran, en priorité les plus récents.
 
@@ -121,25 +128,68 @@ Pour tester, clique sur **Tester** en face d'un héros : son icône doit appara�
 
 ## Affichage tête haute (sans OBS)
 
-Pas de stream, pas d'OBS ? L'appli peut afficher l'overlay **directement sur ton écran, par-dessus Wakfu**, comme un affichage tête haute : tu vois tes sorts et tes dégâts du tour pendant que tu joues.
+Pas de stream, pas d'OBS ? L'appli peut afficher l'overlay **directement sur ton écran, par-dessus Wakfu**, comme un affichage tête haute : tu vois tes sorts et tes dégâts pendant que tu joues.
+
+![L'affichage tête haute et sa barre de contrôle](doc/app-8-tete-haute.png)
 
 **L'activer**
 
 1. Ouvre la page **Affichage** de l'appli.
-2. Allume l'interrupteur **Affichage tête haute (sans OBS)**.
-3. Clique sur **Déplacer / redimensionner** : un cadre apparaît avec des sorts d'exemple. Attrape-le par sa barre de titre pour le placer où tu veux, et tire ses bords pour changer sa taille.
-4. Clique sur **Verrouiller la position**. C'est fini : l'appli retient cet emplacement pour les prochaines fois.
+2. Allume l'interrupteur **Affichage tête haute (sans OBS)**. Il apparaît en haut à droite de l'écran principal.
 
 Tu peux aussi l'allumer ou l'éteindre sans ouvrir l'appli : clic droit sur son icône près de l'horloge Windows, puis **Affichage tête haute**.
 
+Le bouton **Tuto**, à côté de l'interrupteur, rappelle comment t'en servir.
+
+**La barre de contrôle**
+
+Sous l'overlay, une petite barre réunit tout ce qui se clique :
+
+- **La poignée** (les six points à gauche) : maintiens le clic dessus et fais glisser pour placer l'affichage où tu veux. L'appli retient cet emplacement pour les prochaines fois.
+- **Tour / Combat** : ce que compte le compteur de dégâts, comme dans la page Affichage.
+- **Récap** : ouvre le [récap des combats](#récap-des-combats).
+
+La fenêtre prend toute seule la bonne taille d'après tes réglages d'affichage (disposition, taille des icônes, nombre de sorts, compteur), avec de la marge : rien n'est jamais coupé, même avec la liste pleine.
+
 **Ce qu'il faut savoir**
 
-- **Il ne gêne pas le jeu** : la fenêtre est transparente et tes clics passent au travers, comme si elle n'était pas là.
+- **Il ne gêne pas le jeu** : la fenêtre est transparente et tes clics passent au travers, comme si elle n'était pas là. Seule la barre de contrôle capte la souris.
 - **Il n'apparaît que sur Wakfu** : dès que tu passes sur une autre fenêtre (navigateur, Discord…), il se cache, et il revient quand tu retournes en jeu. Tu préfères le voir tout le temps ? Éteins **Seulement quand Wakfu est au premier plan**.
 - **Les réglages de la page Affichage s'appliquent aussi** : disposition, taille des icônes, durée, compteur de dégâts…
 - **Mode d'affichage de Wakfu** : le jeu doit être en **fenêtré** ou en **plein écran fenêtré**. En plein écran « exclusif », Windows ne laisse aucune fenêtre s'afficher par-dessus le jeu.
 
 Tu peux utiliser l'affichage tête haute et OBS en même temps : les deux montrent les mêmes sorts.
+
+---
+
+## Récap des combats
+
+Le récap revient sur chaque combat de la session : qui a fait quoi, et comment. Ouvre-le avec le bouton **Récap des combats** de la barre latérale, depuis le menu de l'icône près de l'horloge, ou avec le bouton **Récap** de l'affichage tête haute. Un badge « nouveau » signale un combat que tu n'as pas encore regardé.
+
+![Récap des combats : classement des dégâts et détail d'un héros](doc/app-5-recap.png)
+
+- **À gauche**, les combats de la session : adversaire, heure, durée, dégâts de l'équipe. Le combat en cours se remplit en direct.
+  - **Chercher un monstre** propose dans une liste déroulante les monstres rencontrés, et ne garde que les combats où il était présent.
+  - Survole un combat terminé pour faire apparaître sa **corbeille** : un second clic sur « Supprimer ? » le retire.
+- **Sauvegarder**, à droite des onglets, garde le combat affiché après la fermeture de l'appli (dans `saved_fights.json`, à côté des réglages). Les combats sauvegardés des sessions précédentes s'affichent sous **Sauvegardés**, avec leur date ; la corbeille les retire.
+- **En haut**, le combat choisi : adversaires, horaires, nombre de tours, et la victoire quand le jeu l'indique (XP gagnée en fin de combat).
+- **Les onglets** classent tes héros en **Dégâts**, **Soins**, **Armure** (donnée) ou **Subis**, avec leur part de l'équipe.
+- **Clique sur un héros** pour voir :
+  - son **meilleur tour** avec les sorts lancés dans l'ordre (losange doré = critique). Survole un sort pour voir ce qu'il a fait, coup par coup et cible par cible ;
+  - ses **sorts du combat**, avec le total, le nombre de lancers, la moyenne et le taux de critiques. Les sorts sans dégâts (buffs, invocations…) sont listés en grisé à la fin ;
+  - la **répartition par élément**, ses soins, son armure et ses dégâts subis.
+- Sans héros ouvert, le **meilleur tour du combat** s'affiche en bas : clique dessus pour ouvrir le détail du héros.
+- **Autres joueurs du groupe** ajoute, en grisé, les joueurs que tu ne suis pas.
+
+Dans l'onglet **Soins**, tout le détail passe aux soins : meilleur tour de soins, soins par sort (un sort de zone montre chaque cible soignée) et personnes soignées. L'onglet **Armure** fait de même pour l'armure donnée, avec les alliés protégés.
+
+![Récap des combats : onglet Soins](doc/app-6-recap-soins.png)
+
+**Comment l'appli compte**
+
+Le jeu indique qui reçoit les dégâts et les soins, mais pas toujours quel sort les a faits. L'appli les attribue au héros dont c'est le tour, et au sort que la ligne du jeu nomme, sinon au dernier sort lancé. Ce qu'aucun sort n'explique (poisons, effets de début de tour, glyphes…) est rangé dans **Autres**, sous son nom. Les soins et l'armure comptent pour **celui qui les donne**, pas pour celui qui les reçoit : le héros dont c'est le tour, sur le sort qu'il vient de lancer (une Faille qui protège deux alliés compte deux fois pour son lanceur). Le **vol de vie** compte pour celui qui se soigne, et les soins de marques et de passifs (« Marque Husse », « Radiance »…) vont au héros à qui ils appartiennent, même quand ils tombent pendant le tour d'un autre. Le jeu n'écrit pas les soins perdus (« +0 PV ») : un soin sur un allié déjà plein de vie ne compte pas.
+
+Les combats sont gardés en mémoire jusqu'à ce que tu quittes l'appli (30 au plus), sauf ceux que tu sauvegardes.
 
 ---
 
@@ -157,6 +207,10 @@ Le bloc **État** de la barre latérale résume tout ça en permanence. La carte
 ### Mises à jour
 
 L'appli installée vérifie toute seule s'il existe une nouvelle version quelques secondes après son lancement. Si oui, elle te demande avant de télécharger quoi que ce soit. Pour relancer la vérification à la main : bouton ↻ à côté du numéro de version (en bas de la barre latérale), ou **Vérifier les mises à jour** dans le menu de l'icône de notification.
+
+Après une mise à jour, la fenêtre **Nouveautés** présente ce qui a changé, à l'ouverture des réglages. Pour la rouvrir : **Nouveautés et historique** en bas de la barre latérale (ou clic sur le numéro de version), ou **Nouveautés** dans le menu de l'icône de notification. **Voir tout l'historique des versions**, en bas de la fenêtre, affiche le changelog complet.
+
+![Fenêtre Nouveautés](doc/app-7-nouveautes.png)
 
 ---
 
@@ -176,7 +230,7 @@ L'appli installée vérifie toute seule s'il existe une nouvelle version quelque
 - La source OBS est plus petite que la liste. Donne-lui la taille indiquée dans la page Affichage, ou réduis la taille des icônes ou le nombre max de sorts.
 
 **L'affichage tête haute n'apparaît pas en jeu**
-- Il reste invisible tant qu'aucun sort n'est lancé : utilise **Tester** dans la page Héros, ou **Déplacer / redimensionner** pour voir où il se trouve.
+- Seule sa barre de contrôle reste visible tant qu'aucun sort n'est lancé : cherche-la en haut à droite de l'écran principal, ou utilise **Tester** dans la page Héros.
 - Passe Wakfu en **fenêtré** ou **plein écran fenêtré** : le plein écran exclusif passe par-dessus toutes les fenêtres.
 - S'il disparaît dès que tu changes de fenêtre, c'est voulu : voir **Seulement quand Wakfu est au premier plan** dans la page Affichage.
 
@@ -302,7 +356,11 @@ Les deux updaters ne voient que les releases **publiées**, pas les brouillons.
 - `src-tauri/src/commands.rs` : commandes appelées par la fenêtre de réglages
 - `src-tauri/src/log_reader.rs` : lecture incrémentale de `wakfu.log`
 - `src-tauri/src/matcher.rs` : tri entre héros suivis et autres joueurs ou mobs
-- `src-tauri/src/turn_tracker.rs` : découpage du combat en tours, cumul des dégâts, rattachement des invocations
+- `src-tauri/src/turn_tracker.rs` : découpage du combat en tours, cumul des dégâts, des soins et de l'armure, rattachement des invocations
+- `src-tauri/src/fight_recap.rs` : enregistrement des combats pour le récap (sorts, coups, soins, armure, dégâts subis)
+- `src-tauri/src/saved_fights.rs` : combats sauvegardés du récap (`saved_fights.json`)
+- `src-tauri/src/ingame_window.rs` : fenêtre de l'affichage tête haute (barre de contrôle, déplacement, taille)
+- `src-tauri/src/whats_new.rs` : fenêtre Nouveautés, tirée de `CHANGELOG.md`
 - `src-tauri/src/settings.rs` : enregistrement des réglages
 - `src-tauri/src/overlay_server.rs` : petit serveur HTTP/SSE de l'overlay
 - `src-tauri/src/loader_page.rs` : génère `overlay-obs.html` (méthode Fichier local)
@@ -310,7 +368,9 @@ Les deux updaters ne voient que les releases **publiées**, pas les brouillons.
 - `src-tauri/src/updates.rs`, `autostart.rs` : mises à jour, lancement avec Windows
 - `src-tauri/tests/` : tests
 - `ui/settings/` : fenêtre de réglages et assistant de premier lancement (`tauri-api.js` la relie aux commandes)
-- `ui/overlay/` : page servie à OBS
+- `ui/overlay/` : page servie à OBS (et à l'affichage tête haute, avec `?ingame`)
+- `ui/recap/` : fenêtre du récap des combats
+- `ui/whatsnew/` : fenêtre Nouveautés
 - `ui/assets/icons/` : icônes des sorts (par classe) et logos de classe (`classes/`)
 - `data/spellIcons.json` : table nom de sort → icône, générée par `tools/scrape_spell_icons.js`
 
@@ -343,7 +403,7 @@ Ces outils lancent la vraie appli (build release : `npm run tauri build -- --no-
 npx --yes electron@44 tools/capture_screenshots.js
 ```
 
-Ce script refait `doc/app-*.png` et `doc/overlay-rendu.png`. L'overlay est celui de l'appli ; la page de réglages est affichée avec des commandes simulées à partir du profil de démo (`tools/demo_settings_preload.js`). Les captures `doc/obs-*.png` sont faites à la main dans OBS.
+Ce script refait `doc/app-*.png` et `doc/overlay-rendu.png` : réglages, assistant, récap des combats, Nouveautés et affichage tête haute. L'overlay est celui de l'appli ; les autres fenêtres sont affichées avec des commandes simulées à partir du profil de démo (`tools/demo_settings_preload.js`, qui fabrique aussi les combats de démo du récap et lit les notes de version dans `CHANGELOG.md`). Les captures `doc/obs-*.png` sont faites à la main dans OBS.
 
 ```bash
 npx --yes electron@44 tools/capture_gif.js            # doc/overlay-demo.gif

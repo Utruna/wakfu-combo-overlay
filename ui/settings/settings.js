@@ -45,7 +45,7 @@ const state = {
   classIcons: {},
   previewPool: [],
   diag: null,
-  ingame: { enabled: false, onlyOverWakfu: true, editing: false, online: true },
+  ingame: { enabled: false, onlyOverWakfu: true, online: true },
   editing: null, // characterName being edited, NEW_HERO for the add form, or null
   draft: null, // { characterName, class, color } while the edit form is open
 };
@@ -414,6 +414,9 @@ function counterMetrics(iconSize) {
     verticalHeight: 2 * 7 * k + 1.2 * Math.max(8, 10 * k) + 1 + 1.2 * Math.max(10, 15 * k),
     deltaRoom: 6 + 1.2 * 15 * k + 14, // the "+N" rising above (horizontal)
     deltaBelow: 6 + 1.2 * Math.max(9, 13 * k) + 14, // …or dropping below (vertical)
+    // The heal and armour frames: beside the counter, or under it.
+    supportWidth: 80 * k,
+    supportHeight: 2 * 24 * k + 6 * k,
   };
 }
 
@@ -428,7 +431,7 @@ function overlaySize(layout = state.layout) {
   const c = counterMetrics(icon);
   if (horizontal) {
     // Counter beside the class icon, "+N" room above.
-    const counterW = counterOn ? c.horizontalWidth + CLASS_ICON_GAP_PX : 0;
+    const counterW = counterOn ? c.horizontalWidth + CLASS_ICON_GAP_PX + c.supportWidth + CLASS_ICON_GAP_PX : 0;
     return {
       width: Math.ceil(EDGE_OFFSET_PX * 2 + lead + CLASS_ICON_GAP_PX + counterW + logLen),
       height: Math.ceil(EDGE_OFFSET_PX * 2 + Math.max(entry, lead) + (counterOn ? c.deltaRoom : 0)),
@@ -436,7 +439,7 @@ function overlaySize(layout = state.layout) {
   }
   // V3: icon (+ counter under it) level with the newest cast, i.e. the last slot at worst.
   const leadW = counterOn ? Math.max(lead, c.verticalWidth) : lead;
-  const leadH = lead + (counterOn ? CLASS_ICON_GAP_PX + c.verticalHeight + c.deltaBelow : 0);
+  const leadH = lead + (counterOn ? CLASS_ICON_GAP_PX + c.verticalHeight + CLASS_ICON_GAP_PX + c.supportHeight + c.deltaBelow : 0);
   return {
     width: Math.ceil(EDGE_OFFSET_PX * 2 + leadW + CLASS_ICON_GAP_PX + entry),
     height: Math.ceil(EDGE_OFFSET_PX * 2 + Math.max(logLen, logLen - entry + leadH)),
@@ -570,6 +573,7 @@ function renderPreview() {
   overlay.style.setProperty('--td-light',
     [r, g, b].map((v) => Math.round(v + (255 - v) * 0.55)).join(', '));
   $('pv-damage').hidden = !counterOn;
+  $('pv-support').hidden = !counterOn;
   $('pv-damage-tag').textContent = layout.damageCounterMode === 'fight' ? 'Combat' : 'Tour';
   scale.style.paddingTop = `${EDGE_OFFSET_PX + (horizontal && counterOn ? Math.ceil(counterMetrics(iconSize).deltaRoom) : 0)}px`;
 
@@ -647,22 +651,85 @@ function renderIngame(status) {
   setSwitch($('ingame-enabled'), status.enabled);
   setSwitch($('ingame-only-wakfu'), status.onlyOverWakfu);
   $('ingame-options').hidden = !status.enabled || !status.online;
-  $('ingame-edit').textContent = status.editing ? 'Verrouiller la position' : 'Déplacer / redimensionner';
-  $('ingame-edit').classList.toggle('primary', status.editing);
-  $('ingame-error').textContent = status.enabled && !status.online
+  const offline = status.enabled && !status.online
     ? "L'overlay est hors ligne : change le port dans OBS & diagnostic."
     : '';
+  $('ingame-error').textContent = offline;
+  // Its twin in the assistant's "Mode joueur" step.
+  setSwitch($('wz-ingame'), status.enabled);
+  $('wz-ingame-error').textContent = offline;
+  if (!$('wizard').hidden && wizard.step === 4) renderWizardChecks();
 }
 
-$('ingame-enabled').addEventListener('click', async () => {
-  renderIngame(await api.setIngameOverlay(!state.ingame.enabled));
-});
+const toggleIngame = async () => renderIngame(await api.setIngameOverlay(!state.ingame.enabled));
+$('ingame-enabled').addEventListener('click', toggleIngame);
+$('wz-ingame').addEventListener('click', toggleIngame);
 $('ingame-only-wakfu').addEventListener('click', async () => {
   renderIngame(await api.setIngameOverlayOnlyOverWakfu(!state.ingame.onlyOverWakfu));
 });
-$('ingame-edit').addEventListener('click', async () => {
-  renderIngame(await api.setIngameOverlayEditing(!state.ingame.editing));
-});
+
+// ── Tuto de l'affichage tête haute ───────────────────────────────────────
+
+/**
+ * A copy of the tutorial (#hud-tuto-tpl) in `host`, its example casts drawn
+ * from the tracked heroes. Pointing at a numbered step highlights its part
+ * of the control bar.
+ */
+function renderHudTuto(host) {
+  const tuto = $('hud-tuto-tpl').content.firstElementChild.cloneNode(true);
+  // The overlay as the game shows it (same look as the Affichage preview),
+  // laid out with the user's settings, at a size that fits the scene.
+  const iconSize = 32;
+  const entries = previewEntries(5);
+  const overlay = tuto.querySelector('.tuto-overlay');
+  for (const entry of entries) {
+    const src = assetUrl(entry.icon);
+    const style = `width: ${iconSize}px; height: ${iconSize}px`;
+    overlay.querySelector('.pv-log').append(el('div', { class: 'pv-entry', style: `--c: ${entry.color}` },
+      src ? el('img', { src, alt: '', style }) : el('div', { class: 'pv-fill', style })));
+  }
+  const last = entries[entries.length - 1];
+  const lead = overlay.querySelector('.pv-lead');
+  const leadSize = iconSize + CLASS_ICON_EXTRA_PX;
+  lead.style.cssText = `width: ${leadSize}px; height: ${leadSize}px`;
+  const emblem = classEmblem(last?.heroClass);
+  if (emblem) lead.append(el('img', { src: emblem, alt: '' }));
+  overlay.dataset.side = state.layout.classIconSide || 'left';
+  overlay.style.setProperty('--k', (iconSize / 48).toFixed(4));
+  overlay.style.setProperty('--lead', `${leadSize}px`);
+  const { r, g, b } = hexToRgb(last?.color ?? '#787878');
+  overlay.style.setProperty('--td-rgb', `${r}, ${g}, ${b}`);
+  overlay.style.setProperty('--td-light', [r, g, b].map((v) => Math.round(v + (255 - v) * 0.55)).join(', '));
+  overlay.querySelector('.pv-damage').hidden = state.layout.damageCounterEnabled === false;
+  overlay.querySelector('.pv-support').hidden = state.layout.damageCounterEnabled === false;
+  const fight = state.layout.damageCounterMode === 'fight';
+  overlay.querySelector('.td-tag').textContent = fight ? 'Combat' : 'Tour';
+  const modes = tuto.querySelectorAll('.tuto-modes > span');
+  modes[0].classList.toggle('on', !fight);
+  modes[1].classList.toggle('on', fight);
+
+  const highlight = (part) => {
+    for (const node of tuto.querySelectorAll('[data-part]')) node.classList.toggle('hl', node.dataset.part === part);
+  };
+  for (const step of tuto.querySelectorAll('.tuto-steps li')) {
+    step.addEventListener('mouseenter', () => highlight(step.dataset.part));
+    step.addEventListener('mouseleave', () => highlight(null));
+  }
+  host.replaceChildren(tuto);
+}
+
+function openHudTuto() {
+  renderHudTuto($('modal-hud-tuto'));
+  $('hud-tuto-modal').hidden = false;
+  $('hud-tuto-ok').focus();
+}
+const closeHudTuto = () => { $('hud-tuto-modal').hidden = true; };
+
+$('open-hud-tuto').addEventListener('click', openHudTuto);
+$('hud-tuto-close').addEventListener('click', closeHudTuto);
+$('hud-tuto-ok').addEventListener('click', closeHudTuto);
+$('hud-tuto-modal').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeHudTuto(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('hud-tuto-modal').hidden) closeHudTuto(); });
 
 // ── OBS & diagnostic ─────────────────────────────────────────────────────
 
@@ -858,17 +925,27 @@ function renderUpdateStatus(payload) {
 
 $('update-check-btn').addEventListener('click', () => api.checkForUpdates());
 $('app-version').addEventListener('click', () => api.showWhatsNew());
+$('open-changelog').addEventListener('click', () => api.showWhatsNew());
+$('open-recap').addEventListener('click', () => api.showRecap());
+api.hasUnseenFights().then((unseen) => { $('recap-new').hidden = !unseen; });
+api.onUnseenFights((unseen) => { $('recap-new').hidden = !unseen; });
 api.onUpdateStatus(renderUpdateStatus);
 
 // ── Assistant de premier lancement ───────────────────────────────────────
 
-const WIZARD_STEPS = ['Ton personnage', 'Ajouter à OBS', 'Tester'];
-const wizard = { step: 1, name: '', cls: '', heroName: null, tested: false };
+const WIZARD_LAST_STEP = 4;
+// mode: where the casts are shown — 'obs' (Mode streamer) or 'hud' (Mode joueur).
+const wizard = { step: 1, name: '', cls: '', heroName: null, mode: null, tested: false };
+
+function wizardStepLabels() {
+  return ['Ton personnage', 'Stream ou jeu', wizard.mode === 'hud' ? 'Affichage tête haute' : 'Ajouter à OBS', 'Tester'];
+}
 
 function openWizard() {
-  Object.assign(wizard, { step: 1, name: '', cls: '', heroName: null, tested: false });
+  Object.assign(wizard, { step: 1, name: '', cls: '', heroName: null, mode: null, tested: false });
   $('wz-name').value = '';
   $('wz-error').textContent = '';
+  $('wz-mode-error').textContent = '';
   hideToast();
   $('wizard').hidden = false;
   renderWizard();
@@ -897,20 +974,30 @@ function renderWizardClasses() {
   }
 }
 
+function renderWizardModes() {
+  for (const option of $('wz-modes').querySelectorAll('[data-mode]')) {
+    option.setAttribute('aria-checked', String(option.dataset.mode === wizard.mode));
+  }
+}
+
 function renderWizardObsStatus() {
   if ($('wizard').hidden || !state.diag) return;
   const connected = state.diag.overlayClients > 0;
   $('wz-obs').classList.toggle('connected', connected);
   $('wz-obs-text').textContent = connected ? 'OBS est connecté à l’overlay.' : 'En attente de la connexion d’OBS…';
   $('wz-url').textContent = state.diag.overlayUrl;
-  if (wizard.step === 3) renderWizardChecks();
+  if (wizard.step === 4) renderWizardChecks();
 }
 
 function renderWizardChecks() {
+  const hud = wizard.mode === 'hud';
   const connected = state.diag?.overlayClients > 0;
+  const shown = state.ingame.enabled && state.ingame.online;
   const checks = [
     { ok: Boolean(wizard.heroName), label: wizard.heroName ? 'Personnage ajouté' : 'Aucun personnage ajouté' },
-    { ok: connected, label: connected ? 'OBS connecté à l’overlay' : 'OBS pas encore connecté' },
+    hud
+      ? { ok: shown, label: shown ? 'Affichage tête haute activé' : 'Affichage tête haute pas activé' }
+      : { ok: connected, label: connected ? 'OBS connecté à l’overlay' : 'OBS pas encore connecté' },
     { ok: wizard.tested, label: wizard.tested ? 'Sort de test envoyé' : 'Sort de test pas encore envoyé' },
   ];
   const list = $('wz-checks');
@@ -927,7 +1014,7 @@ function renderWizardChecks() {
 function renderWizard() {
   const steps = $('wizard-steps');
   steps.innerHTML = '';
-  WIZARD_STEPS.forEach((label, i) => {
+  wizardStepLabels().forEach((label, i) => {
     const n = i + 1;
     const done = n < wizard.step;
     const current = n === wizard.step;
@@ -937,19 +1024,26 @@ function renderWizard() {
     ]));
   });
 
+  // Step 3 has one version per mode.
   for (const section of document.querySelectorAll('.wizard-step')) {
-    section.hidden = Number(section.dataset.step) !== wizard.step;
+    section.hidden = Number(section.dataset.step) !== wizard.step
+      || Boolean(section.dataset.mode && section.dataset.mode !== wizard.mode);
   }
   $('wz-back').style.visibility = wizard.step > 1 ? 'visible' : 'hidden';
-  $('wz-next').hidden = wizard.step === 3;
-  $('wz-finish').hidden = wizard.step !== 3;
+  $('wz-next').hidden = wizard.step === WIZARD_LAST_STEP;
+  $('wz-finish').hidden = wizard.step !== WIZARD_LAST_STEP;
 
   const { width, height } = overlaySize();
   $('wz-w').textContent = width;
   $('wz-h').textContent = height;
+  $('wz-test-lead').textContent = wizard.mode === 'hud'
+    ? 'Envoie un sort factice : il apparaît en haut à droite de ton écran.'
+    : 'Envoie un sort factice, puis regarde ta scène OBS.';
 
   if (wizard.step === 1) renderWizardClasses();
-  if (wizard.step === 3) renderWizardChecks();
+  if (wizard.step === 2) renderWizardModes();
+  if (wizard.step === 3 && wizard.mode === 'hud') renderHudTuto($('wz-hud-tuto'));
+  if (wizard.step === 4) renderWizardChecks();
   renderWizardObsStatus();
 }
 
@@ -978,9 +1072,17 @@ async function saveWizardHero() {
   return true;
 }
 
+/** Step 2 → 3: a mode is chosen; "Mode joueur" turns the in-game window on. */
+async function saveWizardMode() {
+  if (!wizard.mode) { $('wz-mode-error').textContent = 'Choisis un des deux modes.'; return false; }
+  if (wizard.mode === 'hud' && !state.ingame.enabled) renderIngame(await api.setIngameOverlay(true));
+  return true;
+}
+
 $('wz-next').addEventListener('click', async () => {
   if (wizard.step === 1 && !(await saveWizardHero())) return;
-  wizard.step = Math.min(3, wizard.step + 1);
+  if (wizard.step === 2 && !(await saveWizardMode())) return;
+  wizard.step = Math.min(WIZARD_LAST_STEP, wizard.step + 1);
   renderWizard();
 });
 $('wz-name').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('wz-next').click(); });
@@ -988,6 +1090,13 @@ $('wz-back').addEventListener('click', () => {
   wizard.step = Math.max(1, wizard.step - 1);
   renderWizard();
 });
+for (const option of $('wz-modes').querySelectorAll('[data-mode]')) {
+  option.addEventListener('click', () => {
+    wizard.mode = option.dataset.mode;
+    $('wz-mode-error').textContent = '';
+    renderWizard();
+  });
+}
 $('wz-copy').addEventListener('click', (e) => state.diag && copyText(state.diag.overlayUrl, e.currentTarget));
 $('wz-test').addEventListener('click', async () => {
   await api.sendTestCast(wizard.heroName);

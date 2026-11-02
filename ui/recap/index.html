@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Récap des combats — Wakfu Combo Overlay</title>
+  <link rel="stylesheet" href="../settings/settings.css">
+  <link rel="stylesheet" href="recap.css">
+</head>
+<body>
+  <div class="rc">
+    <aside class="rc-side" aria-label="Combats">
+      <span class="cap">Combats de la session</span>
+      <div class="rc-search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="search" id="fight-search" class="input sm" placeholder="Chercher un monstre" aria-label="Chercher les combats contre un monstre" spellcheck="false" autocomplete="off"
+          role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="fight-suggest">
+        <ul class="rc-suggest" id="fight-suggest" role="listbox" aria-label="Monstres rencontrés" hidden></ul>
+      </div>
+      <ul class="rc-fights" id="fight-list"></ul>
+    </aside>
+    <main class="rc-main" id="main"></main>
+  </div>
+  <script src="recap.js"></script>
+</body>
+</html>

@@ -2,7 +2,7 @@
 //! exposes these as `window.settingsAPI`).
 
 use serde_json::{json, Map, Value};
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_dialog::DialogExt;
 use tokio::sync::oneshot;
 
@@ -257,9 +257,79 @@ pub fn get_release_notes(app: AppHandle, since: Option<String>) -> Value {
     whats_new::release_notes(&app, since.as_deref())
 }
 
+// Async: a window built from a synchronous command (run on the main thread)
+// never gets its web view on Windows.
 #[tauri::command]
-pub fn show_whats_new(app: AppHandle) {
+pub async fn show_whats_new(app: AppHandle) {
     whats_new::show(&app, None);
+}
+
+/// For the "Récap des combats" window (ui/recap).
+#[tauri::command]
+pub fn get_recap(state: State<AppState>) -> Value {
+    let core = state.core.lock().unwrap();
+    let mut recap = core.tracker.recorder.to_json(&core.settings, &state.catalog);
+    core.saved_fights.merge_into(&mut recap);
+    recap
+}
+
+/// The recap's "Sauvegarder": keeps a finished fight across sessions.
+#[tauri::command]
+pub fn save_fight(state: State<AppState>, id: u64) -> Result<(), String> {
+    let mut core = state.core.lock().unwrap();
+    let recap = core.tracker.recorder.to_json(&core.settings, &state.catalog);
+    let fight = recap["fights"]
+        .as_array()
+        .and_then(|fights| fights.iter().find(|f| f["id"] == id))
+        .ok_or("Ce combat n'est plus dans le récap.")?;
+    core.saved_fights.save(fight)
+}
+
+/// The bin on a fight of an earlier session: forgets its saved copy.
+#[tauri::command]
+pub fn delete_saved_fight(state: State<AppState>, saved_id: u64) -> bool {
+    state.core.lock().unwrap().saved_fights.delete(saved_id)
+}
+
+/// The recap showed this fight: it's no longer "nouveau".
+#[tauri::command]
+pub fn mark_fight_seen(app: AppHandle, state: State<AppState>, id: u64) {
+    let unseen = {
+        let mut core = state.core.lock().unwrap();
+        core.tracker.recorder.mark_seen(id);
+        core.tracker.recorder.has_unseen()
+    };
+    if app.get_webview_window(SETTINGS_WINDOW).is_some() {
+        let _ = app.emit_to(SETTINGS_WINDOW, "recap:unseen", unseen);
+    }
+}
+
+/// The recap's bin: forgets a finished fight.
+#[tauri::command]
+pub fn delete_fight(app: AppHandle, state: State<AppState>, id: u64) -> bool {
+    let (deleted, unseen) = {
+        let mut core = state.core.lock().unwrap();
+        let deleted = core.tracker.recorder.delete(id);
+        // A saved fight goes from the disk too.
+        if let Some(saved) = core.saved_fights.saved_id_of(id) {
+            core.saved_fights.delete(saved);
+        }
+        (deleted, core.tracker.recorder.has_unseen())
+    };
+    if app.get_webview_window(SETTINGS_WINDOW).is_some() {
+        let _ = app.emit_to(SETTINGS_WINDOW, "recap:unseen", unseen);
+    }
+    deleted
+}
+
+#[tauri::command]
+pub fn has_unseen_fights(state: State<AppState>) -> bool {
+    state.core.lock().unwrap().tracker.recorder.has_unseen()
+}
+
+#[tauri::command]
+pub async fn show_recap(app: AppHandle) {
+    crate::show_recap_window(&app);
 }
 
 #[tauri::command]
@@ -275,11 +345,6 @@ pub async fn set_ingame_overlay(app: AppHandle, enabled: bool) -> Value {
     ingame_window::status(&app)
 }
 
-#[tauri::command]
-pub async fn set_ingame_overlay_editing(app: AppHandle, editing: bool) -> Value {
-    ingame_window::set_editing(&app, editing);
-    ingame_window::status(&app)
-}
 
 #[tauri::command]
 pub async fn set_ingame_overlay_only_over_wakfu(app: AppHandle, only: bool) -> Value {

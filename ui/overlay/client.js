@@ -7,6 +7,12 @@ const leadWrap = document.getElementById('lead-wrap');
 const turnDamageEl = document.getElementById('turn-damage');
 const turnDamageValue = turnDamageEl.querySelector('.td-value');
 const turnDamageTag = turnDamageEl.querySelector('.td-tag');
+const supportEl = document.getElementById('support');
+// Heals and armour the hero gave, beside the counter: the value drawn on each.
+const supportCounters = {
+  heal: { el: supportEl.querySelector('.sp-heal'), shown: 0 },
+  armor: { el: supportEl.querySelector('.sp-armor'), shown: 0 },
+};
 // The app's own in-game window loads the page with `?ingame`.
 const isHud = new URLSearchParams(window.location.search).has('ingame');
 
@@ -17,14 +23,16 @@ const ENTRY_GAP_PX = 6;
 const EDGE_OFFSET_PX = 16;
 const CLASS_ICON_GAP_PX = 8;
 const CLASS_ICON_EXTRA_PX = 12; // calc(var(--icon-size) + 12px) in style.css
+// In-game window: the control bar under the overlay (#hud-bar in style.css)…
+const HUD_BAR_ROOM_PX = 3 + 36; // the gap above the bar, and the bar
+// …and the room kept around everything, so nothing ever gets cut.
+const HUD_MARGIN_PX = 16;
 
 // Overridden by the `config` SSE event.
 let castLifetimeMs = 6000;
 let iconSize = 32;
 let maxVisibleCasts = 8;
 let previewEnabled = false;
-let configPreview = false; // the setting; edit mode forces the preview on top of it
-let ingameEditing = false;
 let classIcons = {};
 let previewPool = [];
 let damageCounterEnabled = true;
@@ -40,6 +48,7 @@ let pendingSwapKey = null; // new total waiting for the old one to fold away
 const DAMAGE_COUNT_UP_MS = 500;
 const TURN_SWAP_MS = 200; // the fold-out third of `td-swap` in style.css
 const PREVIEW_DAMAGE = 87412;
+const PREVIEW_SUPPORT = { heal: 12400, armor: 3500 };
 
 const liveCasts = []; // { cast, addedAt, el }
 let previewCasts = []; // { cast, addedAt, el }
@@ -48,8 +57,14 @@ let previewCasts = []; // { cast, addedAt, el }
 // animationend never fires (element hidden, animations disabled…).
 const LEAVE_FALLBACK_MS = 1000;
 
+/**
+ * The demo casts ("sorts factices") show while nothing real is: a real or
+ * test cast takes their place until it fades, then they come back.
+ */
+const showingPreview = () => previewEnabled && !liveCasts.length;
+
 function activeCasts() {
-  return previewEnabled ? previewCasts : liveCasts;
+  return showingPreview() ? previewCasts : liveCasts;
 }
 
 function effectiveCapacity() {
@@ -59,10 +74,11 @@ function effectiveCapacity() {
   // Horizontal: icon and counter sit in line with the casts. Vertical (V3):
   // they sit beside the column, but the counter hangs below the newest cast.
   const alongExtra = horizontal
-    ? classIconSize + CLASS_ICON_GAP_PX + (damageCounterEnabled ? counter.horizontalWidth + CLASS_ICON_GAP_PX : 0)
-    : (damageCounterEnabled ? CLASS_ICON_GAP_PX + counter.verticalHeight : 0);
-  const available =
-    (horizontal ? window.innerWidth : window.innerHeight) - EDGE_OFFSET_PX * 2 - alongExtra;
+    ? classIconSize + CLASS_ICON_GAP_PX + (damageCounterEnabled ? counter.horizontalWidth + counter.supportWidth + 2 * CLASS_ICON_GAP_PX : 0)
+    : (damageCounterEnabled ? CLASS_ICON_GAP_PX + counter.verticalHeight + CLASS_ICON_GAP_PX + counter.supportHeight : 0);
+  // In-game, the bar takes the bottom edge's place (see hudRoom).
+  const available = (horizontal ? window.innerWidth : window.innerHeight - (isHud ? HUD_BAR_ROOM_PX + HUD_MARGIN_PX - EDGE_OFFSET_PX : 0))
+    - EDGE_OFFSET_PX * 2 - alongExtra;
   const entry = iconSize + ENTRY_CHROME_PX;
   const fits = Math.floor((available + ENTRY_GAP_PX) / (entry + ENTRY_GAP_PX));
   return Math.max(1, Math.min(maxVisibleCasts, fits));
@@ -266,22 +282,53 @@ function replayClass(el, className) {
   el.classList.add(className);
 }
 
+/** "8 412"; "12,4 k" past 9 999; "1,23 M" past 999 999 (truncated). */
+function formatShort(n) {
+  if (n >= 1e6) return formatDamage(n);
+  if (n >= 1e4) {
+    return `${(Math.floor(n / 100) / 10).toLocaleString('fr-FR', {
+      minimumFractionDigits: 1, maximumFractionDigits: 1,
+    })}\u00a0k`;
+  }
+  return Math.round(n).toLocaleString('fr-FR');
+}
+
+/** What the heal and armour frames show of a `turn-damage` event, in the counter's mode. */
+const supportValues = (event) => (damageCounterMode === 'fight'
+  ? { heal: event.fightHeal ?? 0, armor: event.fightArmor ?? 0 }
+  : { heal: event.heal ?? 0, armor: event.armor ?? 0 });
+
+/** Draws the heal and armour frames; `pulse` flares the ones that went up. */
+function renderSupport(values, { pulse = false } = {}) {
+  for (const [key, counter] of Object.entries(supportCounters)) {
+    const value = values?.[key] || 0;
+    counter.el.classList.toggle('empty', !value);
+    counter.el.querySelector('.sp-value').textContent = formatShort(value);
+    if (pulse && value > counter.shown) replayClass(counter.el, 'gain');
+    counter.shown = value;
+  }
+}
+
 /** The counter lives and dies with the class icon it's attached to. */
 function renderTurnDamage() {
   if (!damageCounterEnabled || !classLeadIcon.classList.contains('visible')) {
     turnDamageEl.hidden = true;
+    supportEl.hidden = true;
     return;
   }
   turnDamageEl.hidden = false;
+  supportEl.hidden = false;
   turnDamageTag.textContent = damageCounterMode === 'fight' ? 'Combat' : 'Tour';
-  if (previewEnabled) {
+  if (showingPreview()) {
     const list = activeCasts();
     setDamageColor(list[list.length - 1]?.cast.color);
     turnDamageEl.classList.remove('idle');
     turnDamageValue.textContent = formatDamage(PREVIEW_DAMAGE);
+    renderSupport(PREVIEW_SUPPORT);
     return;
   }
   turnDamageEl.classList.toggle('idle', !turnDamage);
+  if (!turnDamage) renderSupport(null);
 }
 
 function showHitAmount(amount) {
@@ -300,32 +347,37 @@ function showHitAmount(amount) {
 function swapCounter(key) {
   pendingSwapKey = key;
   replayClass(turnDamageEl, 'swap');
+  replayClass(supportEl, 'swap');
   setTimeout(() => {
     if (pendingSwapKey !== key) return;
     pendingSwapKey = null;
     resetCounterTo(turnDamage);
     countDamageTo(counterValue(turnDamage));
+    renderSupport(supportValues(turnDamage));
   }, TURN_SWAP_MS);
 }
 
 /** Turn or fight total — from the settings, or the in-game window's switch. */
 function setCounterMode(mode) {
   if (mode !== 'turn' && mode !== 'fight') return;
-  if (counterSwitch) counterSwitch.setAttribute('aria-checked', String(mode === 'fight'));
+  if (hudBar) {
+    for (const button of hudBar.querySelectorAll('[data-mode]')) button.setAttribute('aria-checked', String(button.dataset.mode === mode));
+  }
   if (mode === damageCounterMode) return;
   damageCounterMode = mode;
   turnDamageTag.textContent = mode === 'fight' ? 'Combat' : 'Tour';
-  const showing = turnDamage && !previewEnabled && !turnDamageEl.hidden && !turnDamageEl.classList.contains('idle');
+  const showing = turnDamage && !showingPreview() && !turnDamageEl.hidden && !turnDamageEl.classList.contains('idle');
   if (showing) swapCounter(counterKey(turnDamage));
 }
 
 function applyTurnDamage(event) {
   const previous = turnDamage;
   turnDamage = event;
-  if (previewEnabled) return;
+  if (showingPreview()) return;
 
   const key = counterKey(event);
-  if (!previous || counterKey(previous) !== key) {
+  const sameCounter = previous && counterKey(previous) === key;
+  if (!sameCounter) {
     const showingPrevious = previous && !turnDamageEl.hidden && !turnDamageEl.classList.contains('idle');
     if (showingPrevious) {
       // The old total folds away first (see `td-swap`), then the new one comes in.
@@ -341,6 +393,7 @@ function applyTurnDamage(event) {
   renderTurnDamage();
   if (pendingSwapKey !== null) return;
   countDamageTo(counterValue(event));
+  renderSupport(supportValues(event), { pulse: sameCounter });
   if (event.amount > 0 && damageCounterEnabled) showHitAmount(event.amount);
 }
 
@@ -352,15 +405,21 @@ function counterMetrics() {
   return {
     k,
     horizontalWidth: 136 * k,
+    verticalWidth: 88 * k,
     verticalHeight: 2 * 7 * k + 1.2 * Math.max(8, 10 * k) + 1 + 1.2 * Math.max(10, 15 * k),
-    deltaRoom: 6 + 1.2 * 15 * k + 14,
+    deltaRoom: 6 + 1.2 * 15 * k + 14, // the "+N" rising above (horizontal)
+    deltaBelow: 6 + 1.2 * Math.max(9, 13 * k) + 14, // …or dropping below (vertical)
+    // The heal and armour frames (#support): beside the counter, or under it.
+    supportWidth: 80 * k, // wide enough for "123,4 k"
+    supportHeight: 2 * 24 * k + 6 * k,
   };
 }
 
 function applyCounterLayout() {
-  const { k, deltaRoom } = counterMetrics();
+  const { k, deltaRoom, supportHeight } = counterMetrics();
   document.documentElement.style.setProperty('--k', k.toFixed(4));
   document.documentElement.style.setProperty('--delta-room', `${Math.ceil(deltaRoom)}px`);
+  document.documentElement.style.setProperty('--support-room', `${Math.ceil(CLASS_ICON_GAP_PX + supportHeight)}px`);
   comboOverlay.dataset.counter = damageCounterEnabled ? 'on' : 'off';
 }
 
@@ -393,9 +452,10 @@ const startsTurn = (previous, cast) => (cast.turnId != null
 function addLiveCast(cast) {
   const previous = liveCasts[liveCasts.length - 1]?.cast;
   const entry = { cast, addedAt: cast.timestamp || Date.now() };
+  // The demo casts make way for the real one.
+  if (showingPreview()) comboLog.innerHTML = '';
   liveCasts.push(entry);
   const removed = pruneLiveCasts();
-  if (previewEnabled) return;
 
   // Only the new cast is added and the dropped ones animated out — the rest
   // stay untouched so their own animations aren't restarted.
@@ -423,7 +483,7 @@ function applyOrientationAndDirection(config) {
 }
 
 function rerenderForCurrentMode() {
-  if (previewEnabled) {
+  if (showingPreview()) {
     buildPreviewCasts();
     renderActiveCasts();
     return;
@@ -442,8 +502,7 @@ function applyConfig(config) {
     castLifetimeMs = config.castLifetimeMs;
   }
   if (config.maxVisibleCasts !== undefined) maxVisibleCasts = Math.max(1, config.maxVisibleCasts);
-  if (typeof config.previewEnabled === 'boolean') configPreview = config.previewEnabled;
-  previewEnabled = configPreview || ingameEditing;
+  if (typeof config.previewEnabled === 'boolean') previewEnabled = config.previewEnabled;
   if (typeof config.damageCounterEnabled === 'boolean') damageCounterEnabled = config.damageCounterEnabled;
   if (config.damageCounterMode) setCounterMode(config.damageCounterMode);
   if (config.classIcons && typeof config.classIcons === 'object') classIcons = config.classIcons;
@@ -471,11 +530,16 @@ function rerenderIfLayoutChanged() {
 }
 
 setInterval(() => {
-  if (previewEnabled) return;
+  if (showingPreview()) return;
   const removed = pruneLiveCasts();
   if (!removed.length) return;
   for (const old of removed) animateOut(old.el);
   updateEntryStyles();
+  // The last real cast is gone: the demo casts come back once it has folded away.
+  if (showingPreview()) {
+    setTimeout(() => { if (showingPreview()) rerenderForCurrentMode(); }, LEAVE_FALLBACK_MS);
+    return;
+  }
   // The class icon folds away together with the last cast, then goes.
   if (!liveCasts.length) {
     leadWrap.classList.add('leaving');
@@ -487,54 +551,103 @@ setInterval(() => {
 
 window.addEventListener('resize', rerenderForCurrentMode);
 
-/**
- * Called by the app on its in-game window (src-tauri/src/ingame_window.rs)
- * while it's being moved: sample casts and a frame show the overlay's extent.
- */
-window.setIngameEditMode = (on) => {
-  ingameEditing = Boolean(on);
-  document.documentElement.classList.toggle('ingame-edit', ingameEditing);
-  previewEnabled = configPreview || ingameEditing;
-  rerenderIfLayoutChanged();
-};
-
-// ── In-game window: the counter's turn/fight switch ──────────────────────────
+// ── In-game window: the control bar ──────────────────────────────────────────
 
 /**
  * Only in the app's in-game window, which lets every click through to the game
- * except on this switch: the page tells the app where it is, and the app makes
- * just that spot clickable (src-tauri/src/ingame_window.rs).
+ * except on this bar: the page tells the app where it is, and the app makes
+ * just that spot clickable (src-tauri/src/ingame_window.rs). The handle drags
+ * the window, Tour / Combat switches the counter, "Récap" opens the recap.
  */
-const counterSwitch = isHud ? Object.assign(document.createElement('button'), {
-  type: 'button',
-  className: 'td-switch',
-  title: 'Dégâts du tour ou du combat',
-}) : null;
+const hudBar = isHud ? document.createElement('div') : null;
 
-if (counterSwitch) {
+/**
+ * What the overlay can take up at most with the current layout — every cast
+ * slot filled, the counter at its widest — plus the bar and margins: the
+ * window is sized to it, so nothing ever gets cut. Mirrors overlaySize() in
+ * ui/settings/settings.js.
+ */
+function hudRoom() {
+  const icon = iconSize;
+  const entry = icon + ENTRY_CHROME_PX;
+  const lead = icon + CLASS_ICON_EXTRA_PX;
+  const logLen = maxVisibleCasts * entry + (maxVisibleCasts - 1) * ENTRY_GAP_PX;
+  const c = counterMetrics();
+  // A fight total runs to 8–9 digits: room beyond the counter's base width.
+  const counterSlack = 64 * c.k;
+  let width;
+  let height;
+  if (comboOverlay.dataset.orientation === 'horizontal') {
+    const counterW = damageCounterEnabled
+      ? c.horizontalWidth + counterSlack + CLASS_ICON_GAP_PX + c.supportWidth + counterSlack / 2 + CLASS_ICON_GAP_PX
+      : 0;
+    width = EDGE_OFFSET_PX * 2 + lead + CLASS_ICON_GAP_PX + counterW + logLen;
+    height = EDGE_OFFSET_PX * 2 + Math.max(entry, lead) + (damageCounterEnabled ? c.deltaRoom : 0);
+  } else {
+    const leadW = damageCounterEnabled ? Math.max(lead, c.verticalWidth + counterSlack) : lead;
+    const leadH = lead + (damageCounterEnabled
+      ? CLASS_ICON_GAP_PX + c.verticalHeight + CLASS_ICON_GAP_PX + c.supportHeight + c.deltaBelow
+      : 0);
+    width = EDGE_OFFSET_PX * 2 + leadW + CLASS_ICON_GAP_PX + entry;
+    height = EDGE_OFFSET_PX * 2 + Math.max(logLen, logLen - entry + leadH);
+  }
+  const bar = hudBar.getBoundingClientRect();
+  return {
+    width: Math.ceil(Math.max(width, bar.width + EDGE_OFFSET_PX * 2) + HUD_MARGIN_PX * 2),
+    // The bar right under the overlay's bottom edge, in place of its margin.
+    height: Math.ceil(height - EDGE_OFFSET_PX + HUD_BAR_ROOM_PX + HUD_MARGIN_PX),
+  };
+}
+
+if (hudBar) {
   document.documentElement.classList.add('hud');
-  counterSwitch.setAttribute('role', 'switch');
-  counterSwitch.setAttribute('aria-checked', 'false');
-  counterSwitch.appendChild(Object.assign(document.createElement('span'), { className: 'td-switch-knob' }));
-  turnDamageEl.appendChild(counterSwitch);
-  counterSwitch.addEventListener('click', () => {
-    const mode = damageCounterMode === 'fight' ? 'turn' : 'fight';
-    setCounterMode(mode);
-    // Saved by the app, which also passes it on to OBS and the settings.
-    fetch(`/hud/counter-mode?mode=${mode}`).catch(() => {});
-  });
+  hudBar.id = 'hud-bar';
+  hudBar.setAttribute('role', 'toolbar');
+  hudBar.setAttribute('aria-label', 'Contrôles de l\'affichage tête haute');
+  hudBar.innerHTML = `
+    <span class="hud-handle" title="Glisser pour déplacer" aria-label="Déplacer">${'<span></span>'.repeat(6)}</span>
+    <span class="hud-modes" role="radiogroup" aria-label="Période du compteur">
+      <button type="button" role="radio" data-mode="turn" aria-checked="true">Tour</button>
+      <button type="button" role="radio" data-mode="fight" aria-checked="false">Combat</button>
+    </span>
+    <button type="button" class="hud-recap">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15v-4"/><path d="M12 15V7"/><path d="M17 15v-6"/></svg>
+      Récap
+    </button>`;
+  document.body.appendChild(hudBar);
 
+  hudBar.querySelector('.hud-handle').addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    // The app moves the window with the mouse until the button is released.
+    fetch('/hud/drag').catch(() => {});
+  });
+  for (const button of hudBar.querySelectorAll('[data-mode]')) {
+    button.addEventListener('click', () => {
+      setCounterMode(button.dataset.mode);
+      // Saved by the app, which also passes it on to OBS and the settings.
+      fetch(`/hud/counter-mode?mode=${button.dataset.mode}`).catch(() => {});
+    });
+  }
+  hudBar.querySelector('.hud-recap').addEventListener('click', () => fetch('/hud/recap').catch(() => {}));
+  setCounterMode(damageCounterMode);
+
+  // Where the bar is, and how big the window must be — reported on change.
   let reportedRect = null;
+  let reportedSize = null;
   setInterval(() => {
-    const r = counterSwitch.getBoundingClientRect();
-    const shown = r.width > 0 && getComputedStyle(turnDamageEl).visibility === 'visible'
-      && !leadWrap.classList.contains('leaving');
-    const rect = shown
-      ? `x=${Math.floor(r.left)}&y=${Math.floor(r.top)}&w=${Math.ceil(r.width)}&h=${Math.ceil(r.height)}`
-      : 'none';
-    if (rect === reportedRect) return;
-    reportedRect = rect;
-    fetch(`/hud/switch-rect?${rect}`).catch(() => { reportedRect = null; });
+    const r = hudBar.getBoundingClientRect();
+    const rect = `x=${Math.floor(r.left)}&y=${Math.floor(r.top)}&w=${Math.ceil(r.width)}&h=${Math.ceil(r.height)}`;
+    if (rect !== reportedRect) {
+      reportedRect = rect;
+      fetch(`/hud/controls-rect?${rect}`).catch(() => { reportedRect = null; });
+    }
+    const { width, height } = hudRoom();
+    const size = `w=${width}&h=${height}`;
+    if (size !== reportedSize) {
+      reportedSize = size;
+      fetch(`/hud/size?${size}`).catch(() => { reportedSize = null; });
+    }
   }, 150);
 }
 

@@ -35,10 +35,17 @@ pub struct HudRect {
 /// from here, with no Tauri IPC: it sends these as GETs on /hud/….
 #[derive(Debug, Clone, PartialEq)]
 pub enum HudRequest {
-    /// The switch moved, or `None` when it isn't shown.
-    SwitchRect(Option<HudRect>),
-    /// The switch was clicked: "turn" or "fight".
+    /// Where the control bar is (the window's only clickable spot), or
+    /// `None` when it isn't shown.
+    ControlsRect(Option<HudRect>),
+    /// The bar's turn/fight switch was clicked: "turn" or "fight".
     CounterMode(String),
+    /// The room the overlay needs, in CSS pixels.
+    Size { width: f64, height: f64 },
+    /// The bar's handle was pressed: the window follows the mouse.
+    Drag,
+    /// The bar's "Récap" button.
+    Recap,
 }
 
 pub type HudHandler = Arc<dyn Fn(HudRequest) + Send + Sync>;
@@ -283,14 +290,20 @@ fn hud_request(command: &str, target: &str) -> Option<HudRequest> {
     let param = |key: &str| query_params(target).find(|(k, _)| *k == key).map(|(_, v)| v);
     let number = |key: &str| param(key)?.parse::<f64>().ok().filter(|n| n.is_finite());
     match command {
-        "switch-rect" => {
+        "controls-rect" => {
             let rect = (|| {
                 let rect = HudRect { x: number("x")?, y: number("y")?, width: number("w")?, height: number("h")? };
                 (rect.width > 0.0 && rect.height > 0.0).then_some(rect)
             })();
-            Some(HudRequest::SwitchRect(rect))
+            Some(HudRequest::ControlsRect(rect))
         }
         "counter-mode" => param("mode").filter(|m| matches!(*m, "turn" | "fight")).map(|m| HudRequest::CounterMode(m.into())),
+        "size" => {
+            let (width, height) = (number("w")?, number("h")?);
+            (width > 0.0 && height > 0.0).then_some(HudRequest::Size { width, height })
+        }
+        "drag" => Some(HudRequest::Drag),
+        "recap" => Some(HudRequest::Recap),
         _ => None,
     }
 }
@@ -384,10 +397,17 @@ mod tests {
     fn reads_the_in_game_windows_requests() {
         let rect = HudRect { x: 10.0, y: 20.5, width: 24.0, height: 14.0 };
         assert_eq!(
-            hud_request("switch-rect", "/hud/switch-rect?x=10&y=20.5&w=24&h=14"),
-            Some(HudRequest::SwitchRect(Some(rect)))
+            hud_request("controls-rect", "/hud/controls-rect?x=10&y=20.5&w=24&h=14"),
+            Some(HudRequest::ControlsRect(Some(rect)))
         );
-        assert_eq!(hud_request("switch-rect", "/hud/switch-rect?none"), Some(HudRequest::SwitchRect(None)));
+        assert_eq!(hud_request("controls-rect", "/hud/controls-rect?none"), Some(HudRequest::ControlsRect(None)));
+        assert_eq!(
+            hud_request("size", "/hud/size?w=420&h=610.5"),
+            Some(HudRequest::Size { width: 420.0, height: 610.5 })
+        );
+        assert_eq!(hud_request("size", "/hud/size?w=0&h=10"), None);
+        assert_eq!(hud_request("drag", "/hud/drag"), Some(HudRequest::Drag));
+        assert_eq!(hud_request("recap", "/hud/recap"), Some(HudRequest::Recap));
         assert_eq!(
             hud_request("counter-mode", "/hud/counter-mode?mode=fight"),
             Some(HudRequest::CounterMode("fight".into()))

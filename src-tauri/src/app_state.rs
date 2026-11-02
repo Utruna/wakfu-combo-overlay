@@ -13,6 +13,7 @@ use crate::catalog::Catalog;
 use crate::log_reader::{now_ms, CastEvent, LogEvent, WakfuCombatLogReader};
 use crate::matcher::find_hero_index;
 use crate::overlay_server::{FileSource, HudHandler, OverlayHub, OverlayServer};
+use crate::saved_fights::SavedFights;
 use crate::settings::SettingsStore;
 use crate::turn_tracker::{CombatTurnTracker, TurnUpdateKind};
 
@@ -20,6 +21,7 @@ use crate::turn_tracker::{CombatTurnTracker, TurnUpdateKind};
 const LOG_POLL_INTERVAL: Duration = Duration::from_millis(300);
 
 pub const SETTINGS_WINDOW: &str = "settings";
+pub const RECAP_WINDOW: &str = "recap";
 
 pub struct Core {
     pub settings: SettingsStore,
@@ -29,6 +31,8 @@ pub struct Core {
     /// Why the overlay server isn't listening, or None when it is.
     pub overlay_error: Option<String>,
     pub obs_loader_path: Option<PathBuf>,
+    /// Fights kept from the recap across sessions.
+    pub saved_fights: SavedFights,
 }
 
 pub struct AppState {
@@ -98,6 +102,8 @@ pub fn push_debug_event(app: &AppHandle, entry: Value) {
 
 fn handle_events(app: &AppHandle, state: &AppState, events: Vec<LogEvent>) {
     let mut debug_events = Vec::new();
+    let recap_changed;
+    let recap_unseen;
     {
         let mut core = state.core.lock().unwrap();
         let Core { settings, tracker, .. } = &mut *core;
@@ -119,6 +125,10 @@ fn handle_events(app: &AppHandle, state: &AppState, events: Vec<LogEvent>) {
                             "total": update.total,
                             "fightTotal": update.fight_total,
                             "amount": update.amount.unwrap_or(0),
+                            "heal": update.heal,
+                            "fightHeal": update.fight_heal,
+                            "armor": update.armor,
+                            "fightArmor": update.fight_armor,
                             "ended": update.kind == TurnUpdateKind::End,
                             "timestamp": now_ms(),
                         }));
@@ -129,9 +139,20 @@ fn handle_events(app: &AppHandle, state: &AppState, events: Vec<LogEvent>) {
                 }
             }
         }
+        recap_changed = tracker.recorder.take_changed();
+        recap_unseen = tracker.recorder.has_unseen();
     }
     for entry in debug_events {
         push_debug_event(app, entry);
+    }
+    if recap_changed {
+        // The recap redraws itself; the settings' button shows "nouveau".
+        if app.get_webview_window(RECAP_WINDOW).is_some() {
+            let _ = app.emit_to(RECAP_WINDOW, "recap:changed", ());
+        }
+        if app.get_webview_window(SETTINGS_WINDOW).is_some() {
+            let _ = app.emit_to(SETTINGS_WINDOW, "recap:unseen", recap_unseen);
+        }
     }
 }
 
