@@ -1,7 +1,7 @@
 /**
  * tools/capture_gif.js
  * Records doc/overlay-demo.gif: the real overlay replaying a scripted fight
- * (casts, damage counter, an Osamodas summon), written to a fake wakfu.log in
+ * (casts, damage counter, heals and armour given, an Osamodas summon), written to a fake wakfu.log in
  * the same format as the game's. The app runs on an isolated demo profile on
  * port 3498 (see demo_app.js), so a running instance isn't disturbed; Electron
  * is only the offscreen browser that films the overlay.
@@ -24,8 +24,8 @@ const PORT = 3498;
 const ICON_SIZE = 48;
 const FPS = 15;
 const BACKGROUND = '#1b1f24';
-// Overlay size for 8 casts at 48 px with the damage counter (see overlaySize() in settings.js).
-const SIZE = ORIENTATION === 'vertical' ? { width: 188, height: 643 } : { width: 766, height: 130 };
+// Overlay size for 8 casts at 48 px with the counters (see overlaySize() in settings.js).
+const SIZE = ORIENTATION === 'vertical' ? { width: 188, height: 705 } : { width: 854, height: 130 };
 
 const profile = createDemoProfile({
   name: 'wakfu-combo-overlay-gif',
@@ -33,8 +33,9 @@ const profile = createDemoProfile({
   heroes: [
     hero('Lueur Ocre', 'iop', 74, 144, 226),
     hero('Lueur Pourpre', 'sram', 220, 50, 50),
+    hero('Lueur Grenat', 'eniripsa', 236, 64, 122),
     hero('Lueur Émeraude', 'osamodas', 76, 175, 80),
-    hero('Lueur Acérée', 'cra', 255, 167, 38),
+    hero('Lueur Etherique', 'huppermage', 171, 71, 188),
   ],
   comboLayout: {
     orientation: ORIENTATION, direction: ORIENTATION === 'vertical' ? 'top-to-bottom' : 'left-to-right',
@@ -61,29 +62,45 @@ const join = (name, breed, ai) => write(` INFO ${stamp()} [AWT-EventQueue-0] (fc
 const cast = (who, spell) => () => combat(`${who} lance le sort ${spell}`);
 const hit = (pv, element) => () => combat(`Sac à patates: -${pv} PV  (${element})`);
 const turnEnd = (s) => () => combat(`${s} secondes reportées pour le tour suivant.`);
+const heal = (who, pv, tags) => () => combat(`${who}: +${pv} PV ${tags}`);
+const armor = (who, amount) => () => combat(`${who}: ${amount} Armure`);
 const SCRIPT = [
   [0, () => join('Sac à patates', 2335, true)],
   [0, () => join('Lueur Ocre', 8, false)],
   [0, () => join('Lueur Pourpre', 4, false)],
+  [0, () => join('Lueur Grenat', 7, false)],
   [0, () => join('Lueur Émeraude', 2, false)],
-  [0, () => join('Lueur Acérée', 9, false)],
-  [600, cast('Lueur Ocre', 'Épée céleste')], [450, hit('2 431', 'Feu')],
+  [0, () => join('Lueur Etherique', 19, false)],
+  // First, the Huppermage: damage, a Faille shielding an ally and herself
+  // (both hers), then lifesteal — all three counters from the first turn.
+  [600, cast('Lueur Etherique', 'Orbes luisants (Critiques)')], [450, hit('3 377', 'Lumière')],
+  [700, cast('Lueur Etherique', 'Faille')], [450, armor('Lueur Ocre', '1 732')],
+  [200, armor('Lueur Etherique', '1 732')],
+  [700, cast('Lueur Etherique', 'Épée de lumière (Critiques)')], [450, hit('4 912', 'Lumière')],
+  [250, heal('Lueur Etherique', '1 640', '(Neutre - Vol de vie)')],
+  [900, turnEnd(19)],
+  [400, cast('Lueur Ocre', 'Épée céleste')], [450, hit('2 431', 'Feu')],
   [700, cast('Lueur Ocre', 'Fulgur')], [450, hit('3 108', 'Feu')],
   [700, cast('Lueur Ocre', 'Super Iop Punch')], [450, hit('5 874', 'Terre')],
   [900, turnEnd(21)],
+  // Lifesteal: the Sram's own heal.
   [400, cast('Lueur Pourpre', 'Saignée mortelle')], [450, hit('1 962', 'Eau')],
+  [250, heal('Lueur Pourpre', '980', '(Neutre - Vol de vie) (Saignée mortelle)')],
   [700, cast('Lueur Pourpre', 'Attaque perfide (Critiques)')], [450, hit('4 320', 'Eau')],
   [700, cast('Lueur Pourpre', 'Mise à mort')], [450, hit('6 715', 'Air')],
   [900, turnEnd(18)],
+  // The Eniripsa heals the group, then hits.
+  [400, cast('Lueur Grenat', 'Revitalisation')], [450, heal('Lueur Ocre', '2 577', '(Eau)')],
+  [200, heal('Lueur Pourpre', '2 410', '(Eau)')],
+  [700, cast('Lueur Grenat', 'Mot soignant (Critiques)')], [450, heal('Lueur Pourpre', '4 126', '(Feu)')],
+  [700, cast('Lueur Grenat', 'Flamme purificatrice')], [450, hit('1 845', 'Feu')],
+  [900, turnEnd(22)],
   [400, cast('Lueur Émeraude', 'Invocation')],
   [300, () => combat('Lueur Émeraude: Invoque une créature du Gobgob')],
   [0, () => join('Dragoeuf Guerrier', 4210, true)],
   [700, cast('Lueur Émeraude', 'Fouet')], [450, hit('1 845', 'Feu')],
   [700, turnEnd(25)],
   [400, cast('Dragoeuf Guerrier', 'Griffure')], [450, hit('2 290', 'Feu')],
-  [900, cast('Lueur Acérée', 'Flèche tempête')], [450, hit('2 604', 'Air')],
-  [700, cast('Lueur Acérée', 'Flèche explosive')], [450, hit('3 377', 'Feu')],
-  [700, cast('Lueur Acérée', 'Pluie de flèches')], [450, hit('4 912', 'Terre')],
   [2200, turnEnd(14)],
 ];
 

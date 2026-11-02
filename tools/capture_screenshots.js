@@ -98,25 +98,29 @@ app.whenReady().then(async () => {
 
   // Overlay "OBS" client, so the diagnostics show a connected source.
   const overlayWin = new BrowserWindow({
-    // Overlay size for 8 casts at 48 px with the damage counter (see overlaySize() in settings.js).
-    width: 766, height: 130, useContentSize: true, show: false, backgroundColor: '#1b1f24',
+    // Overlay size for 8 casts at 48 px with the counters (see overlaySize() in settings.js).
+    width: 854, height: 130, useContentSize: true, show: false, backgroundColor: '#1b1f24',
     webPreferences: { offscreen: false },
   });
   await overlayWin.loadURL(`http://localhost:${PORT}`);
   await wait(1000);
 
-  // Casts (and what they hit): tracked heroes, an untracked hero, a random player.
+  // Casts (and what they hit, then any other line): tracked heroes, an
+  // untracked hero, a random player. The last hero also heals (lifesteal)
+  // and gains armour, for the heal and armour counters.
   const seq = [
     ['Lueur Ocre', 'Épée céleste', '2 431'], ['Lueur Pourpre', 'Saignée mortelle', '1 962'],
     ['Lueur Grenat', 'Mot soignant'], ['Lueur Acérée', 'Flèche tempête', '2 604'],
     ['Lueur Etherique', 'Résonance', '3 377'], ['Kralamoure Pas-Content', 'Tentacule'],
-    ['Lueur Ocre', 'Fulgur', '3 108'], ['Lueur Pourpre', 'Mise à mort', '6 715'],
+    ['Lueur Ocre', 'Fulgur', '3 108'],
+    ['Lueur Pourpre', 'Mise à mort', '6 715', ['Lueur Pourpre: +4 210 PV (Neutre - Vol de vie)', 'Lueur Pourpre: 2 150 Armure']],
   ];
-  for (const [who, spell, damage] of seq) {
+  for (const [who, spell, damage, then = []] of seq) {
     cast(who, spell);
     win.webContents.send('demo:debug', debugEntry(who, spell));
     await wait(300);
     if (damage) combat(`Sac à patates: -${damage} PV  (Feu)`);
+    for (const line of then) combat(line);
     await wait(500);
   }
   await wait(1200);
@@ -167,6 +171,11 @@ app.whenReady().then(async () => {
   await shot(recapWin, 'app-6-recap-soins.png', `
     [...document.querySelectorAll('[role=tab]')].find((b) => b.textContent.includes('Soins')).click();
     ${openHero('Lueur Grenat', 0)}
+  `);
+  await shot(recapWin, 'app-6b-recap-armure.png', `
+    document.querySelector('.rc-row.open .rc-row-btn')?.click();
+    [...document.querySelectorAll('[role=tab]')].find((b) => b.textContent.includes('Armure')).click();
+    ${openHero('Lueur Ocre', -1)} // no hover: the first spell that gave some armour
   `);
   await shot(await page(path.join('whatsnew', 'index.html'), 560, 600), 'app-7-nouveautes.png');
 

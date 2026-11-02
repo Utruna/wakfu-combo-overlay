@@ -5,7 +5,7 @@
 
 Affiche en direct sur ton stream les sorts lancés par tes personnages Wakfu, sous forme d'icônes qui défilent dans OBS. Tu ne streames pas ? L'**affichage tête haute** les montre directement par-dessus le jeu. Après chaque combat, le **récap des combats** te montre qui a fait quoi : dégâts, soins, meilleur tour, sort par sort.
 
-![L'overlay en combat : sorts des héros et compteur de dégâts du tour](doc/overlay-demo.gif)
+![L'overlay en combat : sorts des héros, compteur de dégâts du tour, soins et armure donnés](doc/overlay-demo.gif)
 
 L'application lit les logs de combat du client Wakfu en temps réel. Elle ne garde que les sorts de tes personnages (les autres joueurs et les mobs sont ignorés) et les envoie à une page web transparente que tu ajoutes comme **Source Navigateur** dans OBS.
 
@@ -184,6 +184,8 @@ Le récap revient sur chaque combat de la session : qui a fait quoi, et comment.
 Dans l'onglet **Soins**, tout le détail passe aux soins : meilleur tour de soins, soins par sort (un sort de zone montre chaque cible soignée) et personnes soignées. L'onglet **Armure** fait de même pour l'armure donnée, avec les alliés protégés.
 
 ![Récap des combats : onglet Soins](doc/app-6-recap-soins.png)
+
+![Récap des combats : onglet Armure, armure donnée par sort et alliés protégés](doc/app-6b-recap-armure.png)
 
 **Comment l'appli compte**
 
@@ -410,4 +412,4 @@ npx --yes electron@44 tools/capture_gif.js            # doc/overlay-demo.gif
 npx --yes electron@44 tools/capture_gif.js vertical   # doc/overlay-demo-vertical.gif
 ```
 
-Ce script enregistre le vrai overlay pendant qu'il rejoue un combat scénarisé (sorts, compteur de dégâts, invocation Osamodas), écrit dans un faux `wakfu.log` au format du jeu.
+Ce script enregistre le vrai overlay pendant qu'il rejoue un combat scénarisé (sorts, compteur de dégâts, soins et armure donnés, invocation Osamodas), écrit dans un faux `wakfu.log` au format du jeu.
