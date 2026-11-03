@@ -22,17 +22,28 @@ Le jeu n'indique pas quel sort a fait quels dégâts : l'appli attribue chaque c
 
 À côté du compteur de dégâts, deux petits compteurs montrent les **soins** (rose) et l'**armure** (vert) que le héros a donnés, dans OBS comme dans l'affichage tête haute. Ils suivent le réglage **Tour / Combat** et restent masqués tant qu'ils valent 0.
 
-Soins et armure comptent pour celui qui les donne : le héros qui joue, le propriétaire d'une marque ou d'un passif (« Marque Husse », « Radiance »…), et le vol de vie pour celui qui se soigne. **Pense à agrandir ta source OBS** : en horizontal, elle gagne environ 90 px de large (854 × 130 au lieu de 766 × 130 pour 8 sorts à 48 px), et en vertical environ 60 px de haut. La taille exacte s'affiche dans la page Affichage et dans l'assistant.
+Soins et armure comptent pour celui qui les donne : le héros qui joue, le propriétaire d'une marque ou d'un passif (« Marque Husse », « Radiance »…), et le vol de vie pour celui qui se soigne. **Pense à ajuster ta source OBS** : en horizontal, elle gagne environ 90 px de large (854 × 130 au lieu de 766 × 130 pour 8 sorts à 48 px). En vertical, elle perd au contraire environ 90 px de haut (188 × 554 au lieu de 188 × 643), car l'icône de classe ne descend plus le long de la liste (voir plus bas). La taille exacte s'affiche dans la page Affichage et dans l'assistant.
+
+### Overlay : l'icône de classe ne bouge plus
+
+Dans les 4 sens de défilement, l'overlay reste accroché à un coin fixe et l'icône de classe ne bouge plus : le dernier sort arrive toujours juste à côté d'elle et la liste défile dans l'autre sens. En vertical **haut → bas**, le dernier sort est en haut et les plus anciens descendent ; en **bas → haut**, tout l'overlay est accroché en bas, le dernier sort aussi, avec le compteur, les soins et l'armure empilés au-dessus de l'icône. Le « +N » de chaque coup descend sous le compteur en horizontal, et monte à côté de lui en vertical.
 
 ### Affichage tête haute : nouvelle barre de contrôle
 
-- Sous l'overlay, une petite barre réunit tout ce qui se clique : une **poignée** pour déplacer la fenêtre en la faisant glisser, **Tour / Combat** pour le compteur, et **Récap**. Le reste de la fenêtre laisse toujours passer les clics vers Wakfu.
+- Au-dessus de l'overlay (en dessous en vertical bas → haut), une petite barre réunit tout ce qui se clique (verticale quand l'overlay est vertical) : une **poignée** pour déplacer la fenêtre en la faisant glisser, **Tour / Combat** pour le compteur, et **Récap**. Le reste de la fenêtre laisse toujours passer les clics vers Wakfu.
 - La fenêtre prend toute seule la bonne taille selon tes réglages d'affichage, avec de la marge, pour que rien ne soit jamais coupé. Le mode « Déplacer / redimensionner » des réglages disparaît.
 
 ### Assistant : mode streamer ou mode joueur
 
 - L'assistant de premier lancement te demande maintenant comment tu utilises l'appli. En **mode streamer**, il t'aide à ajouter l'overlay dans OBS, comme avant. En **mode joueur**, il active l'affichage tête haute et te montre comment t'en servir.
 - Ce tuto de l'affichage tête haute reste disponible avec le bouton **Tuto**, à côté de son interrupteur dans la page Affichage.
+
+### Corrections et sécurité
+
+- Quand Wakfu recrée son fichier de log, l'appli s'en rend compte même si le nouveau fichier est déjà plus long que l'ancien : avant, elle pouvait rater des sorts.
+- Le serveur local de l'overlay ne répond plus qu'à OBS et à l'appli : une page web ouverte dans ton navigateur ne peut plus lire tes sorts ni actionner les boutons de l'affichage tête haute.
+- Une position enregistrée invalide pour l'affichage tête haute est ignorée au lieu de donner une fenêtre de taille aberrante.
+- Mise à jour de composants de l'appli qui corrige des failles de sécurité connues.
 
 ### Nouveau : fenêtre des nouveautés
 

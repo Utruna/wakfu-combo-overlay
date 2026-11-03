@@ -89,11 +89,11 @@ Sous l'aperçu, la carte **Source navigateur OBS** indique la taille exacte à d
 
 | Taille icône | Horizontale (L × H) | Verticale (L × H) |
 |---|---|---|
-| 32 px | 638 × 108 | 143 × 541 |
-| 48 px | 854 × 130 | 188 × 705 |
-| 64 px | 1070 × 152 | 234 × 871 |
-| 96 px | 1502 × 196 | 324 × 1203 |
-| 128 px | 1934 × 240 | 415 × 1534 |
+| 32 px | 638 × 108 | 143 × 426 |
+| 48 px | 854 × 130 | 188 × 554 |
+| 64 px | 1070 × 152 | 234 × 682 |
+| 96 px | 1502 × 196 | 324 × 938 |
+| 128 px | 1934 × 240 | 415 × 1194 |
 
 Sans les compteurs, la source est plus petite (ex. 478 × 76 en horizontal à 32 px) : fie-toi toujours à la valeur affichée dans l'appli.
 
@@ -143,7 +143,7 @@ Le bouton **Tuto**, à côté de l'interrupteur, rappelle comment t'en servir.
 
 **La barre de contrôle**
 
-Sous l'overlay, une petite barre réunit tout ce qui se clique :
+Au-dessus de l'overlay (en dessous en vertical bas → haut), une petite barre réunit tout ce qui se clique :
 
 - **La poignée** (les six points à gauche) : maintiens le clic dessus et fais glisser pour placer l'affichage où tu veux. L'appli retient cet emplacement pour les prochaines fois.
 - **Tour / Combat** : ce que compte le compteur de dégâts, comme dans la page Affichage.

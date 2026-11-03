@@ -19,8 +19,8 @@ const LAYOUTS = [
   // list grows (it reads better); still overridable with the "Position" toggle.
   { id: 'h-fwd', orientation: 'horizontal', direction: 'left-to-right', label: 'Horizontal', sub: 'gauche → droite', flex: 'row', iconSide: 'right' },
   { id: 'h-rev', orientation: 'horizontal', direction: 'right-to-left', label: 'Horizontal', sub: 'droite → gauche', flex: 'row-reverse', iconSide: 'left' },
-  { id: 'v-fwd', orientation: 'vertical', direction: 'top-to-bottom', label: 'Vertical', sub: 'haut → bas', flex: 'column' },
-  { id: 'v-rev', orientation: 'vertical', direction: 'bottom-to-top', label: 'Vertical', sub: 'bas → haut', flex: 'column-reverse' },
+  { id: 'v-fwd', orientation: 'vertical', direction: 'top-to-bottom', label: 'Vertical', sub: 'haut → bas', flex: 'column-reverse' },
+  { id: 'v-rev', orientation: 'vertical', direction: 'bottom-to-top', label: 'Vertical', sub: 'bas → haut', flex: 'column' },
 ];
 
 // Mirrors ui/overlay/style.css + client.js: .cast-entry padding (4px * 2)
@@ -412,8 +412,7 @@ function counterMetrics(iconSize) {
     horizontalWidth: 136 * k,
     verticalWidth: 88 * k,
     verticalHeight: 2 * 7 * k + 1.2 * Math.max(8, 10 * k) + 1 + 1.2 * Math.max(10, 15 * k),
-    deltaRoom: 6 + 1.2 * 15 * k + 14, // the "+N" rising above (horizontal)
-    deltaBelow: 6 + 1.2 * Math.max(9, 13 * k) + 14, // …or dropping below (vertical)
+    deltaRoom: 6 + 1.2 * 15 * k + 14, // the "+N" dropping below (horizontal)
     // The heal and armour frames: beside the counter, or under it.
     supportWidth: 80 * k,
     supportHeight: 2 * 24 * k + 6 * k,
@@ -430,19 +429,19 @@ function overlaySize(layout = state.layout) {
   const counterOn = layout.damageCounterEnabled !== false;
   const c = counterMetrics(icon);
   if (horizontal) {
-    // Counter beside the class icon, "+N" room above.
+    // Counter beside the class icon, "+N" room below.
     const counterW = counterOn ? c.horizontalWidth + CLASS_ICON_GAP_PX + c.supportWidth + CLASS_ICON_GAP_PX : 0;
     return {
       width: Math.ceil(EDGE_OFFSET_PX * 2 + lead + CLASS_ICON_GAP_PX + counterW + logLen),
       height: Math.ceil(EDGE_OFFSET_PX * 2 + Math.max(entry, lead) + (counterOn ? c.deltaRoom : 0)),
     };
   }
-  // V3: icon (+ counter under it) level with the newest cast, i.e. the last slot at worst.
+  // Icon, counter, heals and armour stacked beside the column, from its newest end.
   const leadW = counterOn ? Math.max(lead, c.verticalWidth) : lead;
-  const leadH = lead + (counterOn ? CLASS_ICON_GAP_PX + c.verticalHeight + CLASS_ICON_GAP_PX + c.supportHeight + c.deltaBelow : 0);
+  const leadH = lead + (counterOn ? CLASS_ICON_GAP_PX + c.verticalHeight + CLASS_ICON_GAP_PX + c.supportHeight : 0);
   return {
     width: Math.ceil(EDGE_OFFSET_PX * 2 + leadW + CLASS_ICON_GAP_PX + entry),
-    height: Math.ceil(EDGE_OFFSET_PX * 2 + Math.max(logLen, logLen - entry + leadH)),
+    height: Math.ceil(EDGE_OFFSET_PX * 2 + Math.max(logLen, leadH)),
   };
 }
 
@@ -532,6 +531,12 @@ function renderPreview() {
   scale.style.transform = `scale(${k})`;
 
   $('pv-overlay').dataset.side = layout.classIconSide || 'left';
+  $('pv-overlay').dataset.direction = layout.direction;
+  // Pinned like the overlay: on the class icon's side horizontally, on the
+  // cast column's vertically, at the bottom when the list scrolls up.
+  const vertical = layout.orientation === 'vertical';
+  scale.style.justifyContent = (layout.classIconSide === 'right') !== vertical ? 'flex-end' : 'flex-start';
+  scale.style.alignItems = vertical && layout.direction === 'bottom-to-top' ? 'flex-end' : 'flex-start';
   const flex = LAYOUTS.find((l) => l.id === layoutId(layout)).flex;
   const log = $('pv-log');
   log.style.flexDirection = flex;
@@ -575,12 +580,6 @@ function renderPreview() {
   $('pv-damage').hidden = !counterOn;
   $('pv-support').hidden = !counterOn;
   $('pv-damage-tag').textContent = layout.damageCounterMode === 'fight' ? 'Combat' : 'Tour';
-  scale.style.paddingTop = `${EDGE_OFFSET_PX + (horizontal && counterOn ? Math.ceil(counterMetrics(iconSize).deltaRoom) : 0)}px`;
-
-  // V3: in a top-to-bottom column the icon sits level with the newest (last) cast.
-  const followsDown = !horizontal && layout.direction !== 'bottom-to-top';
-  const slot = iconSize + ENTRY_CHROME_PX + ENTRY_GAP_PX;
-  $('pv-lead-wrap').style.setProperty('--lead-y', `${followsDown ? (entries.length - 1) * slot : 0}px`);
 }
 
 window.addEventListener('resize', renderPreview);

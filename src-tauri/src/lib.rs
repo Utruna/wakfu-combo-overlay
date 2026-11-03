@@ -168,7 +168,9 @@ fn setup(app: &AppHandle, launched_at_login: bool) -> Result<(), Box<dyn std::er
     let handle = app.clone();
     let hud: HudHandler = Arc::new(move |request| match request {
         HudRequest::ControlsRect(rect) => ingame_window::set_controls_rect(rect),
-        HudRequest::Size { width, height } => ingame_window::fit(&handle, width, height),
+        HudRequest::Size { width, height, keep_left, keep_bottom } => {
+            ingame_window::fit(&handle, width, height, keep_left, keep_bottom)
+        }
         HudRequest::Drag => ingame_window::start_drag(&handle),
         HudRequest::Recap => show_recap_window(&handle),
         HudRequest::CounterMode(mode) => {

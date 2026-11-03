@@ -56,8 +56,10 @@ pub enum HudRequest {
     ControlsRect(Option<HudRect>),
     /// The bar's turn/fight switch was clicked: "turn" or "fight".
     CounterMode(String),
-    /// The room the overlay needs, in CSS pixels.
-    Size { width: f64, height: f64 },
+    /// The room the overlay needs, in CSS pixels. `keep_left` / `keep_bottom`:
+    /// the overlay is pinned to the window's left / bottom edge, else its
+    /// right / top one.
+    Size { width: f64, height: f64, keep_left: bool, keep_bottom: bool },
     /// The bar's handle was pressed: the window follows the mouse.
     Drag,
     /// The bar's "Récap" button.
@@ -319,7 +321,8 @@ fn hud_request(command: &str, target: &str) -> Option<HudRequest> {
         "counter-mode" => param("mode").filter(|m| matches!(*m, "turn" | "fight")).map(|m| HudRequest::CounterMode(m.into())),
         "size" => {
             let (width, height) = (number("w")?, number("h")?);
-            (width > 0.0 && height > 0.0).then_some(HudRequest::Size { width, height })
+            let (keep_left, keep_bottom) = (param("side") == Some("left"), param("edge") == Some("bottom"));
+            (width > 0.0 && height > 0.0).then_some(HudRequest::Size { width, height, keep_left, keep_bottom })
         }
         "drag" => Some(HudRequest::Drag),
         "recap" => Some(HudRequest::Recap),
@@ -473,7 +476,11 @@ mod tests {
         assert_eq!(hud_request("controls-rect", "/hud/controls-rect?none"), Some(HudRequest::ControlsRect(None)));
         assert_eq!(
             hud_request("size", "/hud/size?w=420&h=610.5"),
-            Some(HudRequest::Size { width: 420.0, height: 610.5 })
+            Some(HudRequest::Size { width: 420.0, height: 610.5, keep_left: false, keep_bottom: false })
+        );
+        assert_eq!(
+            hud_request("size", "/hud/size?w=420&h=610&side=left&edge=bottom"),
+            Some(HudRequest::Size { width: 420.0, height: 610.0, keep_left: true, keep_bottom: true })
         );
         assert_eq!(hud_request("size", "/hud/size?w=0&h=10"), None);
         assert_eq!(hud_request("drag", "/hud/drag"), Some(HudRequest::Drag));

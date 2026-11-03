@@ -343,6 +343,7 @@ legend.field-label { margin-bottom: 8px; }
 .pv-overlay { display: inline-flex; align-items: center; gap: 8px; }
 .pv-overlay[data-side="right"] { flex-direction: row-reverse; }
 .pv-overlay[data-orientation="vertical"] { align-items: flex-start; }
+.pv-overlay[data-orientation="vertical"][data-direction="bottom-to-top"] { align-items: flex-end; }
 .pv-lead {
   border-radius: 6px; border: 2px solid rgba(255, 255, 255, 0.2);
   background: rgba(20, 20, 26, 0.85);
@@ -351,12 +352,11 @@ legend.field-label { margin-bottom: 8px; }
 }
 .pv-lead img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
 /* K1 counter + V3 — same rules as #lead-wrap / #turn-damage in the overlay. */
-.pv-lead-wrap {
-  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
-  transform: translateY(var(--lead-y, 0px));
-}
+.pv-lead-wrap { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .pv-overlay[data-orientation="horizontal"][data-side="left"] .pv-lead-wrap { flex-direction: row-reverse; }
 .pv-overlay[data-orientation="vertical"] .pv-lead-wrap { flex-direction: column; }
+.pv-overlay[data-orientation="vertical"][data-direction="bottom-to-top"] .pv-lead-wrap,
+.pv-overlay[data-orientation="vertical"][data-direction="bottom-to-top"] .pv-support { flex-direction: column-reverse; }
 .pv-damage {
   --td-cut: max(5px, calc(9px * var(--k)));
   position: relative; flex-shrink: 0;

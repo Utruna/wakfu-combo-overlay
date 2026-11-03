@@ -46,18 +46,20 @@ pub fn set_controls_rect(rect: Option<HudRect>) {
     *CONTROLS_RECT.lock_safe() = rect;
 }
 
-/// Sizes the window to the room the overlay needs (CSS pixels), keeping its
-/// top-right corner where it is: the overlay is anchored there.
-pub fn fit(app: &AppHandle, width: f64, height: f64) {
+/// Sizes the window to the room the overlay needs (CSS pixels), keeping the
+/// corner the overlay is pinned to where it is (see #combo-overlay in
+/// ui/overlay/style.css).
+pub fn fit(app: &AppHandle, width: f64, height: f64, keep_left: bool, keep_bottom: bool) {
     let Some(window) = app.get_webview_window(INGAME_WINDOW) else { return };
     let (Ok(pos), Ok(old), Ok(scale)) = (window.outer_position(), window.outer_size(), window.scale_factor()) else { return };
     let new: PhysicalSize<u32> = LogicalSize::new(width.ceil(), height.ceil()).to_physical(scale);
     if new == old {
         return;
     }
-    let right = pos.x + old.width as i32;
+    let x = if keep_left { pos.x } else { pos.x + old.width as i32 - new.width as i32 };
+    let y = if keep_bottom { pos.y + old.height as i32 - new.height as i32 } else { pos.y };
     let _ = window.set_size(new);
-    let _ = window.set_position(PhysicalPosition::new(right - new.width as i32, pos.y));
+    let _ = window.set_position(PhysicalPosition::new(x, y));
     save_geometry(&window);
 }
 

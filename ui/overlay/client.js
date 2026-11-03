@@ -23,8 +23,9 @@ const ENTRY_GAP_PX = 6;
 const EDGE_OFFSET_PX = 16;
 const CLASS_ICON_GAP_PX = 8;
 const CLASS_ICON_EXTRA_PX = 12; // calc(var(--icon-size) + 12px) in style.css
-// In-game window: the control bar under the overlay (#hud-bar in style.css)…
-const HUD_BAR_ROOM_PX = 3 + 36; // the gap above the bar, and the bar
+// In-game window: the gap between the control bar and the overlay under it
+// (#hud-bar in style.css)…
+const HUD_BAR_GAP_PX = 8;
 // …and the room kept around everything, so nothing ever gets cut.
 const HUD_MARGIN_PX = 16;
 
@@ -71,13 +72,13 @@ function effectiveCapacity() {
   const horizontal = comboOverlay.dataset.orientation === 'horizontal';
   const classIconSize = iconSize + CLASS_ICON_EXTRA_PX;
   const counter = counterMetrics();
-  // Horizontal: icon and counter sit in line with the casts. Vertical (V3):
-  // they sit beside the column, but the counter hangs below the newest cast.
+  // Horizontal: icon and counter sit in line with the casts. Vertical: they
+  // sit beside the column, so it has the whole height.
   const alongExtra = horizontal
     ? classIconSize + CLASS_ICON_GAP_PX + (damageCounterEnabled ? counter.horizontalWidth + counter.supportWidth + 2 * CLASS_ICON_GAP_PX : 0)
-    : (damageCounterEnabled ? CLASS_ICON_GAP_PX + counter.verticalHeight + CLASS_ICON_GAP_PX + counter.supportHeight : 0);
-  // In-game, the bar takes the bottom edge's place (see hudRoom).
-  const available = (horizontal ? window.innerWidth : window.innerHeight - (isHud ? HUD_BAR_ROOM_PX + HUD_MARGIN_PX - EDGE_OFFSET_PX : 0))
+    : 0;
+  // In-game, the bar sits above the overlay (see hudRoom).
+  const available = (horizontal ? window.innerWidth : window.innerHeight - (isHud ? barRoom() + HUD_MARGIN_PX : 0))
     - EDGE_OFFSET_PX * 2 - alongExtra;
   const entry = iconSize + ENTRY_CHROME_PX;
   const fits = Math.floor((available + ENTRY_GAP_PX) / (entry + ENTRY_GAP_PX));
@@ -193,9 +194,8 @@ let leadIconKey = null;
  * actually changes (another hero) — rebuilding it on every cast or expiry made
  * it flicker. `animate` replays the swap-in: the first cast of a turn.
  */
-function updateClassLeadIcon({ animate = false, leaving = false } = {}) {
+function updateClassLeadIcon({ animate = false } = {}) {
   const list = activeCasts();
-  updateLeadPosition({ leaving });
   // A cast arriving while it folds away (or the fold-out being over) cancels it.
   leadWrap.classList.remove('leaving');
   if (!list.length) {
@@ -357,14 +357,14 @@ function swapCounter(key) {
   }, TURN_SWAP_MS);
 }
 
-/** Turn or fight total — from the settings, or the in-game window's switch. */
-function setCounterMode(mode) {
-  if (mode !== 'turn' && mode !== 'fight') return;
-  // Marks the in-game window's own requests: a web page can't add a header like
+// Marks the in-game window's own requests: a web page can't add a header like
 // this without a CORS preflight, which the server never answers.
 const hudFetch = (url) => fetch(url, { headers: { 'X-Wakfu-Overlay': '1' } });
 
-if (hudBar) {
+/** Turn or fight total — from the settings, or the in-game window's switch. */
+function setCounterMode(mode) {
+  if (mode !== 'turn' && mode !== 'fight') return;
+  if (hudBar) {
     for (const button of hudBar.querySelectorAll('[data-mode]')) button.setAttribute('aria-checked', String(button.dataset.mode === mode));
   }
   if (mode === damageCounterMode) return;
@@ -411,8 +411,7 @@ function counterMetrics() {
     horizontalWidth: 136 * k,
     verticalWidth: 88 * k,
     verticalHeight: 2 * 7 * k + 1.2 * Math.max(8, 10 * k) + 1 + 1.2 * Math.max(10, 15 * k),
-    deltaRoom: 6 + 1.2 * 15 * k + 14, // the "+N" rising above (horizontal)
-    deltaBelow: 6 + 1.2 * Math.max(9, 13 * k) + 14, // …or dropping below (vertical)
+    deltaRoom: 6 + 1.2 * 15 * k + 14, // the "+N" dropping below (horizontal)
     // The heal and armour frames (#support): beside the counter, or under it.
     supportWidth: 80 * k, // wide enough for "123,4 k"
     supportHeight: 2 * 24 * k + 6 * k,
@@ -420,26 +419,8 @@ function counterMetrics() {
 }
 
 function applyCounterLayout() {
-  const { k, deltaRoom, supportHeight } = counterMetrics();
-  document.documentElement.style.setProperty('--k', k.toFixed(4));
-  document.documentElement.style.setProperty('--delta-room', `${Math.ceil(deltaRoom)}px`);
-  document.documentElement.style.setProperty('--support-room', `${Math.ceil(CLASS_ICON_GAP_PX + supportHeight)}px`);
+  document.documentElement.style.setProperty('--k', counterMetrics().k.toFixed(4));
   comboOverlay.dataset.counter = damageCounterEnabled ? 'on' : 'off';
-}
-
-/**
- * V3 — vertical lists: the class icon slides to stay level with the newest
- * cast (the last one top-to-bottom; bottom-to-top it is always at the top).
- */
-function updateLeadPosition({ leaving = false } = {}) {
-  const n = activeCasts().length;
-  if (!n) return; // fading out: stay where it was
-  const followsDown = comboOverlay.dataset.orientation === 'vertical'
-    && comboOverlay.dataset.direction !== 'bottom-to-top';
-  const slot = iconSize + ENTRY_CHROME_PX + ENTRY_GAP_PX;
-  // A cast folding away takes as long as `cast-leave`; a new one, a quick glide.
-  leadWrap.style.setProperty('--lead-move', leaving ? '0.77s ease-in' : '0.3s ease-out');
-  leadWrap.style.setProperty('--lead-y', `${followsDown ? (n - 1) * slot : 0}px`);
 }
 
 /** Same hero behind both casts — a summon counts as its summoner (same heroName). */
@@ -484,6 +465,22 @@ function applyOrientationAndDirection(config) {
     comboLog.dataset.direction = config.direction;
   }
   if (config.classIconSide) comboOverlay.dataset.classIconSide = config.classIconSide;
+  if (hudBar) {
+    hudBar.dataset.orientation = comboOverlay.dataset.orientation || 'horizontal';
+    hudBar.dataset.direction = comboOverlay.dataset.direction || '';
+    hudBar.dataset.side = anchorSide();
+    document.documentElement.style.setProperty('--bar-room', `${barRoom()}px`);
+  }
+}
+
+/**
+ * The side the overlay is pinned to (see #combo-overlay in style.css): the
+ * class icon's when horizontal, the cast column's when vertical.
+ */
+function anchorSide() {
+  const iconRight = comboOverlay.dataset.classIconSide === 'right';
+  const vertical = comboOverlay.dataset.orientation === 'vertical';
+  return iconRight !== vertical ? 'right' : 'left';
 }
 
 function rerenderForCurrentMode() {
@@ -549,7 +546,7 @@ setInterval(() => {
     leadWrap.classList.add('leaving');
     setTimeout(() => { if (!liveCasts.length && !previewEnabled) updateClassLeadIcon(); }, LEAVE_FALLBACK_MS);
   } else {
-    updateClassLeadIcon({ leaving: true });
+    updateClassLeadIcon();
   }
 }, 500);
 
@@ -564,6 +561,9 @@ window.addEventListener('resize', rerenderForCurrentMode);
  * the window, Tour / Combat switches the counter, "Récap" opens the recap.
  */
 const hudBar = isHud ? document.createElement('div') : null;
+
+/** What the bar above the overlay takes up, with the gap under it. */
+const barRoom = () => (hudBar ? hudBar.offsetHeight + HUD_BAR_GAP_PX : 0);
 
 /**
  * What the overlay can take up at most with the current layout — every cast
@@ -588,18 +588,19 @@ function hudRoom() {
     width = EDGE_OFFSET_PX * 2 + lead + CLASS_ICON_GAP_PX + counterW + logLen;
     height = EDGE_OFFSET_PX * 2 + Math.max(entry, lead) + (damageCounterEnabled ? c.deltaRoom : 0);
   } else {
+    // The icon, counter, heals and armour stacked beside the column, from its newest end.
     const leadW = damageCounterEnabled ? Math.max(lead, c.verticalWidth + counterSlack) : lead;
     const leadH = lead + (damageCounterEnabled
-      ? CLASS_ICON_GAP_PX + c.verticalHeight + CLASS_ICON_GAP_PX + c.supportHeight + c.deltaBelow
+      ? CLASS_ICON_GAP_PX + c.verticalHeight + CLASS_ICON_GAP_PX + c.supportHeight
       : 0);
     width = EDGE_OFFSET_PX * 2 + leadW + CLASS_ICON_GAP_PX + entry;
-    height = EDGE_OFFSET_PX * 2 + Math.max(logLen, logLen - entry + leadH);
+    height = EDGE_OFFSET_PX * 2 + Math.max(logLen, leadH);
   }
   const bar = hudBar.getBoundingClientRect();
   return {
     width: Math.ceil(Math.max(width, bar.width + EDGE_OFFSET_PX * 2) + HUD_MARGIN_PX * 2),
-    // The bar right under the overlay's bottom edge, in place of its margin.
-    height: Math.ceil(height - EDGE_OFFSET_PX + HUD_BAR_ROOM_PX + HUD_MARGIN_PX),
+    // The bar beside the overlay (above it, or below it bottom to top), and the margin.
+    height: Math.ceil(height + barRoom() + HUD_MARGIN_PX),
   };
 }
 
@@ -640,6 +641,7 @@ if (hudBar) {
   let reportedRect = null;
   let reportedSize = null;
   setInterval(() => {
+    document.documentElement.style.setProperty('--bar-room', `${barRoom()}px`);
     const r = hudBar.getBoundingClientRect();
     const rect = `x=${Math.floor(r.left)}&y=${Math.floor(r.top)}&w=${Math.ceil(r.width)}&h=${Math.ceil(r.height)}`;
     if (rect !== reportedRect) {
@@ -647,7 +649,9 @@ if (hudBar) {
       hudFetch(`/hud/controls-rect?${rect}`).catch(() => { reportedRect = null; });
     }
     const { width, height } = hudRoom();
-    const size = `w=${width}&h=${height}`;
+    // The window grows away from the corner the overlay is pinned to.
+    const upward = comboOverlay.dataset.orientation === 'vertical' && comboOverlay.dataset.direction === 'bottom-to-top';
+    const size = `w=${width}&h=${height}&side=${anchorSide()}&edge=${upward ? 'bottom' : 'top'}`;
     if (size !== reportedSize) {
       reportedSize = size;
       hudFetch(`/hud/size?${size}`).catch(() => { reportedSize = null; });

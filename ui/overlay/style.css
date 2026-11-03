@@ -28,30 +28,35 @@ body {
   gap: 6px;
 }
 
+/* Pinned so the class icon never moves: the newest cast lands right beside
+   it and the list grows away from it. Horizontal, it's pinned on the icon's
+   side; vertical, on the cast column's side, at the top — or at the bottom
+   when the list scrolls up. */
 #combo-overlay {
   position: fixed;
   top: 16px;
-  right: 16px;
+  left: 16px;
   display: inline-flex;
   gap: 8px;
   align-items: center;
 }
-
-/* Room above for the "+N" that rises off the horizontal counter. */
-#combo-overlay[data-orientation="horizontal"][data-counter="on"] {
-  top: calc(16px + var(--delta-room));
+#combo-overlay[data-orientation="horizontal"][data-class-icon-side="right"],
+#combo-overlay[data-orientation="vertical"]:not([data-class-icon-side="right"]) {
+  left: auto;
+  right: 16px;
 }
 
-/* V3: the class icon (and its counter) sits at the top and slides down to
-   stay level with the newest cast — client.js sets --lead-y. */
-#combo-overlay[data-orientation="vertical"] {
-  align-items: flex-start;
+/* Vertical: the icon is level with the newest cast — at the top when the list
+   scrolls down, at the bottom when it scrolls up. */
+#combo-overlay[data-orientation="vertical"] { align-items: flex-start; }
+#combo-overlay[data-orientation="vertical"][data-direction="bottom-to-top"] {
+  align-items: flex-end;
+  top: auto;
+  bottom: 16px;
 }
 
 /* Class icon first (left) by default; `classIconSide` moves it to the right. */
-#combo-overlay[data-class-icon-side="right"] {
-  flex-direction: row-reverse;
-}
+#combo-overlay[data-class-icon-side="right"] { flex-direction: row-reverse; }
 
 #class-lead-icon {
   width: calc(var(--icon-size) + 12px);
@@ -87,8 +92,8 @@ body {
    stay visible. Fitting the list to the viewport is the client's job instead
    — see visibleCapacity() in client.js, which caps how many entries are kept
    based on the icon size and the window. */
-#combo-log[data-orientation="vertical"][data-direction="top-to-bottom"] { flex-direction: column; }
-#combo-log[data-orientation="vertical"][data-direction="bottom-to-top"] { flex-direction: column-reverse; }
+#combo-log[data-orientation="vertical"][data-direction="top-to-bottom"] { flex-direction: column-reverse; }
+#combo-log[data-orientation="vertical"][data-direction="bottom-to-top"] { flex-direction: column; }
 
 #combo-log[data-orientation="horizontal"] {
   width: auto;
@@ -125,8 +130,8 @@ body {
 }
 #combo-log[data-direction="left-to-right"] { --enter-dx: var(--slide); --enter-dy: 0px; }
 #combo-log[data-direction="right-to-left"] { --enter-dx: calc(-1 * var(--slide)); --enter-dy: 0px; }
-#combo-log[data-direction="top-to-bottom"] { --enter-dx: 0px; --enter-dy: var(--slide); }
-#combo-log[data-direction="bottom-to-top"] { --enter-dx: 0px; --enter-dy: calc(-1 * var(--slide)); }
+#combo-log[data-direction="top-to-bottom"] { --enter-dx: 0px; --enter-dy: calc(-1 * var(--slide)); }
+#combo-log[data-direction="bottom-to-top"] { --enter-dx: 0px; --enter-dy: var(--slide); }
 
 .cast-entry.newest {
   box-shadow: 0 0 14px rgba(var(--cast-r), var(--cast-g), var(--cast-b), 0.45);
@@ -181,20 +186,20 @@ body {
   background: linear-gradient(270deg, var(--trail), var(--trail-end));
 }
 #combo-log[data-direction="top-to-bottom"] .cast-entry.entering::before {
-  top: 100%; transform-origin: center top;
-  background: linear-gradient(180deg, var(--trail), var(--trail-end));
-}
-#combo-log[data-direction="bottom-to-top"] .cast-entry.entering::before {
   bottom: 100%; transform-origin: center bottom;
   background: linear-gradient(0deg, var(--trail), var(--trail-end));
+}
+#combo-log[data-direction="bottom-to-top"] .cast-entry.entering::before {
+  top: 100%; transform-origin: center top;
+  background: linear-gradient(180deg, var(--trail), var(--trail-end));
 }
 
 /* The oldest cast folds away on the side it sits on (the start of the list). */
 .cast-entry.leaving { animation: cast-leave 0.77s ease-in forwards; }
 #combo-log[data-direction="left-to-right"] { --leave-l: calc(-1 * var(--slot)); --leave-r: 0px; --leave-t: 0px; --leave-b: 0px; }
 #combo-log[data-direction="right-to-left"] { --leave-l: 0px; --leave-r: calc(-1 * var(--slot)); --leave-t: 0px; --leave-b: 0px; }
-#combo-log[data-direction="top-to-bottom"] { --leave-l: 0px; --leave-r: 0px; --leave-t: calc(-1 * var(--slot)); --leave-b: 0px; }
-#combo-log[data-direction="bottom-to-top"] { --leave-l: 0px; --leave-r: 0px; --leave-t: 0px; --leave-b: calc(-1 * var(--slot)); }
+#combo-log[data-direction="top-to-bottom"] { --leave-l: 0px; --leave-r: 0px; --leave-t: 0px; --leave-b: calc(-1 * var(--slot)); }
+#combo-log[data-direction="bottom-to-top"] { --leave-l: 0px; --leave-r: 0px; --leave-t: calc(-1 * var(--slot)); --leave-b: 0px; }
 
 /* ── Turn damage counter — K1 « Énergie wakfu » ──────────────
    A chamfered frame in the hero's colour, next to the class icon on the
@@ -202,18 +207,19 @@ body {
    every hit. Sizes follow the mockup, drawn at 48 px icons: --k scales them. */
 
 #lead-wrap {
-  --lead-y: 0px;
-  --lead-move: 0.3s ease-out;
+  position: relative;
+  z-index: 1; /* the vertical "+N" passes over the casts */
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-  transform: translateY(var(--lead-y));
-  transition: transform var(--lead-move);
 }
 /* Counter on the outer side: left of the icon when the icon is on the left. */
 #combo-overlay[data-orientation="horizontal"][data-class-icon-side="left"] #lead-wrap { flex-direction: row-reverse; }
 #combo-overlay[data-orientation="vertical"] #lead-wrap { flex-direction: column; }
+/* Bottom to top: the icon at the bottom, counter, heals and armour stacked above it. */
+#combo-overlay[data-orientation="vertical"][data-direction="bottom-to-top"] #lead-wrap,
+#combo-overlay[data-orientation="vertical"][data-direction="bottom-to-top"] #support { flex-direction: column-reverse; }
 /* Fixed column width, so the cast list doesn't shift when the counter shows up. */
 #combo-overlay[data-orientation="vertical"][data-counter="on"] #lead-wrap { min-width: calc(88px * var(--k)); }
 
@@ -378,7 +384,8 @@ body {
 /* New turn: they fold away and come back with the counter. */
 #support.swap .sp-body { animation: td-swap 0.6s ease-out; }
 
-/* "+N" — rises off the frame (horizontal), drops below it (vertical). */
+/* "+N" — drops below the frame (horizontal), rises beside it, over the casts
+   (vertical). */
 .td-hit {
   position: absolute;
   color: rgb(var(--td-light));
@@ -387,29 +394,29 @@ body {
 }
 #combo-overlay[data-orientation="horizontal"] .td-hit {
   right: calc(12px * var(--k));
-  bottom: 100%;
-  margin-bottom: 6px;
+  top: 100%;
+  margin-top: 6px;
   font-size: calc(15px * var(--k));
-  animation: td-hit-up 0.9s linear forwards;
+  animation: td-hit-down 0.9s linear forwards;
 }
 #combo-overlay[data-orientation="horizontal"][data-class-icon-side="left"] .td-hit { right: auto; left: calc(12px * var(--k)); }
 #combo-overlay[data-orientation="vertical"] .td-hit {
-  /* Below the heal and armour frames hanging under the counter. */
-  top: calc(100% + var(--support-room, 0px));
-  left: 50%;
-  margin-top: 6px;
+  top: 50%;
+  left: 100%;
+  margin-left: 8px;
   font-size: max(9px, calc(13px * var(--k)));
-  animation: td-hit-down 0.9s linear forwards;
+  animation: td-hit-rise 0.9s linear forwards;
 }
-@keyframes td-hit-up {
+#combo-overlay[data-orientation="vertical"][data-class-icon-side="right"] .td-hit { left: auto; right: 100%; margin: 0 8px 0 0; }
+@keyframes td-hit-down {
   0%   { opacity: 0; transform: translateY(0); animation-timing-function: ease-out; }
   15%  { opacity: 1; }
-  100% { opacity: 0; transform: translateY(-14px); }
+  100% { opacity: 0; transform: translateY(14px); }
 }
-@keyframes td-hit-down {
-  0%   { opacity: 0; transform: translate(-50%, 0); animation-timing-function: ease-out; }
+@keyframes td-hit-rise {
+  0%   { opacity: 0; transform: translateY(-50%); animation-timing-function: ease-out; }
   15%  { opacity: 1; }
-  100% { opacity: 0; transform: translate(-50%, 14px); }
+  100% { opacity: 0; transform: translateY(calc(-50% - 14px)); }
 }
 
 #class-lead-icon.swap img,
@@ -450,11 +457,11 @@ body {
 }
 
 /* The class icon and its counter fold away with the last cast (same timing as
-   `cast-leave`); --lead-y keeps it level with where it was. */
+   `cast-leave`). */
 #lead-wrap.leaving { animation: lead-leave 0.77s ease-in forwards; }
 
 @keyframes lead-leave {
-  to { opacity: 0; transform: translateY(var(--lead-y)) scale(0.6); }
+  to { opacity: 0; transform: scale(0.6); }
 }
 
 @keyframes lead-swap {
@@ -482,14 +489,21 @@ body {
 }
 
 /* ── In-game window: the control bar (client.js) ──────────────────────
-   Under the overlay, right-aligned with it: the window's only clickable
-   spot. It sits at the bottom of the room the overlay can take up (the
-   window is sized to it), so it never moves while casts come and go. */
+   Above the overlay, on the side it's pinned to — below it when the list
+   scrolls up: the window's only clickable spot. Pinned to the window's
+   corner, it never moves while casts come and go; the overlay leaves it
+   room (client.js sets --bar-room). */
+
+html.hud #combo-overlay { top: calc(16px + var(--bar-room, 0px)); }
+html.hud #combo-overlay[data-orientation="vertical"][data-direction="bottom-to-top"] {
+  top: auto;
+  bottom: calc(16px + var(--bar-room, 0px));
+}
 
 #hud-bar {
   position: fixed;
-  bottom: 16px;
-  right: 16px;
+  top: 16px;
+  left: 16px;
   height: 36px;
   display: flex;
   align-items: center;
@@ -522,3 +536,28 @@ body {
   border-radius: 7px; border: none; background: #43d1c1; color: #062522; font: inherit; font-weight: 700; cursor: pointer;
 }
 .hud-recap:hover { background: #5adbcc; }
+
+#hud-bar[data-side="right"] { left: auto; right: 16px; }
+
+/* Vertical layouts: the same controls stacked, as wide as the counter column. */
+#hud-bar[data-orientation="vertical"] {
+  width: 88px;
+  height: auto;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+#hud-bar[data-orientation="vertical"] .hud-handle {
+  grid-template-columns: repeat(3, 3px);
+  justify-content: center;
+  padding: 3px 0;
+}
+#hud-bar[data-orientation="vertical"] .hud-modes { flex-direction: column; }
+#hud-bar[data-orientation="vertical"] .hud-modes button { height: 26px; padding: 0; }
+#hud-bar[data-orientation="vertical"] .hud-recap { justify-content: center; height: 30px; padding: 0; }
+/* Under the overlay, upside down: Récap on top, the handle at the bottom. */
+#hud-bar[data-orientation="vertical"][data-direction="bottom-to-top"] {
+  top: auto;
+  bottom: 16px;
+  flex-direction: column-reverse;
+}
