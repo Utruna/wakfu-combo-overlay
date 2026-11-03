@@ -360,7 +360,11 @@ function swapCounter(key) {
 /** Turn or fight total — from the settings, or the in-game window's switch. */
 function setCounterMode(mode) {
   if (mode !== 'turn' && mode !== 'fight') return;
-  if (hudBar) {
+  // Marks the in-game window's own requests: a web page can't add a header like
+// this without a CORS preflight, which the server never answers.
+const hudFetch = (url) => fetch(url, { headers: { 'X-Wakfu-Overlay': '1' } });
+
+if (hudBar) {
     for (const button of hudBar.querySelectorAll('[data-mode]')) button.setAttribute('aria-checked', String(button.dataset.mode === mode));
   }
   if (mode === damageCounterMode) return;
@@ -620,16 +624,16 @@ if (hudBar) {
     if (e.button !== 0) return;
     e.preventDefault();
     // The app moves the window with the mouse until the button is released.
-    fetch('/hud/drag').catch(() => {});
+    hudFetch('/hud/drag').catch(() => {});
   });
   for (const button of hudBar.querySelectorAll('[data-mode]')) {
     button.addEventListener('click', () => {
       setCounterMode(button.dataset.mode);
       // Saved by the app, which also passes it on to OBS and the settings.
-      fetch(`/hud/counter-mode?mode=${button.dataset.mode}`).catch(() => {});
+      hudFetch(`/hud/counter-mode?mode=${button.dataset.mode}`).catch(() => {});
     });
   }
-  hudBar.querySelector('.hud-recap').addEventListener('click', () => fetch('/hud/recap').catch(() => {}));
+  hudBar.querySelector('.hud-recap').addEventListener('click', () => hudFetch('/hud/recap').catch(() => {}));
   setCounterMode(damageCounterMode);
 
   // Where the bar is, and how big the window must be — reported on change.
@@ -640,13 +644,13 @@ if (hudBar) {
     const rect = `x=${Math.floor(r.left)}&y=${Math.floor(r.top)}&w=${Math.ceil(r.width)}&h=${Math.ceil(r.height)}`;
     if (rect !== reportedRect) {
       reportedRect = rect;
-      fetch(`/hud/controls-rect?${rect}`).catch(() => { reportedRect = null; });
+      hudFetch(`/hud/controls-rect?${rect}`).catch(() => { reportedRect = null; });
     }
     const { width, height } = hudRoom();
     const size = `w=${width}&h=${height}`;
     if (size !== reportedSize) {
       reportedSize = size;
-      fetch(`/hud/size?${size}`).catch(() => { reportedSize = null; });
+      hudFetch(`/hud/size?${size}`).catch(() => { reportedSize = null; });
     }
   }, 150);
 }

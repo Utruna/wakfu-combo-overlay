@@ -32,6 +32,11 @@ const DEDUPE_WINDOW_MS: i64 = 500;
 // weren't looking) is processed piecewise instead of in one unbounded buffer.
 const READ_CHUNK_BYTES: usize = 64 * 1024;
 
+// How much of a file's beginning is remembered to tell a recreated log from
+// the same one that merely grew (each line starts with a timestamp, so two
+// different logs never begin alike).
+const HEAD_BYTES: usize = 64;
+
 // Combat cast line format: "[Information (combat)] Lueur Pourpre lance le sort Saignée mortelle"
 static COMBAT_SPELL_CAST: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?im)\[Information\s+\(combat\)\]\s+([^:]+?)\s+lance\s+le\s+sort\s+(.+?)(?:\s*\(|$)")
@@ -74,6 +79,21 @@ struct FileState {
     /// multi-byte UTF-8 character (é, è… are everywhere in French spell
     /// names) may be split across two reads, but never across a '\n'.
     pending: Vec<u8>,
+    /// The file's first bytes (up to HEAD_BYTES) as last seen.
+    head: Vec<u8>,
+}
+
+/// The first bytes of the file, or None if it can't be read.
+fn read_head(path: &Path) -> Option<Vec<u8>> {
+    let mut head = Vec::new();
+    File::open(path).ok()?.take(HEAD_BYTES as u64).read_to_end(&mut head).ok()?;
+    Some(head)
+}
+
+impl FileState {
+    fn at_end(path: &Path) -> Self {
+        Self { position: file_size(path), pending: Vec::new(), head: read_head(path).unwrap_or_default() }
+    }
 }
 
 pub struct WakfuCombatLogReader {
@@ -94,8 +114,8 @@ impl WakfuCombatLogReader {
             last_emitted_at: 0,
         };
         for path in reader.list_log_files() {
-            let size = file_size(&path);
-            reader.files.insert(path, FileState { position: size, pending: Vec::new() });
+            let state = FileState::at_end(&path);
+            reader.files.insert(path, state);
         }
         reader
     }
@@ -130,8 +150,7 @@ impl WakfuCombatLogReader {
         let Some(state) = self.files.get_mut(path) else {
             // Newly-discovered file — seed at EOF too, don't replay its
             // existing content as new casts.
-            let size = file_size(path);
-            self.files.insert(path.to_path_buf(), FileState { position: size, pending: Vec::new() });
+            self.files.insert(path.to_path_buf(), FileState::at_end(path));
             return;
         };
 
@@ -143,7 +162,13 @@ impl WakfuCombatLogReader {
         // std opens with FILE_SHARE_READ | WRITE | DELETE: the game can keep
         // writing (and rotating) the log while it's open here.
         let Ok(mut file) = File::open(path) else { return };
-        if size < state.position {
+        // Recreated by the game (new session) with a log already longer than
+        // the old position: only its beginning tells it from the old one.
+        let Some(head) = read_head(path) else { return };
+        let common = state.head.len().min(head.len());
+        let recreated = head.len() < state.head.len() || head[..common] != state.head[..common];
+        state.head = head;
+        if size < state.position || recreated {
             // Shorter than last time: the log was truncated/recreated (e.g.
             // the client restarted). Everything in it was written since our
             // last tick, so read it from the start rather than skipping it.

@@ -19,6 +19,7 @@ pub mod turn_tracker;
 pub mod updates;
 pub mod whats_new;
 
+use crate::app_state::LockExt;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -195,6 +196,7 @@ fn setup(app: &AppHandle, launched_at_login: bool) -> Result<(), Box<dyn std::er
         files,
         hud,
         overlay: Mutex::new(None),
+        port_change: tokio::sync::Mutex::new(()),
         reader: Mutex::new(None),
         data_dir,
     });
@@ -202,7 +204,7 @@ fn setup(app: &AppHandle, launched_at_login: bool) -> Result<(), Box<dyn std::er
     state.hub.broadcast_config(&state.overlay_config(&layout));
 
     match tauri::async_runtime::block_on(state.start_overlay(port)) {
-        Ok(server) => *state.overlay.lock().unwrap() = Some(server),
+        Ok(server) => *state.overlay.lock_safe() = Some(server),
         Err(error) => {
             eprintln!("[main] Overlay server failed to start: {error}");
             app.dialog()
@@ -213,11 +215,11 @@ fn setup(app: &AppHandle, launched_at_login: bool) -> Result<(), Box<dyn std::er
                 .title("Port de l'overlay indisponible")
                 .kind(MessageDialogKind::Error)
                 .show(|_| {});
-            state.core.lock().unwrap().overlay_error = Some(error);
+            state.core.lock_safe().overlay_error = Some(error);
         }
     }
 
-    *state.reader.lock().unwrap() = Some(LogReaderThread::start(app.clone(), logs_dir));
+    *state.reader.lock_safe() = Some(LogReaderThread::start(app.clone(), logs_dir));
 
     autostart::migrate_from_electron();
     create_tray(app)?;

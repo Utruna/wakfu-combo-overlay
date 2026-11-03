@@ -12,6 +12,7 @@
 //! of the app's own — is in front, so it doesn't sit over everything else.
 //! It stays over a windowed or borderless game, not over exclusive fullscreen.
 
+use crate::app_state::LockExt;
 use serde_json::{json, Value};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
@@ -42,7 +43,7 @@ static CONTROLS_RECT: Mutex<Option<HudRect>> = Mutex::new(None);
 /// The page reports where its control bar is — the one spot of the window
 /// that takes clicks.
 pub fn set_controls_rect(rect: Option<HudRect>) {
-    *CONTROLS_RECT.lock().unwrap() = rect;
+    *CONTROLS_RECT.lock_safe() = rect;
 }
 
 /// Sizes the window to the room the overlay needs (CSS pixels), keeping its
@@ -92,7 +93,7 @@ fn page_url(port: u16) -> tauri::Url {
 
 fn flag(app: &AppHandle, key: &str, default: bool) -> bool {
     let state = app.state::<AppState>();
-    let core = state.core.lock().unwrap();
+    let core = state.core.lock_safe();
     core.settings.ingame_overlay().get(key).and_then(Value::as_bool).unwrap_or(default)
 }
 
@@ -106,7 +107,7 @@ fn only_over_wakfu(app: &AppHandle) -> bool {
 
 pub fn status(app: &AppHandle) -> Value {
     let state = app.state::<AppState>();
-    let online = state.core.lock().unwrap().overlay_error.is_none();
+    let online = state.core.lock_safe().overlay_error.is_none();
     json!({
         "enabled": is_enabled(app),
         "onlyOverWakfu": only_over_wakfu(app),
@@ -125,7 +126,7 @@ fn notify(app: &AppHandle) {
 
 /// Turns the in-game overlay on or off, and remembers it for the next launch.
 pub fn set_enabled(app: &AppHandle, enabled: bool) {
-    app.state::<AppState>().core.lock().unwrap().settings.set_ingame_overlay_flag("enabled", enabled);
+    app.state::<AppState>().core.lock_safe().settings.set_ingame_overlay_flag("enabled", enabled);
     if enabled {
         open(app);
     } else {
@@ -135,7 +136,7 @@ pub fn set_enabled(app: &AppHandle, enabled: bool) {
 }
 
 pub fn set_only_over_wakfu(app: &AppHandle, only: bool) {
-    app.state::<AppState>().core.lock().unwrap().settings.set_ingame_overlay_flag("onlyOverWakfu", only);
+    app.state::<AppState>().core.lock_safe().settings.set_ingame_overlay_flag("onlyOverWakfu", only);
     notify(app);
 }
 
@@ -144,7 +145,7 @@ pub fn set_only_over_wakfu(app: &AppHandle, only: bool) {
 pub fn refresh(app: &AppHandle) {
     let state = app.state::<AppState>();
     let (port, online) = {
-        let core = state.core.lock().unwrap();
+        let core = state.core.lock_safe();
         (core.settings.overlay_port(), core.overlay_error.is_none())
     };
     match app.get_webview_window(INGAME_WINDOW) {
@@ -164,7 +165,7 @@ fn open(app: &AppHandle) {
     }
     let state = app.state::<AppState>();
     let (port, online, geometry) = {
-        let core = state.core.lock().unwrap();
+        let core = state.core.lock_safe();
         (core.settings.overlay_port(), core.overlay_error.is_none(), core.settings.ingame_overlay())
     };
     // Without the server the window would show the browser's error page —
@@ -229,7 +230,7 @@ async fn follow_foreground(app: AppHandle) {
 }
 
 fn cursor_over_controls(window: &WebviewWindow) -> bool {
-    let Some(rect) = *CONTROLS_RECT.lock().unwrap() else { return false };
+    let Some(rect) = *CONTROLS_RECT.lock_safe() else { return false };
     let (Some((cursor_x, cursor_y)), Ok(origin), Ok(scale)) =
         (foreground::cursor_position(), window.inner_position(), window.scale_factor())
     else {
@@ -252,7 +253,12 @@ fn close(app: &AppHandle) {
 /// in which case top-right of the main screen, like in OBS.
 fn place(window: &WebviewWindow, geometry: &Value) {
     let field = |key: &str| geometry.get(key).and_then(Value::as_i64);
-    let saved = (|| Some((field("x")? as i32, field("y")? as i32, field("width")? as u32, field("height")? as u32)))();
+    // Out-of-range numbers (a hand-edited or damaged settings.json) are
+    // ignored rather than wrapped into a nonsensical window size.
+    let saved = (|| {
+        let size = |key: &str| field(key).and_then(|v| u32::try_from(v).ok()).filter(|v| (50..=10_000).contains(v));
+        Some((i32::try_from(field("x")?).ok()?, i32::try_from(field("y")?).ok()?, size("width")?, size("height")?))
+    })();
     if let Some((x, y, width, height)) = saved.filter(|&(x, y, ..)| on_screen(window, x, y)) {
         let _ = window.set_size(PhysicalSize::new(width, height));
         let _ = window.set_position(PhysicalPosition::new(x, y));
@@ -277,7 +283,7 @@ fn on_screen(window: &WebviewWindow, x: i32, y: i32) -> bool {
 fn save_geometry(window: &WebviewWindow) {
     let (Ok(pos), Ok(size)) = (window.outer_position(), window.outer_size()) else { return };
     let state = window.app_handle().state::<AppState>();
-    state.core.lock().unwrap().settings.set_ingame_overlay_geometry(pos.x, pos.y, size.width, size.height);
+    state.core.lock_safe().settings.set_ingame_overlay_geometry(pos.x, pos.y, size.width, size.height);
 }
 
 /// Win32: which window is in front, and showing ours without activating it
