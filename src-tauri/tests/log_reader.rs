@@ -146,3 +146,20 @@ fn picks_up_a_logs_dir_that_only_appears_after_start() {
 
     assert_eq!(casts(reader.scan()).len(), 1);
 }
+
+#[test]
+fn reads_a_recreated_log_even_when_it_is_already_longer_than_before() {
+    let (dir, log) = make_logs_dir(&cast_line("Lueur Pourpre", "Ancienne"));
+    let mut reader = WakfuCombatLogReader::new(&dir);
+
+    // The client restarts: a brand-new log, already longer than the old one
+    // by the time the reader looks again.
+    let fresh = format!(
+        "13:30:00,000 [Information (combat)] Lueur Pourpre lance le sort Nouvelle\r\n{}{}",
+        cast_line("Lueur Pourpre", "Deuxieme"),
+        cast_line("Lueur Pourpre", "Troisieme")
+    );
+    fs::write(&log, fresh).unwrap();
+    let found = casts(reader.scan());
+    assert_eq!(found.iter().map(|c| c.spell_name.as_str()).collect::<Vec<_>>(), ["Nouvelle", "Deuxieme", "Troisieme"]);
+}

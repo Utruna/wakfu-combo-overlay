@@ -1,6 +1,7 @@
 //! What the settings window can ask of the app (ui/settings/tauri-api.js
 //! exposes these as `window.settingsAPI`).
 
+use crate::app_state::LockExt;
 use serde_json::{json, Map, Value};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_dialog::DialogExt;
@@ -20,7 +21,7 @@ fn overlay_url(port: u16) -> String {
 
 #[tauri::command]
 pub fn get_state(state: State<AppState>) -> Value {
-    let core = state.core.lock().unwrap();
+    let core = state.core.lock_safe();
     let settings = &core.settings;
     json!({
         "heroes": settings.heroes(),
@@ -43,7 +44,7 @@ pub fn get_state(state: State<AppState>) -> Value {
 
 #[tauri::command]
 pub fn set_tracked_heroes(state: State<AppState>, character_names: Vec<Value>) {
-    state.core.lock().unwrap().settings.set_tracked_heroes(&character_names);
+    state.core.lock_safe().settings.set_tracked_heroes(&character_names);
 }
 
 #[tauri::command]
@@ -56,32 +57,32 @@ pub fn add_hero(state: State<AppState>, hero: Value, options: Option<Value>) -> 
     let options = options.unwrap_or(Value::Null);
     let index = options.get("index").and_then(Value::as_u64).map(|i| i as usize);
     let tracked = options.get("tracked").and_then(Value::as_bool).unwrap_or(true);
-    state.core.lock().unwrap().settings.add_hero(&hero, index, tracked)
+    state.core.lock_safe().settings.add_hero(&hero, index, tracked)
 }
 
 #[tauri::command]
 pub fn update_hero(state: State<AppState>, character_name: String, changes: Value) -> bool {
-    state.core.lock().unwrap().settings.update_hero(&character_name, &changes)
+    state.core.lock_safe().settings.update_hero(&character_name, &changes)
 }
 
 #[tauri::command]
 pub fn set_onboarding_done(state: State<AppState>) {
-    state.core.lock().unwrap().settings.set_onboarding_done();
+    state.core.lock_safe().settings.set_onboarding_done();
 }
 
 #[tauri::command]
 pub fn set_hero_color(state: State<AppState>, character_name: String, color: Value) -> bool {
-    state.core.lock().unwrap().settings.set_hero_color(&character_name, color)
+    state.core.lock_safe().settings.set_hero_color(&character_name, color)
 }
 
 #[tauri::command]
 pub fn remove_hero(state: State<AppState>, character_name: String) {
-    state.core.lock().unwrap().settings.remove_hero(&character_name);
+    state.core.lock_safe().settings.remove_hero(&character_name);
 }
 
 #[tauri::command]
 pub fn get_diagnostics(state: State<AppState>) -> Value {
-    let core = state.core.lock().unwrap();
+    let core = state.core.lock_safe();
     let logs_dir = core.settings.logs_dir();
     let port = core.settings.overlay_port();
     json!({
@@ -99,7 +100,7 @@ pub fn get_diagnostics(state: State<AppState>) -> Value {
 #[tauri::command]
 pub fn set_logs_dir(app: AppHandle, state: State<AppState>, dir: String) -> Value {
     let logs_dir = {
-        let mut core = state.core.lock().unwrap();
+        let mut core = state.core.lock_safe();
         let current = core.settings.logs_dir();
         if current.as_os_str() == dir.as_str() {
             return json!({ "ok": true, "logsDir": current, "logsDirExists": current.exists() });
@@ -109,7 +110,7 @@ pub fn set_logs_dir(app: AppHandle, state: State<AppState>, dir: String) -> Valu
         }
         core.settings.logs_dir()
     };
-    let mut reader = state.reader.lock().unwrap();
+    let mut reader = state.reader.lock_safe();
     // The old reader must be gone before the new one starts reading.
     drop(reader.take());
     *reader = Some(LogReaderThread::start(app, logs_dir.clone()));
@@ -118,7 +119,7 @@ pub fn set_logs_dir(app: AppHandle, state: State<AppState>, dir: String) -> Valu
 
 #[tauri::command]
 pub async fn browse_logs_dir(app: AppHandle, state: State<'_, AppState>) -> Result<Option<String>, ()> {
-    let current = state.core.lock().unwrap().settings.logs_dir();
+    let current = state.core.lock_safe().settings.logs_dir();
     let (tx, rx) = oneshot::channel();
     let mut dialog = app.dialog().file().set_title("Choisir le dossier de logs Wakfu");
     if current.is_dir() {
@@ -135,7 +136,7 @@ pub async fn browse_logs_dir(app: AppHandle, state: State<'_, AppState>) -> Resu
 
 #[tauri::command]
 pub fn show_obs_loader(state: State<AppState>) {
-    let Some(path) = state.core.lock().unwrap().obs_loader_path.clone() else { return };
+    let Some(path) = state.core.lock_safe().obs_loader_path.clone() else { return };
     use std::os::windows::process::CommandExt;
     let _ = std::process::Command::new("explorer")
         .raw_arg(format!("/select,\"{}\"", path.display()))
@@ -144,8 +145,9 @@ pub fn show_obs_loader(state: State<AppState>) {
 
 #[tauri::command]
 pub async fn set_overlay_port(app: AppHandle, state: State<'_, AppState>, port: Value) -> Result<Value, ()> {
+    let _one_change_at_a_time = state.port_change.lock().await;
     let (current, failed) = {
-        let core = state.core.lock().unwrap();
+        let core = state.core.lock_safe();
         (core.settings.overlay_port(), core.overlay_error.is_some())
     };
     let requested = parse_port(&port);
@@ -165,9 +167,9 @@ pub async fn set_overlay_port(app: AppHandle, state: State<'_, AppState>, port: 
         Ok(server) => server,
         Err(error) => return Ok(json!({ "ok": false, "error": error })),
     };
-    *state.overlay.lock().unwrap() = Some(server);
+    *state.overlay.lock_safe() = Some(server);
     {
-        let mut core = state.core.lock().unwrap();
+        let mut core = state.core.lock_safe();
         core.overlay_error = None;
         core.settings.set_overlay_port(port);
         core.obs_loader_path = loader_page::write_loader_page(&state.data_dir, port);
@@ -179,7 +181,7 @@ pub async fn set_overlay_port(app: AppHandle, state: State<'_, AppState>, port: 
 #[tauri::command]
 pub fn send_test_cast(app: AppHandle, state: State<AppState>, character_name: String) {
     let hero = {
-        let core = state.core.lock().unwrap();
+        let core = state.core.lock_safe();
         let heroes = core.settings.heroes();
         let found = heroes.iter().find(|h| h.get("characterName").and_then(Value::as_str) == Some(&character_name));
         match found.or(heroes.first()) {
@@ -267,7 +269,7 @@ pub async fn show_whats_new(app: AppHandle) {
 /// For the "Récap des combats" window (ui/recap).
 #[tauri::command]
 pub fn get_recap(state: State<AppState>) -> Value {
-    let core = state.core.lock().unwrap();
+    let core = state.core.lock_safe();
     let mut recap = core.tracker.recorder.to_json(&core.settings, &state.catalog);
     core.saved_fights.merge_into(&mut recap);
     recap
@@ -276,7 +278,7 @@ pub fn get_recap(state: State<AppState>) -> Value {
 /// The recap's "Sauvegarder": keeps a finished fight across sessions.
 #[tauri::command]
 pub fn save_fight(state: State<AppState>, id: u64) -> Result<(), String> {
-    let mut core = state.core.lock().unwrap();
+    let mut core = state.core.lock_safe();
     let recap = core.tracker.recorder.to_json(&core.settings, &state.catalog);
     let fight = recap["fights"]
         .as_array()
@@ -288,14 +290,14 @@ pub fn save_fight(state: State<AppState>, id: u64) -> Result<(), String> {
 /// The bin on a fight of an earlier session: forgets its saved copy.
 #[tauri::command]
 pub fn delete_saved_fight(state: State<AppState>, saved_id: u64) -> bool {
-    state.core.lock().unwrap().saved_fights.delete(saved_id)
+    state.core.lock_safe().saved_fights.delete(saved_id)
 }
 
 /// The recap showed this fight: it's no longer "nouveau".
 #[tauri::command]
 pub fn mark_fight_seen(app: AppHandle, state: State<AppState>, id: u64) {
     let unseen = {
-        let mut core = state.core.lock().unwrap();
+        let mut core = state.core.lock_safe();
         core.tracker.recorder.mark_seen(id);
         core.tracker.recorder.has_unseen()
     };
@@ -308,7 +310,7 @@ pub fn mark_fight_seen(app: AppHandle, state: State<AppState>, id: u64) {
 #[tauri::command]
 pub fn delete_fight(app: AppHandle, state: State<AppState>, id: u64) -> bool {
     let (deleted, unseen) = {
-        let mut core = state.core.lock().unwrap();
+        let mut core = state.core.lock_safe();
         let deleted = core.tracker.recorder.delete(id);
         // A saved fight goes from the disk too.
         if let Some(saved) = core.saved_fights.saved_id_of(id) {
@@ -324,7 +326,7 @@ pub fn delete_fight(app: AppHandle, state: State<AppState>, id: u64) -> bool {
 
 #[tauri::command]
 pub fn has_unseen_fights(state: State<AppState>) -> bool {
-    state.core.lock().unwrap().tracker.recorder.has_unseen()
+    state.core.lock_safe().tracker.recorder.has_unseen()
 }
 
 #[tauri::command]

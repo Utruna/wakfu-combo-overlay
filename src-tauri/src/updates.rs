@@ -3,6 +3,7 @@
 //! confirmation — never silently, so a background check never surprises the
 //! user mid-stream.
 
+use crate::app_state::LockExt;
 use serde_json::{json, Value};
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager};
@@ -22,11 +23,11 @@ pub struct UpdateState {
 }
 
 pub fn last_status(app: &AppHandle) -> Option<Value> {
-    app.state::<UpdateState>().last_status.lock().unwrap().clone()
+    app.state::<UpdateState>().last_status.lock_safe().clone()
 }
 
 fn push_status(app: &AppHandle, status: Value) {
-    *app.state::<UpdateState>().last_status.lock().unwrap() = Some(status.clone());
+    *app.state::<UpdateState>().last_status.lock_safe() = Some(status.clone());
     if app.get_webview_window(SETTINGS_WINDOW).is_some() {
         let _ = app.emit_to(SETTINGS_WINDOW, "update:status", status);
     }
@@ -65,19 +66,19 @@ pub fn check(app: &AppHandle, manual: bool) {
         }
         {
             let state = app.state::<UpdateState>();
-            let mut in_progress = state.in_progress.lock().unwrap();
+            let mut in_progress = state.in_progress.lock_safe();
             if *in_progress {
                 return;
             }
             *in_progress = true;
         }
         run_check(&app, manual).await;
-        *app.state::<UpdateState>().in_progress.lock().unwrap() = false;
+        *app.state::<UpdateState>().in_progress.lock_safe() = false;
     });
 }
 
 async fn run_check(app: &AppHandle, manual: bool) {
-    let pending_version = app.state::<UpdateState>().pending.lock().unwrap().as_ref().map(|(u, _)| u.version.clone());
+    let pending_version = app.state::<UpdateState>().pending.lock_safe().as_ref().map(|(u, _)| u.version.clone());
     if let Some(version) = pending_version {
         offer_restart(app, version).await;
         return;
@@ -137,7 +138,7 @@ async fn run_check(app: &AppHandle, manual: bool) {
     match bytes {
         Ok(bytes) => {
             push_status(app, json!({ "status": "downloaded", "version": version }));
-            *app.state::<UpdateState>().pending.lock().unwrap() = Some((update, bytes));
+            *app.state::<UpdateState>().pending.lock_safe() = Some((update, bytes));
             offer_restart(app, version).await;
         }
         Err(err) => report_error(app, true, err.to_string()).await,
@@ -175,7 +176,7 @@ async fn report_error(app: &AppHandle, manual: bool, message: String) {
 /// relaunches it once done when `relaunch` is set. Returns false when there
 /// was nothing to install.
 pub fn install_pending(app: &AppHandle, relaunch: bool) -> bool {
-    let Some((update, bytes)) = app.state::<UpdateState>().pending.lock().unwrap().take() else {
+    let Some((update, bytes)) = app.state::<UpdateState>().pending.lock_safe().take() else {
         return false;
     };
     match update.restart_after_install(relaunch).install(bytes) {

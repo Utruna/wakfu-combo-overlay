@@ -17,6 +17,19 @@ use crate::saved_fights::SavedFights;
 use crate::settings::SettingsStore;
 use crate::turn_tracker::{CombatTurnTracker, TurnUpdateKind};
 
+/// Locks a mutex even if a panicking thread poisoned it: the data here (plain
+/// settings and counters) stays usable, and one failed thread shouldn't take
+/// every command of the app down with it.
+pub trait LockExt<T> {
+    fn lock_safe(&self) -> std::sync::MutexGuard<'_, T>;
+}
+
+impl<T> LockExt<T> for Mutex<T> {
+    fn lock_safe(&self) -> std::sync::MutexGuard<'_, T> {
+        self.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+}
+
 /// How often the log is checked for new lines.
 const LOG_POLL_INTERVAL: Duration = Duration::from_millis(300);
 
@@ -43,6 +56,8 @@ pub struct AppState {
     /// Answers the in-game window's clicks (see overlay_server::HudRequest).
     pub hud: HudHandler,
     pub overlay: Mutex<Option<OverlayServer>>,
+    /// Held while the overlay port is being changed, so two changes can't interleave.
+    pub port_change: tokio::sync::Mutex<()>,
     pub reader: Mutex<Option<LogReaderThread>>,
     /// %APPDATA%\Wakfu Combo Overlay — settings.json and the OBS loader page.
     pub data_dir: PathBuf,
@@ -63,7 +78,7 @@ impl AppState {
 
     /// Saves a layout change and pushes it to every overlay (OBS and in-game).
     pub fn change_combo_layout(&self, change: &serde_json::Map<String, Value>) -> Value {
-        let layout = self.core.lock().unwrap().settings.set_combo_layout(change);
+        let layout = self.core.lock_safe().settings.set_combo_layout(change);
         self.hub.broadcast_config(&self.overlay_config(&layout));
         layout
     }
@@ -86,7 +101,7 @@ pub fn push_debug_event(app: &AppHandle, entry: Value) {
     if entry["status"] == "broadcast" {
         if let Some(state) = app.try_state::<AppState>() {
             let at = entry["timestamp"].as_i64().unwrap_or_else(now_ms);
-            state.core.lock().unwrap().last_cast_at = Some(at);
+            state.core.lock_safe().last_cast_at = Some(at);
         }
     }
     println!(
@@ -105,7 +120,7 @@ fn handle_events(app: &AppHandle, state: &AppState, events: Vec<LogEvent>) {
     let recap_changed;
     let recap_unseen;
     {
-        let mut core = state.core.lock().unwrap();
+        let mut core = state.core.lock_safe();
         let Core { settings, tracker, .. } = &mut *core;
         let is_ally = |name: &str| find_hero_index(name, settings.heroes()).is_some();
         for event in events {

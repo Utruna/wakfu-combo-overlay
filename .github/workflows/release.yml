@@ -52,6 +52,17 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # Before anything is tagged or published: a failing build must not leave
+      # a tag behind.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run tests
+        run: npm test
+
       # The release text is this version's section of CHANGELOG.md — checked
       # before tagging, so a release never goes out without its notes.
       - name: Extract this version's notes from CHANGELOG.md
@@ -99,15 +110,6 @@ jobs:
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Run tests
-        run: npm test
 
       # The signing key signs the installer for the in-app updater, which
       # refuses any update whose signature doesn't match the public key in

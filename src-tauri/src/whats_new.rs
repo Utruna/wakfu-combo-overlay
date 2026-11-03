@@ -2,6 +2,7 @@
 //! version the user last saw. Its text is CHANGELOG.md's own sections (the
 //! same ones the GitHub release notes are cut from), embedded at build time.
 
+use crate::app_state::LockExt;
 use serde_json::{json, Value};
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 
@@ -86,7 +87,7 @@ pub fn show_if_updated(app: &AppHandle) {
     let current = app.package_info().version.to_string();
     let launch = {
         let state = app.state::<AppState>();
-        let mut core = state.core.lock().unwrap();
+        let mut core = state.core.lock_safe();
         let settings = &mut core.settings;
         let already_set_up = settings.onboarding_done() || !settings.heroes().is_empty();
         let launch = on_launch(settings.last_seen_version(), &current, already_set_up);
@@ -116,6 +117,8 @@ pub fn show(app: &AppHandle, since: Option<&str>) {
         let _ = window.set_focus();
         return;
     }
+    // Only a well-formed version goes into the URL (it comes from settings.json).
+    let since = since.filter(|since| parse_version(since).is_some());
     let page = match since {
         Some(since) => format!("whatsnew/index.html?since={since}"),
         None => "whatsnew/index.html".to_string(),
