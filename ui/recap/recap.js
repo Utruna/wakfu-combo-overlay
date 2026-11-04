@@ -24,6 +24,9 @@ const TABS = [
   { key: 'taken', label: 'Subis', dot: '#8fa1a9' },
 ];
 const OTHER_PLAYER_COLOR = '#6f8089';
+// The settings page's hero palette (ui/settings/settings.js PALETTE).
+const UNTRACKED_PALETTE = ['#4a90e2', '#43d1c1', '#22c55e', '#facc15', '#f2994a', '#e53935', '#d946ef', '#9b8cff']
+  .map((hex) => ({ r: parseInt(hex.slice(1, 3), 16), g: parseInt(hex.slice(3, 5), 16), b: parseInt(hex.slice(5, 7), 16) }));
 const REFRESH_MS = 1000;
 /** How long the bin waits for its second click. */
 const DELETE_ARMED_MS = 4000;
@@ -34,7 +37,6 @@ const state = {
   tab: 'dmg',
   open: null, // name of the expanded row
   hover: 0, // spell of its best turn under the mouse
-  others: false,
   search: '', // monster searched for in the fight list
   armed: null, // fight whose bin waits for its second click
   saveError: null,
@@ -338,7 +340,7 @@ function renderSide() {
     if (typeof fight.id === 'string' && fight === fights.find((f) => typeof f.id === 'string')) {
       list.append(h('li', { class: 'rc-fights-cap' }, h('span', { class: 'cap', text: 'Sauvegardés' })));
     }
-    const team = sum(fight.fighters.filter((f) => f.hero), (f) => statsOf(f).dmg);
+    const team = sum(fight.fighters, (f) => statsOf(f).dmg);
     const { start, end } = fightTimes(fight);
     const title = fight.foes[0] || (fight.live ? 'Combat en cours' : 'Combat');
     const match = matchingFoe(fight);
@@ -382,18 +384,18 @@ function renderMain() {
   }
 
   const tab = TABS.find((t) => t.key === state.tab);
-  const fighters = fight.fighters.map((f) => ({ fighter: f, stats: statsOf(f) }));
-  const heroes = fighters.filter((x) => x.fighter.hero).sort((a, b) => b.stats[tab.key] - a.stats[tab.key]);
-  const others = fighters.filter((x) => !x.fighter.hero).sort((a, b) => b.stats[tab.key] - a.stats[tab.key]);
-  const shown = state.others ? heroes.concat(others) : heroes;
-  const teamTotal = sum(heroes, (x) => x.stats[tab.key]);
-  const max = Math.max(1, ...shown.map((x) => x.stats[tab.key]));
+  // The whole group, followed heroes or not: the players who aren't carry a
+  // "non suivi" tag but count like the others.
+  const team = fight.fighters.map((f) => ({ fighter: f, stats: statsOf(f) }))
+    .sort((a, b) => b.stats[tab.key] - a.stats[tab.key]);
+  const teamTotal = sum(team, (x) => x.stats[tab.key]);
+  const max = Math.max(1, ...team.map((x) => x.stats[tab.key]));
 
   // Header.
   const { start, end } = fightTimes(fight);
   const more = fight.foes.slice(1, 4);
   // The group's turns (rounds), not every fighter's: monsters play too.
-  const rounds = Math.max(0, ...heroes.map((x) => x.stats.turnCount));
+  const rounds = Math.max(0, ...team.map((x) => x.stats.turnCount));
   const meta = fight.live
     ? [`Commencé à ${time(start)} · ${duration(end - start)} écoulées · ${rounds} tours joués`]
     : [`${when(start)} → ${time(end)} · ${duration(end - start)} · ${rounds} tours`];
@@ -410,30 +412,25 @@ function renderMain() {
       h('span', { class: 'cap', text: `${tab.label} de l'équipe` }),
       h('span', { class: 'num', text: fmt(teamTotal) }))));
 
-  // Tabs, the other players' switch and, always at the far right, the save button.
+  // Tabs and, always at the far right, the save button.
   main.append(h('div', { class: 'rc-bar' },
     h('div', { class: 'segmented rc-tabs', role: 'tablist', 'aria-label': 'Mesure' },
       TABS.map((t) => h('button', {
         type: 'button', role: 'tab', 'aria-selected': String(t.key === state.tab),
         onclick: () => { state.tab = t.key; render(); },
       }, h('span', { class: 'rc-tab-dot', style: { background: t.dot } }), t.label))),
-    h('div', { class: 'rc-bar-end' },
-      others.length ? h('button', {
-        type: 'button', class: 'rc-others', role: 'switch', 'aria-checked': String(state.others),
-        onclick: () => { state.others = !state.others; render(); },
-      }, h('span', { text: 'Autres joueurs du groupe' }), h('span', { class: 'switch', 'aria-hidden': 'true', 'aria-checked': String(state.others) }, h('span'))) : null,
-      saveButton(fight))));
+    h('div', { class: 'rc-bar-end' }, saveButton(fight))));
 
   // Rows.
   const rows = h('ul', { class: 'rc-rows' });
-  shown.forEach((x, i) => rows.append(renderRow(x, i, tab, teamTotal, max)));
+  team.forEach((x, i) => rows.append(renderRow(x, i, tab, teamTotal, max)));
   main.append(rows);
 
   // Best turn of the fight, while no row is open.
-  if (!heroes.some((x) => x.fighter.name === state.open)) {
+  if (!team.some((x) => x.fighter.name === state.open)) {
     const mode = modeOf(tab);
     const bestOf = (x) => x.stats.measures[mode].best;
-    const best = heroes.filter(bestOf).sort((a, b) => bestOf(b).total - bestOf(a).total)[0];
+    const best = team.filter(bestOf).sort((a, b) => bestOf(b).total - bestOf(a).total)[0];
     if (best) {
       const color = best.fighter.color;
       const turn = bestOf(best);
@@ -479,59 +476,88 @@ function saveButton(fight) {
 /** The measure whose spells a tab shows: its own, damage on "Subis". */
 const modeOf = (tab) => (MODES[tab.key] ? tab.key : 'dmg');
 
+/** What a player not among the heroes is: one of the user's own (XP earned), or another player. */
+const untrackedLabel = (fighter) => (fighter.local ? 'Ton perso · non suivi' : 'Non suivi');
+
+/** The class line: deduced classes say so. */
+function classLine(fighter) {
+  const label = CLASS_LABELS.get(fighter.class);
+  if (!label) return 'Classe inconnue';
+  return fighter.classGuessed ? `${label} (déduit)` : label;
+}
+
 function renderRow({ fighter, stats }, index, tab, teamTotal, max) {
-  const other = !fighter.hero;
-  const open = !other && state.open === fighter.name;
+  const untracked = !fighter.hero;
+  const open = state.open === fighter.name;
   const value = stats[tab.key];
-  const first = !other && index === 0 && value > 0;
+  const first = index === 0 && value > 0;
   const color = fighter.color;
   const avg = stats.turnCount ? value / stats.turnCount : 0;
   let sub = `${stats.turnCount} tours · moy. ${fmt(avg)} / tour`;
   const support = MODES[tab.key]?.kind ? stats.measures[tab.key] : null; // heals or armour
-  if (other) sub = `${stats.turnCount} tours · hors calcul de l'équipe`;
-  else if (tab.key === 'dmg' && stats.best) {
+  if (tab.key === 'dmg' && stats.best) {
     sub += ` · meilleur tour ${fmt(stats.best.total)} (t${stats.best.number}) · ${stats.casts} sorts · ${pct(stats.critShare)} crit.`;
   } else if (support?.best) {
     sub += ` · meilleur tour ${fmt(support.best.total)} (t${support.best.number}) · ${support.spellRows.length} ${MODES[tab.key].kind}`;
   }
 
+  // Not followed: the same ring, dashed.
   const avatar = h('span', {
-    class: 'rc-avatar', 'aria-hidden': 'true',
-    style: { boxShadow: `0 0 0 2px #182127, 0 0 0 4px ${rgb(color)}` },
+    class: `rc-avatar${untracked ? ' untracked' : ''}`, 'aria-hidden': 'true',
+    style: untracked ? { outlineColor: rgb(color) } : { boxShadow: `0 0 0 2px #182127, 0 0 0 4px ${rgb(color)}` },
   }, fighter.classIcon ? h('img', { src: `../${fighter.classIcon}`, alt: '' })
     : (CLASS_LABELS.get(fighter.class) || fighter.name || '?').slice(0, 2));
 
-  const li = h('li', { class: `rc-row${other ? ' other' : ''}${open ? ' open' : ''}`, style: open ? { borderColor: rgb(color) } : undefined },
+  const li = h('li', { class: `rc-row${untracked ? ' untracked' : ''}${open ? ' open' : ''}`, style: open ? { borderColor: rgb(color) } : undefined },
     h('button', {
-      type: 'button', class: 'rc-row-btn', 'aria-expanded': other ? undefined : String(open),
-      'aria-label': `${fighter.name} : ${fmt(value)}`,
+      type: 'button', class: 'rc-row-btn', 'aria-expanded': String(open),
+      'aria-label': `${fighter.name}${untracked ? ` (${untrackedLabel(fighter).toLowerCase()})` : ''} : ${fmt(value)}`,
       onclick: () => {
-        if (other) return;
         state.open = open ? null : fighter.name;
         state.hover = 0;
         render();
       },
     },
-    h('span', { class: 'rc-rank' }, first ? CROWN() : h('span', { class: 'num', text: other ? '—' : String(index + 1) })),
+    h('span', { class: 'rc-rank' }, first ? CROWN() : h('span', { class: 'num', text: String(index + 1) })),
     avatar,
     h('span', { class: 'rc-who' },
       h('span', { class: 'rc-who-name', text: fighter.name }),
-      h('span', { class: 'rc-who-class', text: other ? 'Joueur non suivi' : (CLASS_LABELS.get(fighter.class) || 'Classe inconnue') })),
+      h('span', { class: 'rc-who-class' },
+        classLine(fighter),
+        untracked ? h('span', { class: `rc-tag${fighter.local ? ' local' : ''}`, text: untrackedLabel(fighter) }) : null)),
     h('span', { class: 'rc-measure' },
       h('span', { class: 'rc-measure-line' },
         h('span', { class: 'rc-track' }, h('span', { style: { width: `${((100 * value) / max).toFixed(1)}%`, background: rgb(color) } })),
         h('span', { class: 'num rc-value', text: fmt(value) }),
-        h('span', { class: 'rc-share', text: other ? 'hors équipe' : pct(teamTotal ? (100 * value) / teamTotal : 0) })),
+        h('span', { class: 'rc-share', text: pct(teamTotal ? (100 * value) / teamTotal : 0) })),
       h('span', { class: 'rc-sub', text: sub })),
-    other ? h('span') : CHEVRON()));
+    CHEVRON()));
 
   if (open) li.append(renderDetail(fighter, stats, modeOf(tab)));
   return li;
 }
 
+/** In a player's detail, when not among the heroes: says so, and offers to add them. */
+function followBanner(fighter) {
+  const text = fighter.local
+    ? `${fighter.name} est un de tes persos (il a gagné de l'XP en fin de combat) mais n'est pas dans tes héros : ses sorts n'apparaissent pas sur l'overlay.`
+    : `${fighter.name} n'est pas dans tes héros : ses sorts et ses dégâts sont relevés pour le récap, pas affichés sur l'overlay.`;
+  const button = h('button', {
+    type: 'button',
+    class: `btn sm${fighter.local ? ' primary' : ''}`,
+    onclick: async () => {
+      button.disabled = true;
+      await invoke('follow_fighter', { characterName: fighter.name, class: fighter.class || null });
+      load();
+    },
+  }, 'Ajouter à mes héros');
+  return h('div', { class: `rc-follow${fighter.local ? ' local' : ''}` }, h('span', { text }), button);
+}
+
 function renderDetail(fighter, stats, mode) {
   const color = fighter.color;
   const detail = h('div', { class: 'rc-detail' });
+  if (!fighter.hero) detail.append(followBanner(fighter));
   const measure = stats.measures[mode];
   const m = MODES[mode];
 
@@ -782,8 +808,22 @@ search.addEventListener('keydown', (event) => {
   }
 });
 
+/**
+ * Gives the players who aren't heroes a colour of their own for the fight,
+ * like the heroes have: the settings page's palette, minus the colours the
+ * fight's heroes already use, in order of appearance.
+ */
+function colourUntracked(fight) {
+  const key = (c) => `${c.r},${c.g},${c.b}`;
+  const used = new Set(fight.fighters.filter((f) => f.color).map((f) => key(f.color)));
+  const free = UNTRACKED_PALETTE.filter((c) => !used.has(key(c)));
+  const pool = free.length ? free : UNTRACKED_PALETTE;
+  fight.fighters.filter((f) => !f.color).forEach((f, i) => { f.color = pool[i % pool.length]; });
+}
+
 async function load() {
   const { fights } = await invoke('get_recap');
+  fights.forEach(colourUntracked);
   state.fights = fights;
   if (!fights.some((f) => f.id === state.fightId)) {
     // Newest first: show the latest fight.

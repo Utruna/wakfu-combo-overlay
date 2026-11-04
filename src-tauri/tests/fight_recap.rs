@@ -208,3 +208,58 @@ fn armour_goes_to_whoever_gave_it() {
     let grenat = fighter(fight, "Lueur Grenat");
     assert_eq!(grenat["shieldOutside"], json!([{ "label": "Armure", "amount": 300 }]));
 }
+
+/// A full team fight (see the 2026-11-03 dungeon): one hero of the user, one
+/// of their own characters not set up yet, and players of other people.
+#[test]
+fn shows_the_whole_group_and_spots_the_users_untracked_characters() {
+    let lines = [
+        "[_FL_] fightId=7 Lueur Grenat breed : 7 [1] isControlledByAI=false obstacleId : -1 join the fight",
+        "[_FL_] fightId=7 Lueur Ocre breed : 13 [2] isControlledByAI=false obstacleId : -1 join the fight",
+        "[_FL_] fightId=7 Autre Sacri breed : 11 [3] isControlledByAI=false obstacleId : -1 join the fight",
+        "[_FL_] fightId=7 Autre Iop breed : 8 [4] isControlledByAI=false obstacleId : -1 join the fight",
+        "[_FL_] fightId=7 Autre Muet breed : 19 [5] isControlledByAI=false obstacleId : -1 join the fight",
+        "[_FL_] fightId=7 Ogrest breed : 777 [6] isControlledByAI=true obstacleId : -1 join the fight",
+        "[Information (combat)] Lueur Ocre lance le sort Dynamite",
+        "[Information (combat)] Ogrest: -4 000 PV (Feu)",
+        "[Information (combat)] 30 secondes reportées pour le tour suivant.",
+        // "Méditation" is filed under the Eliotrope: outvoted by the rest.
+        "[Information (combat)] Autre Sacri lance le sort Méditation",
+        "[Information (combat)] Autre Sacri lance le sort Assaut",
+        "[Information (combat)] Autre Sacri lance le sort Bain de sang",
+        "[Information (combat)] Ogrest: -2 500 PV (Feu)",
+        "[Information (combat)] 30 secondes reportées pour le tour suivant.",
+        // "Rafale" is both Iop and Cra: no vote.
+        "[Information (combat)] Autre Iop lance le sort Rafale",
+        "[Information (combat)] Autre Iop lance le sort Fulgur",
+        "[Information (combat)] 30 secondes reportées pour le tour suivant.",
+        // Nothing but a shared spell: the breed says it.
+        "[Information (combat)] Autre Muet lance le sort Rafale",
+        "[Information (combat)] 30 secondes reportées pour le tour suivant.",
+        "[Information (combat)] Lueur Grenat lance le sort Mot soignant",
+        // XP is only written for the characters of the client(s) writing the log.
+        "[Information (combat)] Lueur Grenat : +96 808 163 points d'XP.  Prochain niveau dans : 7 882 942 500.",
+        "[Information (combat)] Lueur Ocre : +1 000 points d'XP.  Prochain niveau dans : 5 000.",
+        "[FIGHT] End fight with id 7",
+    ];
+    let recap = record(&lines);
+    let fight = &recap["fights"][0];
+    assert_eq!(fight["victory"], true);
+    assert_eq!(fight["fighters"].as_array().unwrap().len(), 5);
+
+    let grenat = fighter(fight, "Lueur Grenat");
+    assert_eq!((grenat["hero"].clone(), grenat["local"].clone()), (json!(true), json!(true)));
+    assert_eq!((grenat["class"].clone(), grenat["classGuessed"].clone()), (json!("eniripsa"), json!(false)));
+
+    let ocre = fighter(fight, "Lueur Ocre");
+    assert_eq!((ocre["hero"].clone(), ocre["local"].clone()), (json!(false), json!(true)));
+    assert_eq!((ocre["class"].clone(), ocre["classGuessed"].clone()), (json!("roublard"), json!(true)));
+    assert_eq!(ocre["turns"][0]["spells"][0]["hits"][0]["amount"], 4000);
+
+    let sacri = fighter(fight, "Autre Sacri");
+    assert_eq!((sacri["hero"].clone(), sacri["local"].clone()), (json!(false), json!(false)));
+    assert_eq!(sacri["class"], "sacrieur");
+    assert_eq!(sacri["turns"][0]["spells"].as_array().unwrap().len(), 3);
+    assert_eq!(fighter(fight, "Autre Iop")["class"], "iop");
+    assert_eq!(fighter(fight, "Autre Muet")["class"], "huppermage");
+}

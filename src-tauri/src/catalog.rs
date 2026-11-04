@@ -13,7 +13,20 @@ pub const CLASSES: [&str; 18] = [
     "sacrieur", "pandawa", "roublard", "zobal", "ouginak", "steamer", "eliotrope", "huppermage",
 ];
 
-const PREVIEW_COLORS: [(u8, u8, u8); 6] =
+/// The game's class ids, as the "[_FL_] … breed : N" join lines give them.
+/// Checked against real fights: 6, 7, 8, 11, 13, 19; the others are the
+/// game's published ids.
+const BREEDS: [(&str, &str); 18] = [
+    ("1", "feca"), ("2", "osamodas"), ("3", "enutrof"), ("4", "sram"), ("5", "xelor"), ("6", "ecaflip"),
+    ("7", "eniripsa"), ("8", "iop"), ("9", "cra"), ("10", "sadida"), ("11", "sacrieur"), ("12", "pandawa"),
+    ("13", "roublard"), ("14", "zobal"), ("15", "ouginak"), ("16", "steamer"), ("18", "eliotrope"),
+    ("19", "huppermage"),
+];
+
+/// Spells any class can have (items, mounts…): they say nothing of the class.
+const SHARED_SPELLS_CLASS: &str = "commun";
+
+const PREVIEW_COLORS:[(u8, u8, u8); 6] =
     [(74, 144, 226), (220, 50, 50), (76, 175, 80), (171, 71, 188), (255, 167, 38), (38, 198, 218)];
 
 pub struct Catalog {
@@ -93,6 +106,36 @@ impl Catalog {
             return own;
         }
         self.spell_icons.iter().flat_map(|(_, spells)| spells.keys().map(String::as_str)).collect()
+    }
+
+    /// The class a player's casts give away: each cast of a spell only one
+    /// class has is a vote for it ("Rafale", Iop and Cra, votes for neither);
+    /// the class with most votes wins. None if no vote, or a tie — a stray
+    /// spell filed under another class (seen: a Sacrieur's "Méditation") is
+    /// outvoted by the rest.
+    pub fn class_of_spells<'a>(&self, spells: impl IntoIterator<Item = &'a str>) -> Option<&str> {
+        let mut votes: HashMap<&str, usize> = HashMap::new();
+        for spell in spells {
+            let mut owners = self
+                .spell_icons
+                .iter()
+                .filter(|(class, icons)| class != SHARED_SPELLS_CLASS && icons.contains_key(spell))
+                .map(|(class, _)| class.as_str());
+            if let (Some(only), None) = (owners.next(), owners.next()) {
+                *votes.entry(only).or_insert(0) += 1;
+            }
+        }
+        let most = *votes.values().max()?;
+        let mut top = votes.into_iter().filter(|(_, count)| *count == most);
+        match (top.next(), top.next()) {
+            (Some((class, _)), None) => Some(class),
+            _ => None,
+        }
+    }
+
+    /// The class of a join line's "breed : N".
+    pub fn class_of_breed(breed: &str) -> Option<&'static str> {
+        BREEDS.iter().find(|(id, _)| *id == breed).map(|(_, class)| *class)
     }
 
     pub fn class_icon(&self, hero_class: Option<&str>) -> Value {

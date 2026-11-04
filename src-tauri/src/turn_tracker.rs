@@ -55,8 +55,11 @@ static DAMAGE: LazyLock<Regex> = LazyLock::new(|| re(r"^(.+?):\s+-([0-9][0-9\s]*
 static HEAL: LazyLock<Regex> = LazyLock::new(|| re(r"^(.+?):\s+\+([0-9][0-9\s]*)\s+PV\b(.*)$"));
 static ARMOR: LazyLock<Regex> = LazyLock::new(|| re(r"^(.+?):\s+([0-9][0-9\s]*)\s+Armure\b(.*)$"));
 static CRITICAL: LazyLock<Regex> = LazyLock::new(|| re(r"\(Critiques\)\s*$"));
-// Written for each player just before a won fight ends.
+// Written just before a won fight ends, only for the characters of the
+// client(s) writing the log — never for the group's other players:
+// "Lueur Grenat : +96 808 163 points d'XP.  Prochain niveau dans : …".
 static XP_GAINED: LazyLock<Regex> = LazyLock::new(|| re(r"points\s+d'XP"));
+static XP_EARNER: LazyLock<Regex> = LazyLock::new(|| re(r"^(.+?)\s*:\s*\+[0-9][0-9\s]*points\s+d'XP"));
 static INVOKE: LazyLock<Regex> = LazyLock::new(|| re(r"^(.+?):\s+Invoque\s+(?:un\(e\)\s+(.+?)\s*$)?"));
 static TURN_END: LazyLock<Regex> = LazyLock::new(|| {
     re(r"secondes\s+report[ée]es\s+pour\s+le\s+tour\s+suivant|^[^:]+:\s+Passe\s+son\s+tour")
@@ -253,7 +256,7 @@ impl CombatTurnTracker {
             }
             let pending = self.pending_summon.take();
             if !ai_controlled {
-                self.recorder.add_ally(&name);
+                self.recorder.add_ally(&name, &breed);
                 self.allies.insert(name);
             } else {
                 let summoned_by_ally = pending.as_ref().is_some_and(|p| self.is_ally_fighter(&p.owner, is_ally));
@@ -293,7 +296,8 @@ impl CombatTurnTracker {
             return out;
         }
         if XP_GAINED.is_match(message) {
-            self.recorder.victory();
+            let earner = XP_EARNER.captures(message).map(|c| c[1].trim().to_string());
+            self.recorder.victory(earner.as_deref());
             return out;
         }
 

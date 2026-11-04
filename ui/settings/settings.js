@@ -1137,6 +1137,8 @@ async function init() {
   renderLaunchAtLogin(await api.getLaunchAtLogin());
   renderIngame(await api.getIngameOverlay());
   api.onIngameStatus(renderIngame);
+  // A hero added from the recap window.
+  api.onHeroesChanged(refreshHeroes);
   // The in-game window's counter switch changes the layout too.
   api.onLayoutChanged((layout) => {
     state.layout = { ...state.layout, ...layout };

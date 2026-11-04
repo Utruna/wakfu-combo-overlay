@@ -155,8 +155,13 @@ struct FightRecord {
     ended_clock: Option<i64>,
     /// Earned XP at the end: a won fight.
     victory: bool,
-    /// Players announced as joining (allies), by name.
-    allies: HashSet<String>,
+    /// Players announced as joining (allies): name -> their join line's
+    /// "breed" (the class id).
+    allies: HashMap<String, String>,
+    /// Players the log wrote XP for at the end. The game only writes it for
+    /// the characters of the client(s) writing the log: these are the user's
+    /// own, the other players of the group never get one.
+    local: HashSet<String>,
     /// In order of first appearance.
     fighters: Vec<(String, FighterRecord)>,
     /// Who the allies hit, and how hard: the fight's opponents.
@@ -210,7 +215,8 @@ impl FightRecorder {
                 started_clock: clock,
                 ended_clock: None,
                 victory: false,
-                allies: HashSet::new(),
+                allies: HashMap::new(),
+                local: HashSet::new(),
                 fighters: Vec::new(),
                 foes: HashMap::new(),
                 effect_owners: HashMap::new(),
@@ -227,8 +233,8 @@ impl FightRecorder {
         self.fight();
     }
 
-    pub fn add_ally(&mut self, name: &str) {
-        self.fight().allies.insert(name.to_string());
+    pub fn add_ally(&mut self, name: &str, breed: &str) {
+        self.fight().allies.insert(name.to_string(), breed.to_string());
     }
 
     pub fn cast(&mut self, fighter: &str, turn_id: u64, caster: &str, spell: &str, crit: bool, summoning_spell: Option<String>) {
@@ -350,9 +356,14 @@ impl FightRecorder {
         self.fight().fighter_mut(fighter).taken += amount;
     }
 
-    pub fn victory(&mut self) {
+    /// XP earned at the end: a won fight. `player`: whom it was for, when the
+    /// line names them — one of the user's own characters.
+    pub fn victory(&mut self, player: Option<&str>) {
         if let Some(fight) = self.current.as_mut() {
             fight.victory = true;
+            if let Some(player) = player {
+                fight.local.insert(player.to_string());
+            }
         }
     }
 
@@ -411,14 +422,24 @@ impl FightRecorder {
                     .filter_map(|(name, record)| {
                         let hero = find_hero_index(name, heroes).map(|i| &heroes[i]);
                         // Monsters stay out: the recap is about the group.
-                        if hero.is_none() && !fight.allies.contains(name) {
+                        if hero.is_none() && !fight.allies.contains_key(name) {
                             return None;
                         }
-                        let class = hero.and_then(|h| h.get("class")).and_then(Value::as_str);
+                        let set_class = hero.and_then(|h| h.get("class")).and_then(Value::as_str);
+                        // Not configured: worked out from its own casts, else its breed.
+                        let guessed = set_class.is_none().then(|| {
+                            let own_casts = record.turns.iter().flat_map(|t| &t.spells).filter(|s| s.caster == *name);
+                            catalog
+                                .class_of_spells(own_casts.map(|s| s.name.as_str()))
+                                .or_else(|| fight.allies.get(name).and_then(|breed| Catalog::class_of_breed(breed)))
+                        });
+                        let class = set_class.or(guessed.flatten());
                         Some(json!({
                             "name": name,
                             "hero": hero.is_some(),
+                            "local": fight.local.contains(name),
                             "class": class,
+                            "classGuessed": set_class.is_none() && class.is_some(),
                             "classIcon": catalog.class_icon(class),
                             "color": hero.and_then(|h| h.get("color")),
                             "healOutside": labelled_json(&record.heal_outside),

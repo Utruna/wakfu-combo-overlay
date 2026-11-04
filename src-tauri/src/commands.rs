@@ -60,6 +60,33 @@ pub fn add_hero(state: State<AppState>, hero: Value, options: Option<Value>) -> 
     state.core.lock_safe().settings.add_hero(&hero, index, tracked)
 }
 
+/// The settings page's hero colours (ui/settings/settings.js PALETTE).
+const HERO_PALETTE: [(u8, u8, u8); 8] = [
+    (0x4a, 0x90, 0xe2), (0x43, 0xd1, 0xc1), (0x22, 0xc5, 0x5e), (0xfa, 0xcc, 0x15),
+    (0xf2, 0x99, 0x4a), (0xe5, 0x39, 0x35), (0xd9, 0x46, 0xef), (0x9b, 0x8c, 0xff),
+];
+
+/// The recap's "Ajouter à mes héros": a player of the fight becomes a tracked
+/// hero, with the class the recap worked out and the first colour no hero has.
+#[tauri::command]
+pub fn follow_fighter(app: AppHandle, state: State<AppState>, character_name: String, class: Option<String>) -> bool {
+    let added = {
+        let mut core = state.core.lock_safe();
+        let used: Vec<Value> = core.settings.heroes().iter().filter_map(|h| h.get("color").cloned()).collect();
+        let (r, g, b) = HERO_PALETTE
+            .iter()
+            .copied()
+            .find(|&(r, g, b)| !used.contains(&json!({ "r": r, "g": g, "b": b })))
+            .unwrap_or(HERO_PALETTE[0]);
+        let hero = json!({ "characterName": character_name, "class": class, "color": { "r": r, "g": g, "b": b } });
+        core.settings.add_hero(&hero, None, true)
+    };
+    if added {
+        let _ = app.emit_to(SETTINGS_WINDOW, "heroes:changed", ());
+    }
+    added
+}
+
 #[tauri::command]
 pub fn update_hero(state: State<AppState>, character_name: String, changes: Value) -> bool {
     state.core.lock_safe().settings.update_hero(&character_name, &changes)

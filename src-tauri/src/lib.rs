@@ -281,6 +281,7 @@ pub fn run() {
             commands::get_release_notes,
             commands::show_whats_new,
             commands::get_recap,
+            commands::follow_fighter,
             commands::mark_fight_seen,
             commands::delete_fight,
             commands::save_fight,

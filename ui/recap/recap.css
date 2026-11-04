@@ -87,18 +87,15 @@
 .rc-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .rc-tabs button { display: flex; align-items: center; gap: 7px; flex-grow: 0; }
 .rc-tab-dot { width: 8px; height: 8px; border-radius: 2px; }
-.rc-others { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 4px; border: none; background: transparent; color: var(--muted); font-size: 13px; }
 
 /* ── One row per hero ──────────────────────────────────────────────── */
 
 .rc-rows { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
 .rc-row { border-radius: 12px; background: var(--surface); border: 1px solid transparent; }
-.rc-row.other { opacity: 0.55; }
 .rc-row-btn {
-  width: 100%; display: grid; grid-template-columns: 24px 40px 170px minmax(0, 1fr) 18px; align-items: center; gap: 14px;
+  width: 100%; display: grid; grid-template-columns: 24px 40px 220px minmax(0, 1fr) 18px; align-items: center; gap: 14px;
   padding: 12px 14px; border: none; background: transparent; text-align: left;
 }
-.rc-row.other .rc-row-btn { cursor: default; }
 .rc-rank { display: flex; justify-content: center; color: #f5c451; }
 .rc-rank .num { font-size: 14px; color: var(--muted-2); }
 .rc-avatar {
@@ -109,6 +106,21 @@
 .rc-who { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .rc-who-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rc-who-class { font-size: 12px; color: var(--muted); }
+.rc-who-class { display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; overflow: hidden; }
+.rc-tag { flex-shrink: 0; }
+/* A player of the group who isn't among the heroes. */
+.rc-tag {
+  padding: 0 6px; border: 1px dashed var(--muted-3); border-radius: 999px;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.02em; color: var(--muted); text-transform: uppercase;
+}
+.rc-tag.local { border-color: var(--accent); color: var(--accent); }
+.rc-avatar.untracked { outline: 2px dashed var(--muted-3); outline-offset: 2px; }
+.rc-follow {
+  grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  margin-top: 14px; padding: 10px 14px; border-radius: 10px; background: var(--bg-well); font-size: 13px; color: var(--muted);
+}
+.rc-follow.local { border: 1px solid var(--accent); color: inherit; }
+.rc-follow .btn { flex-shrink: 0; }
 .rc-measure { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .rc-measure-line { display: flex; align-items: center; gap: 14px; }
 .rc-track { flex-grow: 1; height: 10px; border-radius: 5px; background: var(--bg-well); overflow: hidden; }
@@ -125,7 +137,7 @@
   margin: 0 14px 14px; border-top: 1px solid var(--border);
 }
 .rc-detail > section { display: flex; flex-direction: column; gap: 12px; padding: 16px 18px 4px; min-width: 0; }
-.rc-detail > section:first-child { padding-left: 0; }
+.rc-detail > section:first-of-type { padding-left: 0; }
 .rc-detail > section:last-child { padding-right: 0; }
 .rc-detail > section + section { border-left: 1px solid var(--border); }
 .rc-sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
