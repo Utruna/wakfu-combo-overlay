@@ -166,6 +166,7 @@
                 <button type="button" class="switch" role="switch" aria-checked="true" aria-labelledby="lbl-ingame-wakfu" id="ingame-only-wakfu"><span></span></button>
                 <span id="lbl-ingame-wakfu">Seulement quand Wakfu est au premier plan</span>
               </div>
+              <p class="help" id="ingame-only-wakfu-hint" hidden>Indisponible dans cette session (Wayland sans XWayland) : l'overlay reste affiché par-dessus tout.</p>
             </div>
             <p class="error" id="ingame-error"></p>
           </div>
@@ -257,7 +258,7 @@
                 <li>Laisse « Fichier local » décoché et colle ce lien dans <strong>URL</strong>.</li>
                 <li>Taille : <span class="mono white obs-size-inline"></span> (voir Affichage).</li>
               </ol>
-              <span class="help">Si OBS démarre avant l'application, actualise la source (ou active « Lancer avec Windows »).</span>
+              <span class="help" id="obs-url-help">Si OBS démarre avant l'application, actualise la source (ou active « Lancer avec Windows »).</span>
             </div>
             <div class="method-panel" data-method="file" hidden>
               <div class="copy-field">
@@ -266,7 +267,7 @@
               </div>
               <button type="button" class="link-btn accent-link" id="show-obs-loader">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>
-                <span>Afficher le fichier dans l'explorateur</span>
+                <span id="show-obs-loader-label">Afficher le fichier dans l'explorateur</span>
               </button>
               <ol class="steps">
                 <li>Dans OBS, ajoute une source <strong>Navigateur</strong>.</li>

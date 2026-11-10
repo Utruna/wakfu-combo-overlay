@@ -201,12 +201,14 @@ impl Drop for OverlayServer {
 /// reserved it (Hyper-V / WSL / Docker grab random port ranges, re-rolled at
 /// each reboot — see `netsh interface ipv4 show excludedportrange
 /// protocol=tcp`), which is why it can work one day and fail the next.
+/// Elsewhere it's rarer: a sandbox or security rule.
 fn describe_listen_error(err: &std::io::Error) -> String {
     match err.kind() {
         std::io::ErrorKind::AddrInUse => "Port déjà utilisé par un autre programme.".into(),
-        std::io::ErrorKind::PermissionDenied => {
+        std::io::ErrorKind::PermissionDenied if cfg!(windows) => {
             "Port réservé par Windows (Hyper-V/WSL/Docker) — choisis-en un autre.".into()
         }
+        std::io::ErrorKind::PermissionDenied => "Port refusé par le système — choisis-en un autre.".into(),
         _ => err.to_string(),
     }
 }

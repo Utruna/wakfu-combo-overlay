@@ -11,7 +11,9 @@ publish = false
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["tray-icon", "image-png"] }
+# macos-private-api: without it a transparent window still gets an opaque
+# background on macOS (the in-game overlay). No effect on the other systems.
+tauri = { version = "2", features = ["tray-icon", "image-png", "macos-private-api"] }
 tauri-plugin-single-instance = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-updater = "2"
@@ -23,10 +25,27 @@ serde_json = { version = "1", features = ["preserve_order"] }
 regex = "1"
 unicode-normalization = "0.1"
 tokio = { version = "1", features = ["rt", "net", "io-util", "sync", "macros", "time"] }
+
+[target.'cfg(windows)'.dependencies]
 winreg = "0.56"
 # Which window is in front, so the in-game overlay only shows over Wakfu.
 # And the mouse button, while the in-game overlay is dragged by its handle.
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse"] }
+
+[target.'cfg(not(windows))'.dependencies]
+# "Afficher le fichier" (the OBS loader page) in Finder or the file manager.
+tauri-plugin-opener = "2"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# Same two questions as windows-sys above, asked to the X server (the app
+# runs on X11, through XWayland on a Wayland desktop: see main.rs).
+x11rb = "0.13"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+# The application in front, and the mouse button.
+objc2 = "0.6"
+objc2-foundation = { version = "0.3", features = ["NSString", "NSURL"] }
+objc2-app-kit = { version = "0.3", features = ["NSEvent", "NSRunningApplication", "NSWorkspace"] }
 
 [profile.release]
 opt-level = "s"

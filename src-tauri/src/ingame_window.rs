@@ -11,6 +11,9 @@
 //! By default it only shows while a Wakfu window ("Pseudo - WAKFU") — or one
 //! of the app's own — is in front, so it doesn't sit over everything else.
 //! It stays over a windowed or borderless game, not over exclusive fullscreen.
+//!
+//! On Linux it needs X11 (XWayland on a Wayland desktop, see `run`): Wayland
+//! itself lets no app place its window or know which one is in front.
 
 use crate::app_state::LockExt;
 use serde_json::{json, Value};
@@ -69,10 +72,10 @@ pub fn start_drag(app: &AppHandle) {
         return;
     }
     tauri::async_runtime::spawn(async move {
-        let start = (foreground::cursor_position(), window.outer_position());
+        let start = (foreground::cursor_position(&window), window.outer_position());
         if let (Some((start_x, start_y)), Ok(origin)) = start {
             while foreground::left_button_down() {
-                if let Some((x, y)) = foreground::cursor_position() {
+                if let Some((x, y)) = foreground::cursor_position(&window) {
                     let _ = window.set_position(PhysicalPosition::new(origin.x + x - start_x, origin.y + y - start_y));
                 }
                 tokio::time::sleep(DRAG_INTERVAL).await;
@@ -111,6 +114,8 @@ pub fn status(app: &AppHandle) -> Value {
     json!({
         "enabled": is_enabled(app),
         "onlyOverWakfu": only_over_wakfu(app),
+        // Whether "only over Wakfu" can work here at all.
+        "canTellWakfu": foreground::can_tell_front(),
         "online": online,
     })
 }
@@ -215,15 +220,17 @@ async fn follow_foreground(app: AppHandle) {
     // Whether the window currently catches the mouse (it starts click-through).
     let mut catching = false;
     while let Some(window) = app.get_webview_window(INGAME_WINDOW) {
-        if let Ok(hwnd) = window.hwnd() {
-            let dragging = DRAGGING.load(Ordering::Relaxed);
-            let show = !only_over_wakfu(&app) || dragging || foreground::wakfu_or_settings_in_front(hwnd.0);
-            foreground::set_shown(hwnd.0, show);
-            let over_controls = show && (dragging || cursor_over_controls(&window));
-            if over_controls != catching {
-                let _ = window.set_ignore_cursor_events(!over_controls);
-                catching = over_controls;
-            }
+        let dragging = DRAGGING.load(Ordering::Relaxed);
+        // When it can't be told (no X11 session), always shown.
+        let show = !only_over_wakfu(&app) || dragging || foreground::wakfu_or_own_in_front(&window) != Some(false);
+        if foreground::set_shown(&window, show) {
+            // Mapped again, it may have lost its click-through state (X11).
+            let _ = window.set_ignore_cursor_events(!catching);
+        }
+        let over_controls = show && (dragging || cursor_over_controls(&window));
+        if over_controls != catching {
+            let _ = window.set_ignore_cursor_events(!over_controls);
+            catching = over_controls;
         }
         tokio::time::sleep(POLL_INTERVAL).await;
     }
@@ -232,7 +239,7 @@ async fn follow_foreground(app: AppHandle) {
 fn cursor_over_controls(window: &WebviewWindow) -> bool {
     let Some(rect) = *CONTROLS_RECT.lock_safe() else { return false };
     let (Some((cursor_x, cursor_y)), Ok(origin), Ok(scale)) =
-        (foreground::cursor_position(), window.inner_position(), window.scale_factor())
+        (foreground::cursor_position(window), window.inner_position(), window.scale_factor())
     else {
         return false;
     };
@@ -286,69 +293,263 @@ fn save_geometry(window: &WebviewWindow) {
     state.core.lock_safe().settings.set_ingame_overlay_geometry(pos.x, pos.y, size.width, size.height);
 }
 
-/// Win32: which window is in front, and showing ours without activating it
-/// (Tauri's `show` would take the focus from the game).
-mod foreground {
-    use std::ffi::c_void;
-    use windows_sys::Win32::Foundation::POINT;
-    use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_LBUTTON};
-    use windows_sys::Win32::UI::WindowsAndMessaging::{
-        GetCursorPos, GetForegroundWindow, GetWindowTextW, GetWindowThreadProcessId, IsWindowVisible, ShowWindow, SW_HIDE,
-        SW_SHOWNOACTIVATE,
-    };
 
-    /// Wakfu titles its windows "Pseudo - WAKFU" (just "WAKFU" before login).
+/// Which window is in front, the mouse, and showing ours without activating
+/// it — the game keeps the focus. One implementation per system.
+mod foreground {
+    /// Wakfu titles its windows "Pseudo - WAKFU" (just "WAKFU" before login),
+    /// natively as under Wine.
+    #[cfg_attr(target_os = "macos", allow(dead_code))]
     pub fn is_wakfu_title(title: &str) -> bool {
         let title = title.trim().to_uppercase();
         title == "WAKFU" || title.ends_with(" - WAKFU")
     }
 
-    /// A Wakfu window, or one of the app's own other than `overlay` (the
-    /// settings window, so the overlay shows while it's being set up).
-    pub fn wakfu_or_settings_in_front(overlay: *mut c_void) -> bool {
-        // SAFETY: plain Win32 queries on whatever window is in front; a
-        // window closing meanwhile just makes them fail (0 / empty title).
-        unsafe {
-            let hwnd = GetForegroundWindow();
-            if hwnd.is_null() || hwnd == overlay {
-                return false;
+    /// macOS only tells which application is in front, not which window: is
+    /// it Wakfu, by its name, bundle identifier or executable path?
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+    pub fn is_wakfu_app(name: &str) -> bool {
+        name.to_lowercase().contains("wakfu")
+    }
+
+    pub use imp::*;
+
+    #[cfg(windows)]
+    mod imp {
+        use tauri::WebviewWindow;
+        use windows_sys::Win32::Foundation::POINT;
+        use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_LBUTTON};
+        use windows_sys::Win32::UI::WindowsAndMessaging::{
+            GetCursorPos, GetForegroundWindow, GetWindowTextW, GetWindowThreadProcessId, IsWindowVisible, ShowWindow,
+            SW_HIDE, SW_SHOWNOACTIVATE,
+        };
+
+        use super::is_wakfu_title;
+
+        pub fn can_tell_front() -> bool {
+            true
+        }
+
+        /// A Wakfu window, or one of the app's own other than the overlay
+        /// (the settings window, so the overlay shows while it's being set up).
+        pub fn wakfu_or_own_in_front(window: &WebviewWindow) -> Option<bool> {
+            let overlay = window.hwnd().ok()?.0;
+            // SAFETY: plain Win32 queries on whatever window is in front; a
+            // window closing meanwhile just makes them fail (0 / empty title).
+            unsafe {
+                let hwnd = GetForegroundWindow();
+                if hwnd.is_null() || hwnd == overlay {
+                    return Some(false);
+                }
+                let mut pid = 0u32;
+                GetWindowThreadProcessId(hwnd, &mut pid);
+                if pid == std::process::id() {
+                    return Some(true);
+                }
+                let mut buffer = [0u16; 256];
+                let len = GetWindowTextW(hwnd, buffer.as_mut_ptr(), buffer.len() as i32);
+                Some(len > 0 && is_wakfu_title(&String::from_utf16_lossy(&buffer[..len as usize])))
             }
-            let mut pid = 0u32;
-            GetWindowThreadProcessId(hwnd, &mut pid);
-            if pid == std::process::id() {
-                return true;
+        }
+
+        /// The mouse, in physical screen pixels.
+        pub fn cursor_position(_window: &WebviewWindow) -> Option<(i32, i32)> {
+            let mut point = POINT { x: 0, y: 0 };
+            // SAFETY: GetCursorPos only writes the POINT it's given.
+            (unsafe { GetCursorPos(&mut point) } != 0).then_some((point.x, point.y))
+        }
+
+        /// Whether the (primary) mouse button is held, wherever the mouse is.
+        pub fn left_button_down() -> bool {
+            // SAFETY: a plain state query; the high bit means "down".
+            unsafe { GetAsyncKeyState(i32::from(VK_LBUTTON)) as u16 & 0x8000 != 0 }
+        }
+
+        /// Shows or hides the window (Tauri's `show` would take the focus
+        /// from the game). True when it was just shown.
+        pub fn set_shown(window: &WebviewWindow, show: bool) -> bool {
+            let Ok(hwnd) = window.hwnd() else { return false };
+            // SAFETY: `hwnd` is our own live window, from Tauri.
+            unsafe {
+                if (IsWindowVisible(hwnd.0) != 0) == show {
+                    return false;
+                }
+                ShowWindow(hwnd.0, if show { SW_SHOWNOACTIVATE } else { SW_HIDE });
             }
-            let mut buffer = [0u16; 256];
-            let len = GetWindowTextW(hwnd, buffer.as_mut_ptr(), buffer.len() as i32);
-            len > 0 && is_wakfu_title(&String::from_utf16_lossy(&buffer[..len as usize]))
+            show
         }
     }
 
-    /// The mouse, in physical screen pixels.
-    pub fn cursor_position() -> Option<(i32, i32)> {
-        let mut point = POINT { x: 0, y: 0 };
-        // SAFETY: GetCursorPos only writes the POINT it's given.
-        (unsafe { GetCursorPos(&mut point) } != 0).then_some((point.x, point.y))
-    }
+    /// Asked to the X server: under XWayland, Wakfu (a Java game) and this
+    /// app are both X11 clients, and a native Wayland window in front reads
+    /// as no window at all.
+    #[cfg(target_os = "linux")]
+    mod imp {
+        use std::sync::{Mutex, OnceLock};
+        use tauri::{PhysicalPosition, WebviewWindow};
+        use x11rb::connection::Connection;
+        use x11rb::protocol::xproto::{Atom, AtomEnum, ConnectionExt, GetPropertyReply, KeyButMask, QueryPointerReply, Window};
+        use x11rb::rust_connection::RustConnection;
 
-    /// Whether the (primary) mouse button is held, wherever the mouse is.
-    pub fn left_button_down() -> bool {
-        // SAFETY: a plain state query; the high bit means "down".
-        unsafe { GetAsyncKeyState(i32::from(VK_LBUTTON)) as u16 & 0x8000 != 0 }
-    }
+        use super::is_wakfu_title;
+        use crate::app_state::LockExt;
 
-    pub fn set_shown(hwnd: *mut c_void, show: bool) {
-        // SAFETY: `hwnd` is our own live window, from Tauri.
-        unsafe {
-            if (IsWindowVisible(hwnd) != 0) != show {
-                ShowWindow(hwnd, if show { SW_SHOWNOACTIVATE } else { SW_HIDE });
+        struct X11 {
+            conn: RustConnection,
+            root: Window,
+            net_active_window: Atom,
+            net_wm_pid: Atom,
+            net_wm_name: Atom,
+            utf8_string: Atom,
+        }
+
+        /// Connected on first use. None without an X server (a Wayland
+        /// session without XWayland): the overlay then always shows.
+        fn x11() -> Option<&'static X11> {
+            static X11: OnceLock<Option<X11>> = OnceLock::new();
+            X11.get_or_init(|| {
+                let (conn, screen) = x11rb::connect(None).ok()?;
+                let root = conn.setup().roots.get(screen)?.root;
+                let atom = |name: &str| Some(conn.intern_atom(false, name.as_bytes()).ok()?.reply().ok()?.atom);
+                let net_active_window = atom("_NET_ACTIVE_WINDOW")?;
+                let net_wm_pid = atom("_NET_WM_PID")?;
+                let net_wm_name = atom("_NET_WM_NAME")?;
+                let utf8_string = atom("UTF8_STRING")?;
+                Some(X11 { conn, root, net_active_window, net_wm_pid, net_wm_name, utf8_string })
+            })
+            .as_ref()
+        }
+
+        impl X11 {
+            fn property(&self, window: Window, property: impl Into<Atom>, kind: impl Into<Atom>, longs: u32) -> Option<GetPropertyReply> {
+                self.conn.get_property(false, window, property, kind, 0, longs).ok()?.reply().ok()
             }
+
+            fn number(&self, window: Window, property: Atom, kind: AtomEnum) -> Option<u32> {
+                self.property(window, property, kind, 1)?.value32()?.next()
+            }
+
+            fn title(&self, window: Window) -> String {
+                if let Some(reply) = self.property(window, self.net_wm_name, self.utf8_string, 256) {
+                    if !reply.value.is_empty() {
+                        return String::from_utf8_lossy(&reply.value).into_owned();
+                    }
+                }
+                // Clients that only set the old Latin-1 title.
+                self.property(window, AtomEnum::WM_NAME, AtomEnum::STRING, 256)
+                    .map(|reply| reply.value.iter().map(|&byte| char::from(byte)).collect())
+                    .unwrap_or_default()
+            }
+
+            fn pointer(&self) -> Option<QueryPointerReply> {
+                self.conn.query_pointer(self.root).ok()?.reply().ok()
+            }
+        }
+
+        pub fn can_tell_front() -> bool {
+            x11().is_some()
+        }
+
+        /// A Wakfu window, or one of the app's own (the overlay never is: it
+        /// can't take the focus).
+        pub fn wakfu_or_own_in_front(_window: &WebviewWindow) -> Option<bool> {
+            let x11 = x11()?;
+            // None too when the window manager doesn't say (no EWMH support).
+            let active = x11.number(x11.root, x11.net_active_window, AtomEnum::WINDOW)?;
+            if active == 0 {
+                return Some(false);
+            }
+            if x11.number(active, x11.net_wm_pid, AtomEnum::CARDINAL) == Some(std::process::id()) {
+                return Some(true);
+            }
+            Some(is_wakfu_title(&x11.title(active)))
+        }
+
+        /// The mouse, in physical screen pixels (X11's own, like the window's position).
+        pub fn cursor_position(_window: &WebviewWindow) -> Option<(i32, i32)> {
+            let pointer = x11()?.pointer()?;
+            Some((pointer.root_x.into(), pointer.root_y.into()))
+        }
+
+        pub fn left_button_down() -> bool {
+            x11().and_then(X11::pointer).is_some_and(|pointer| pointer.mask.contains(KeyButMask::BUTTON1))
+        }
+
+        /// Where the window was when hidden: the window manager may place it
+        /// anew when it's shown again.
+        static HIDDEN_AT: Mutex<Option<PhysicalPosition<i32>>> = Mutex::new(None);
+
+        /// Shows or hides the window — it can't take the focus (`focusable`),
+        /// so showing it leaves the game's. True when it was just shown.
+        pub fn set_shown(window: &WebviewWindow, show: bool) -> bool {
+            if window.is_visible().unwrap_or(show) == show {
+                return false;
+            }
+            if show {
+                let _ = window.show();
+                if let Some(position) = HIDDEN_AT.lock_safe().take() {
+                    let _ = window.set_position(position);
+                }
+            } else {
+                *HIDDEN_AT.lock_safe() = window.outer_position().ok();
+                let _ = window.hide();
+            }
+            show
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    mod imp {
+        use objc2::rc::autoreleasepool;
+        use objc2_app_kit::{NSEvent, NSWorkspace};
+        use tauri::WebviewWindow;
+
+        use super::is_wakfu_app;
+
+        pub fn can_tell_front() -> bool {
+            true
+        }
+
+        /// Wakfu, or this app (the settings window, so the overlay shows
+        /// while it's being set up).
+        pub fn wakfu_or_own_in_front(_window: &WebviewWindow) -> Option<bool> {
+            autoreleasepool(|_| {
+                let front = NSWorkspace::sharedWorkspace().frontmostApplication()?;
+                if front.processIdentifier() as u32 == std::process::id() {
+                    return Some(true);
+                }
+                let name = front.localizedName().map(|name| name.to_string());
+                let bundle = front.bundleIdentifier().map(|id| id.to_string());
+                let executable = front.executableURL().and_then(|url| url.path()).map(|path| path.to_string());
+                Some([name, bundle, executable].iter().flatten().any(|name| is_wakfu_app(name)))
+            })
+        }
+
+        /// The mouse, in the same physical pixels as the window's position.
+        pub fn cursor_position(window: &WebviewWindow) -> Option<(i32, i32)> {
+            let position = window.cursor_position().ok()?;
+            Some((position.x.round() as i32, position.y.round() as i32))
+        }
+
+        pub fn left_button_down() -> bool {
+            NSEvent::pressedMouseButtons() & 1 != 0
+        }
+
+        /// Shows or hides the window — it can't become the key window
+        /// (`focusable`), so showing it leaves the game in front. True when
+        /// it was just shown.
+        pub fn set_shown(window: &WebviewWindow, show: bool) -> bool {
+            if window.is_visible().unwrap_or(show) == show {
+                return false;
+            }
+            let _ = if show { window.show() } else { window.hide() };
+            show
         }
     }
 
     #[cfg(test)]
     mod tests {
-        use super::is_wakfu_title;
+        use super::{is_wakfu_app, is_wakfu_title};
 
         #[test]
         fn recognizes_wakfu_windows() {
@@ -358,6 +559,14 @@ mod foreground {
             assert!(!is_wakfu_title("Wakfu Combo Overlay"));
             assert!(!is_wakfu_title("wakfu.log - Notepad"));
             assert!(!is_wakfu_title("Guide WAKFU - Google Chrome"));
+        }
+
+        #[test]
+        fn recognizes_the_wakfu_application() {
+            assert!(is_wakfu_app("Wakfu"));
+            assert!(is_wakfu_app("/Users/me/Library/Application Support/zaap/wakfu/Wakfu.app/Contents/MacOS/Wakfu"));
+            assert!(!is_wakfu_app("Ankama Launcher"));
+            assert!(!is_wakfu_app("com.google.Chrome"));
         }
     }
 }

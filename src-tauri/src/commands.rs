@@ -137,10 +137,19 @@ pub async fn browse_logs_dir(app: AppHandle, state: State<'_, AppState>) -> Resu
 #[tauri::command]
 pub fn show_obs_loader(state: State<AppState>) {
     let Some(path) = state.core.lock_safe().obs_loader_path.clone() else { return };
-    use std::os::windows::process::CommandExt;
-    let _ = std::process::Command::new("explorer")
-        .raw_arg(format!("/select,\"{}\"", path.display()))
-        .spawn();
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        let _ = std::process::Command::new("explorer")
+            .raw_arg(format!("/select,\"{}\"", path.display()))
+            .spawn();
+    }
+    // Finder, or the desktop's file manager (its D-Bus interface, else the
+    // folder opened with xdg-open).
+    #[cfg(not(windows))]
+    if let Err(err) = tauri_plugin_opener::reveal_item_in_dir(&path) {
+        eprintln!("[main] Failed to show {}: {err}", path.display());
+    }
 }
 
 #[tauri::command]
@@ -222,7 +231,11 @@ pub fn send_test_cast(app: AppHandle, state: State<AppState>, character_name: St
 }
 
 fn launch_at_login_state() -> Value {
-    json!({ "available": autostart::available(), "enabled": autostart::is_enabled() })
+    json!({
+        "available": autostart::available(),
+        "enabled": autostart::is_enabled(),
+        "reason": autostart::unavailable_reason(),
+    })
 }
 
 #[tauri::command]

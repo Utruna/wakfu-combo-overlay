@@ -172,15 +172,27 @@ async fn report_error(app: &AppHandle, manual: bool, message: String) {
     }
 }
 
-/// Runs the downloaded installer, if any — it closes this app itself, and
-/// relaunches it once done when `relaunch` is set. Returns false when there
-/// was nothing to install.
+/// Installs the downloaded update, if any, then the app quits — and starts
+/// again when `relaunch` is set. Returns false when there was nothing to
+/// install (or it failed): the app is still running then.
 pub fn install_pending(app: &AppHandle, relaunch: bool) -> bool {
     let Some((update, bytes)) = app.state::<UpdateState>().pending.lock_safe().take() else {
         return false;
     };
     match update.restart_after_install(relaunch).install(bytes) {
-        Ok(()) => true,
+        // The installer closes the app itself (and relaunches it if asked).
+        Ok(()) if cfg!(windows) => true,
+        // Only the files were replaced: quitting is up to the app. A restart
+        // goes through the regular exit, so the single-instance lock is
+        // released before the new version looks for it.
+        Ok(()) => {
+            if relaunch {
+                app.request_restart();
+            } else {
+                app.exit(0);
+            }
+            true
+        }
         Err(err) => {
             eprintln!("[updates] Install failed: {err}");
             push_status(app, json!({ "status": "error", "message": err.to_string() }));

@@ -37,6 +37,29 @@ const ASSET_PREFIX = '../';
 
 const $ = (id) => document.getElementById(id);
 
+// The labels naming the system's own parts (Windows, the Finder…).
+const PLATFORM = /Windows/.test(navigator.userAgent) ? 'windows' : /Mac/.test(navigator.userAgent) ? 'macos' : 'linux';
+const PLATFORM_LABELS = {
+  windows: {
+    boot: 'Lancer avec Windows',
+    bootWhere: 'zone de notification',
+    reveal: "Afficher le fichier dans l'explorateur",
+  },
+  macos: {
+    boot: "Lancer à l'ouverture de session",
+    bootWhere: 'barre des menus',
+    reveal: 'Afficher le fichier dans le Finder',
+  },
+  linux: {
+    boot: "Lancer à l'ouverture de session",
+    bootWhere: 'zone de notification',
+    reveal: 'Afficher le fichier dans le gestionnaire de fichiers',
+  },
+}[PLATFORM];
+$('lbl-boot').textContent = `${PLATFORM_LABELS.boot} (${PLATFORM_LABELS.bootWhere})`;
+$('obs-url-help').textContent = `Si OBS démarre avant l'application, actualise la source (ou active « ${PLATFORM_LABELS.boot} »).`;
+$('show-obs-loader-label').textContent = PLATFORM_LABELS.reveal;
+
 const state = {
   heroes: [],
   tracked: new Set(),
@@ -45,7 +68,7 @@ const state = {
   classIcons: {},
   previewPool: [],
   diag: null,
-  ingame: { enabled: false, onlyOverWakfu: true, online: true },
+  ingame: { enabled: false, onlyOverWakfu: true, canTellWakfu: true, online: true },
   editing: null, // characterName being edited, NEW_HERO for the add form, or null
   draft: null, // { characterName, class, color } while the edit form is open
 };
@@ -649,7 +672,9 @@ $('copy-size').addEventListener('click', (e) => {
 function renderIngame(status) {
   state.ingame = status;
   setSwitch($('ingame-enabled'), status.enabled);
-  setSwitch($('ingame-only-wakfu'), status.onlyOverWakfu);
+  setSwitch($('ingame-only-wakfu'), status.onlyOverWakfu && status.canTellWakfu);
+  $('ingame-only-wakfu').disabled = !status.canTellWakfu;
+  $('ingame-only-wakfu-hint').hidden = status.canTellWakfu;
   $('ingame-options').hidden = !status.enabled || !status.online;
   const offline = status.enabled && !status.online
     ? "L'overlay est hors ligne : change le port dans OBS & diagnostic."
@@ -844,10 +869,11 @@ $('logs-dir-browse').addEventListener('click', async () => {
   await applyLogsDir();
 });
 
-function renderLaunchAtLogin({ available, enabled }) {
+function renderLaunchAtLogin({ available, enabled, reason }) {
   setSwitch($('launch-at-login'), enabled);
   $('launch-at-login').disabled = !available;
   $('launch-at-login-hint').hidden = available;
+  if (reason) $('launch-at-login-hint').textContent = reason;
 }
 
 $('launch-at-login').addEventListener('click', async (e) => {

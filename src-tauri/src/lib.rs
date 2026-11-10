@@ -17,6 +17,7 @@ pub mod saved_fights;
 pub mod settings;
 pub mod turn_tracker;
 pub mod updates;
+pub mod user_dirs;
 pub mod whats_new;
 
 use crate::app_state::LockExt;
@@ -38,15 +39,19 @@ use settings::{Defaults, SettingsStore, DEFAULT_OVERLAY_PORT};
 use turn_tracker::CombatTurnTracker;
 use updates::UpdateState;
 
-/// Same folder as the 1.x (Electron) versions, so their settings — and the
-/// OBS loader page path users pasted into OBS — carry over.
-/// WAKFU_OVERLAY_DATA_DIR points it elsewhere (tests, demo captures).
+/// See `user_dirs::app_dir`. WAKFU_OVERLAY_DATA_DIR points it elsewhere
+/// (tests, demo captures).
 fn data_dir() -> PathBuf {
     if let Some(dir) = std::env::var_os("WAKFU_OVERLAY_DATA_DIR") {
         return PathBuf::from(dir);
     }
-    std::env::var_os("APPDATA").map(PathBuf::from).unwrap_or_default().join("Wakfu Combo Overlay")
+    user_dirs::app_dir()
 }
+
+/// Whoever restarts the app (an update on Linux or macOS) starts the new one
+/// just as the old one quits: give it a moment to free the port.
+const PORT_RETRY_DELAY: Duration = Duration::from_millis(250);
+const PORT_RETRIES: u32 = 8;
 
 pub fn show_settings_window(app: &AppHandle) {
     if let Some(window) = app.get_webview_window(SETTINGS_WINDOW) {
@@ -151,6 +156,10 @@ fn setup(app: &AppHandle, launched_at_login: bool) -> Result<(), Box<dyn std::er
         overlay_port: DEFAULT_OVERLAY_PORT,
         logs_dir: log_reader::default_logs_dir().display().to_string(),
     });
+    if let Some(found) = log_reader::redetected_logs_dir(&settings.logs_dir(), &log_reader::logs_dir_candidates()) {
+        println!("[main] Wakfu's logs found in {}", found.display());
+        settings.set_logs_dir(&found.display().to_string());
+    }
     let port = settings.overlay_port();
     let logs_dir = settings.logs_dir();
     let layout = settings.combo_layout();
@@ -203,7 +212,19 @@ fn setup(app: &AppHandle, launched_at_login: bool) -> Result<(), Box<dyn std::er
     let state = app.state::<AppState>();
     state.hub.broadcast_config(&state.overlay_config(&layout));
 
-    match tauri::async_runtime::block_on(state.start_overlay(port)) {
+    let started = tauri::async_runtime::block_on(async {
+        let mut attempt = 0;
+        loop {
+            match state.start_overlay(port).await {
+                Err(_) if attempt < PORT_RETRIES => {
+                    attempt += 1;
+                    tokio::time::sleep(PORT_RETRY_DELAY).await;
+                }
+                result => break result,
+            }
+        }
+    });
+    match started {
         Ok(server) => *state.overlay.lock_safe() = Some(server),
         Err(error) => {
             eprintln!("[main] Overlay server failed to start: {error}");
@@ -240,7 +261,27 @@ fn setup(app: &AppHandle, launched_at_login: bool) -> Result<(), Box<dyn std::er
     Ok(())
 }
 
+/// The in-game overlay places its own window, lets clicks through it and asks
+/// which window is in front — none of which Wayland lets an app do. On a
+/// Wayland desktop the app runs through XWayland instead, like Wakfu itself
+/// (a Java game). Has to happen before GTK starts, so first thing.
+#[cfg(target_os = "linux")]
+fn prepare_linux_display() {
+    let unset = |key: &str| std::env::var_os(key).is_none();
+    if unset("GDK_BACKEND") && !unset("DISPLAY") {
+        std::env::set_var("GDK_BACKEND", "x11");
+    }
+    // The AppImage carries a WebKitGTK built against older graphics libraries
+    // than a recent distro's: its DMA-BUF renderer then draws blank windows.
+    if !unset("APPIMAGE") && unset("WEBKIT_DISABLE_DMABUF_RENDERER") {
+        std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+    }
+}
+
 pub fn run() {
+    #[cfg(target_os = "linux")]
+    prepare_linux_display();
+
     let launched_at_login = std::env::args().any(|arg| arg == autostart::HIDDEN_ARG);
     // An isolated profile (demo captures) runs next to the user's own instance.
     let isolated_profile = std::env::var_os("WAKFU_OVERLAY_DATA_DIR").is_some();
@@ -292,11 +333,13 @@ pub fn run() {
         .setup(move |app| setup(app.handle(), launched_at_login))
         .build(tauri::generate_context!())
         .expect("error while building the app")
-        .run(|_app, event| {
+        .run(|_app, event| match event {
             // Closing the settings window must not quit: the log reader and
             // the overlay keep running in the tray. Only "Quitter" exits.
-            if let RunEvent::ExitRequested { code: None, api, .. } = event {
-                api.prevent_exit();
-            }
+            RunEvent::ExitRequested { code: None, api, .. } => api.prevent_exit(),
+            // A click on the Dock icon.
+            #[cfg(target_os = "macos")]
+            RunEvent::Reopen { .. } => show_settings_window(_app),
+            _ => {}
         });
 }
