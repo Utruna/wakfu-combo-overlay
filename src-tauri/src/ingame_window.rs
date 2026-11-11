@@ -65,6 +65,85 @@ fn frame(window: &WebviewWindow) -> Option<(PhysicalPosition<i32>, PhysicalSize<
     Some((window.outer_position().ok()?, window.outer_size().ok()?))
 }
 
+/// A rectangle in physical pixels: x, y, width, height.
+type Rect = (i32, i32, i32, i32);
+
+/// Moves a window at `pos` the least it takes for its control bar (`bar`, in
+/// the window's own pixels) to lie wholly inside one of the usable screen
+/// `areas` - the one it overlaps most, or the nearest. The bar is the only
+/// way to move the window, so it must never end up out of reach (a layout
+/// change, a monitor unplugged, a drag past the edge).
+fn keep_bar_visible(pos: (i32, i32), bar: Rect, areas: &[Rect]) -> (i32, i32) {
+    let (bx, by, bw, bh) = bar;
+    let (left, top) = (pos.0 + bx, pos.1 + by);
+    let overlap = |a: &Rect| {
+        let w = (left + bw).min(a.0 + a.2) - left.max(a.0);
+        let h = (top + bh).min(a.1 + a.3) - top.max(a.1);
+        if w > 0 && h > 0 { i64::from(w) * i64::from(h) } else { 0 }
+    };
+    let distance = |a: &Rect| {
+        let (dx, dy) = (i64::from(left + bw / 2 - (a.0 + a.2 / 2)), i64::from(top + bh / 2 - (a.1 + a.3 / 2)));
+        dx * dx + dy * dy
+    };
+    let Some(area) = areas
+        .iter()
+        .max_by_key(|a| overlap(a))
+        .filter(|a| overlap(a) > 0)
+        .or_else(|| areas.iter().min_by_key(|a| distance(a)))
+    else {
+        return pos;
+    };
+    // A bar wider than the screen sticks to its top-left edge.
+    let fit = |p: i32, offset: i32, extent: i32, start: i32, room: i32| {
+        let lowest = start - offset;
+        p.clamp(lowest, (start + room - offset - extent).max(lowest))
+    };
+    (fit(pos.0, bx, bw, area.0, area.2), fit(pos.1, by, bh, area.1, area.3))
+}
+
+/// Where the control bar is in the window's physical pixels - the top-left
+/// corner of the window when the page hasn't said yet.
+fn bar_rect(window: &WebviewWindow, size: PhysicalSize<u32>) -> Rect {
+    match (*CONTROLS_RECT.lock_safe(), window.scale_factor()) {
+        (Some(r), Ok(scale)) => {
+            let px = |v: f64| (v * scale).round() as i32;
+            (px(r.x), px(r.y), px(r.width).max(1), px(r.height).max(1))
+        }
+        _ => (0, 0, (size.width as i32).min(80), (size.height as i32).min(40)),
+    }
+}
+
+/// `pos` moved so the bar is on a connected, usable screen (below the menu
+/// bar, above the Dock or taskbar).
+fn on_visible_screen(window: &WebviewWindow, pos: PhysicalPosition<i32>, size: PhysicalSize<u32>) -> PhysicalPosition<i32> {
+    let Ok(monitors) = window.available_monitors() else { return pos };
+    let areas: Vec<Rect> = monitors
+        .iter()
+        .map(|m| {
+            let area = m.work_area();
+            (area.position.x, area.position.y, area.size.width as i32, area.size.height as i32)
+        })
+        .collect();
+    let (x, y) = keep_bar_visible((pos.x, pos.y), bar_rect(window, size), &areas);
+    PhysicalPosition::new(x, y)
+}
+
+/// Brings the window back if its bar is out of reach - after the page moved
+/// the bar within it, or a monitor went away.
+pub fn ensure_visible(app: &AppHandle) {
+    let Some(window) = app.get_webview_window(INGAME_WINDOW) else { return };
+    if DRAGGING.load(Ordering::Relaxed) {
+        return;
+    }
+    let Some((pos, size)) = frame(&window) else { return };
+    let fixed = on_visible_screen(&window, pos, size);
+    if fixed != pos {
+        let _ = window.set_position(fixed);
+        remember_frame(fixed, size);
+        save_geometry(&window);
+    }
+}
+
 /// The mouse is on the control bar: a click there makes macOS activate the
 /// app, which must not open the settings window as a Dock click does.
 pub fn clicking_the_bar() -> bool {
@@ -91,9 +170,10 @@ pub fn fit(app: &AppHandle, width: f64, height: f64, keep_left: bool, keep_botto
     }
     let x = if keep_left { pos.x } else { pos.x + old.width as i32 - new.width as i32 };
     let y = if keep_bottom { pos.y + old.height as i32 - new.height as i32 } else { pos.y };
+    let target = on_visible_screen(&window, PhysicalPosition::new(x, y), new);
     let _ = window.set_size(new);
-    let _ = window.set_position(PhysicalPosition::new(x, y));
-    remember_frame(PhysicalPosition::new(x, y), new);
+    let _ = window.set_position(target);
+    remember_frame(target, new);
     save_geometry(&window);
 }
 
@@ -109,7 +189,8 @@ pub fn start_drag(app: &AppHandle) {
         if let (Some((start_x, start_y)), Some((origin, size))) = start {
             while foreground::left_button_down() {
                 if let Some((x, y)) = foreground::cursor_position(&window) {
-                    let target = PhysicalPosition::new(origin.x + x - start_x, origin.y + y - start_y);
+                    let wanted = PhysicalPosition::new(origin.x + x - start_x, origin.y + y - start_y);
+                    let target = on_visible_screen(&window, wanted, size);
                     let _ = window.set_position(target);
                     remember_frame(target, size);
                 }
@@ -255,7 +336,13 @@ fn open(app: &AppHandle) {
 async fn follow_foreground(app: AppHandle) {
     // Whether the window currently catches the mouse (it starts click-through).
     let mut catching = false;
+    let mut ticks = 0u32;
     while let Some(window) = app.get_webview_window(INGAME_WINDOW) {
+        // About once a second: a monitor may have been unplugged.
+        ticks = ticks.wrapping_add(1);
+        if ticks.is_multiple_of(20) {
+            ensure_visible(&app);
+        }
         let dragging = DRAGGING.load(Ordering::Relaxed);
         // When it can't be told (no X11 session), always shown.
         let show = !only_over_wakfu(&app) || dragging || foreground::wakfu_or_own_in_front(&window) != Some(false);
@@ -306,17 +393,20 @@ fn place(window: &WebviewWindow, geometry: &Value) {
         Some((i32::try_from(field("x")?).ok()?, i32::try_from(field("y")?).ok()?, size("width")?, size("height")?))
     })();
     if let Some((x, y, width, height)) = saved.filter(|&(x, y, ..)| on_screen(window, x, y)) {
-        let _ = window.set_size(PhysicalSize::new(width, height));
-        let _ = window.set_position(PhysicalPosition::new(x, y));
-        remember_frame(PhysicalPosition::new(x, y), PhysicalSize::new(width, height));
+        let size = PhysicalSize::new(width, height);
+        let pos = on_visible_screen(window, PhysicalPosition::new(x, y), size);
+        let _ = window.set_size(size);
+        let _ = window.set_position(pos);
+        remember_frame(pos, size);
         return;
     }
     let (Ok(Some(monitor)), Ok(size)) = (window.primary_monitor(), window.outer_size()) else { return };
     let scale = monitor.scale_factor();
     let x = monitor.position().x + monitor.size().width as i32 - size.width as i32 - (24.0 * scale) as i32;
     let y = monitor.position().y + (96.0 * scale) as i32;
-    let _ = window.set_position(PhysicalPosition::new(x, y));
-    remember_frame(PhysicalPosition::new(x, y), size);
+    let pos = on_visible_screen(window, PhysicalPosition::new(x, y), size);
+    let _ = window.set_position(pos);
+    remember_frame(pos, size);
 }
 
 /// Whether the window's top-left corner would land on a connected monitor.
@@ -609,5 +699,47 @@ mod foreground {
             assert!(!is_wakfu_app("Ankama Launcher"));
             assert!(!is_wakfu_app("com.google.Chrome"));
         }
+    }
+}
+
+#[cfg(test)]
+mod bar_tests {
+    use super::keep_bar_visible;
+
+    const SCREEN: [(i32, i32, i32, i32); 1] = [(0, 25, 1440, 800)];
+    // A 200 x 30 bar, 10 px in from the window's left and top edges.
+    const BAR: (i32, i32, i32, i32) = (10, 10, 200, 30);
+
+    #[test]
+    fn leaves_a_reachable_bar_alone() {
+        assert_eq!(keep_bar_visible((300, 200), BAR, &SCREEN), (300, 200));
+    }
+
+    #[test]
+    fn pulls_a_bar_back_from_every_side() {
+        // Past the right and bottom edges, the bar's far corner is the limit.
+        assert_eq!(keep_bar_visible((5000, 5000), BAR, &SCREEN), (1440 - 210, 825 - 40));
+        // Past the left edge and under the menu bar.
+        assert_eq!(keep_bar_visible((-900, -300), BAR, &SCREEN), (-10, 15));
+    }
+
+    #[test]
+    fn a_window_may_hang_off_the_screen_while_its_bar_is_inside() {
+        assert_eq!(keep_bar_visible((-400, 100), BAR, &SCREEN), (-10, 100));
+        assert_eq!(keep_bar_visible((1300, 100), BAR, &SCREEN), (1230, 100));
+    }
+
+    #[test]
+    fn picks_the_screen_the_bar_is_mostly_on() {
+        let two = [(0, 0, 1000, 800), (1000, 0, 1000, 800)];
+        // The bar straddles the seam: it's brought wholly onto the screen it is mostly on.
+        assert_eq!(keep_bar_visible((950, 100), BAR, &two), (990, 100));
+        // Off every screen: the nearest one takes it.
+        assert_eq!(keep_bar_visible((3000, 100), BAR, &two), (1790, 100));
+    }
+
+    #[test]
+    fn no_screen_known_means_no_change() {
+        assert_eq!(keep_bar_visible((9, 9), BAR, &[]), (9, 9));
     }
 }

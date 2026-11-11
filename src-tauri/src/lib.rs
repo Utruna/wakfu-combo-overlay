@@ -176,7 +176,11 @@ fn setup(app: &AppHandle, launched_at_login: bool) -> Result<(), Box<dyn std::er
 
     let handle = app.clone();
     let hud: HudHandler = Arc::new(move |request| match request {
-        HudRequest::ControlsRect(rect) => ingame_window::set_controls_rect(rect),
+        HudRequest::ControlsRect(rect) => {
+            ingame_window::set_controls_rect(rect);
+            // The bar may have moved within the window (new orientation).
+            ingame_window::ensure_visible(&handle);
+        }
         HudRequest::Size { width, height, keep_left, keep_bottom } => {
             ingame_window::fit(&handle, width, height, keep_left, keep_bottom)
         }
