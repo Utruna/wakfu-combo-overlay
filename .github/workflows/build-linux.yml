@@ -1,0 +1,63 @@
+name: Build Linux (test)
+
+# Compile et teste l'app sur Linux, sans rien publier : ni tag, ni release.
+# L'AppImage est dans les Artifacts de la page du run (gardé 7 jours).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    # La plus ancienne Ubuntu supportée : une AppImage tourne sur les
+    # distributions au moins aussi récentes que celle qui l'a compilée.
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Setup Rust
+        run: rustup toolchain install stable --profile minimal
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run tests
+        run: npm test
+
+      # Même commande que la release. La clé n'est utile qu'à la signature de
+      # la mise à jour automatique, que tauri.conf.json demande à chaque build.
+      - name: Build
+        run: npx tauri build
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+
+      - name: Collect the AppImage
+        run: node tools/release_manifests.js collect linux
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-linux
+          path: dist/*.AppImage
+          if-no-files-found: error
+          retention-days: 7
