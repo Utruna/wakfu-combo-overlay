@@ -1,0 +1,59 @@
+name: Build macOS (test)
+
+# Compile et teste l'app sur un Mac, sans rien publier : ni tag, ni release.
+# Le .dmg est dans les Artifacts de la page du run (gardé 7 jours).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Setup Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run tests
+        run: npm test
+
+      # Même commande que la release : une appli universelle, Apple Silicon
+      # et Intel. La clé n'est utile qu'à la signature de la mise à jour
+      # automatique, que tauri.conf.json demande à chaque build.
+      - name: Build
+        run: npx tauri build --target universal-apple-darwin
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+
+      - name: Collect the .dmg
+        run: node tools/release_manifests.js collect macos
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-macos
+          path: dist/*.dmg
+          if-no-files-found: error
+          retention-days: 7
