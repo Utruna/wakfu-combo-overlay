@@ -40,6 +40,36 @@ const DRAG_INTERVAL: Duration = Duration::from_millis(8);
 const CONTROLS_MARGIN: f64 = 2.0;
 
 static DRAGGING: AtomicBool = AtomicBool::new(false);
+/// Whether the window currently catches the mouse (the cursor is over the
+/// control bar) — see `follow_foreground` and `clicking_the_bar`.
+static CATCHING: AtomicBool = AtomicBool::new(false);
+/// Where the window was last put, and how big it was made. macOS moves and
+/// resizes windows asynchronously, so reading the position back right after
+/// `set_position` / `set_size` can still give the old one: `fit` and the saved
+/// geometry start from what was asked for instead, or the window drifts away
+/// at every change of layout.
+static FRAME: Mutex<Option<(PhysicalPosition<i32>, PhysicalSize<u32>)>> = Mutex::new(None);
+
+fn remember_frame(pos: PhysicalPosition<i32>, size: PhysicalSize<u32>) {
+    *FRAME.lock_safe() = Some((pos, size));
+}
+
+/// Position and size of the window: the last ones asked for on macOS, what the
+/// system says elsewhere.
+fn frame(window: &WebviewWindow) -> Option<(PhysicalPosition<i32>, PhysicalSize<u32>)> {
+    if cfg!(target_os = "macos") {
+        if let Some(known) = *FRAME.lock_safe() {
+            return Some(known);
+        }
+    }
+    Some((window.outer_position().ok()?, window.outer_size().ok()?))
+}
+
+/// The mouse is on the control bar: a click there makes macOS activate the
+/// app, which must not open the settings window as a Dock click does.
+pub fn clicking_the_bar() -> bool {
+    CATCHING.load(Ordering::Relaxed)
+}
 /// Where the page last said its control bar is (None: not shown).
 static CONTROLS_RECT: Mutex<Option<HudRect>> = Mutex::new(None);
 
@@ -54,7 +84,7 @@ pub fn set_controls_rect(rect: Option<HudRect>) {
 /// ui/overlay/style.css).
 pub fn fit(app: &AppHandle, width: f64, height: f64, keep_left: bool, keep_bottom: bool) {
     let Some(window) = app.get_webview_window(INGAME_WINDOW) else { return };
-    let (Ok(pos), Ok(old), Ok(scale)) = (window.outer_position(), window.outer_size(), window.scale_factor()) else { return };
+    let (Some((pos, old)), Ok(scale)) = (frame(&window), window.scale_factor()) else { return };
     let new: PhysicalSize<u32> = LogicalSize::new(width.ceil(), height.ceil()).to_physical(scale);
     if new == old {
         return;
@@ -63,6 +93,7 @@ pub fn fit(app: &AppHandle, width: f64, height: f64, keep_left: bool, keep_botto
     let y = if keep_bottom { pos.y + old.height as i32 - new.height as i32 } else { pos.y };
     let _ = window.set_size(new);
     let _ = window.set_position(PhysicalPosition::new(x, y));
+    remember_frame(PhysicalPosition::new(x, y), new);
     save_geometry(&window);
 }
 
@@ -74,11 +105,13 @@ pub fn start_drag(app: &AppHandle) {
         return;
     }
     tauri::async_runtime::spawn(async move {
-        let start = (foreground::cursor_position(&window), window.outer_position());
-        if let (Some((start_x, start_y)), Ok(origin)) = start {
+        let start = (foreground::cursor_position(&window), frame(&window));
+        if let (Some((start_x, start_y)), Some((origin, size))) = start {
             while foreground::left_button_down() {
                 if let Some((x, y)) = foreground::cursor_position(&window) {
-                    let _ = window.set_position(PhysicalPosition::new(origin.x + x - start_x, origin.y + y - start_y));
+                    let target = PhysicalPosition::new(origin.x + x - start_x, origin.y + y - start_y);
+                    let _ = window.set_position(target);
+                    remember_frame(target, size);
                 }
                 tokio::time::sleep(DRAG_INTERVAL).await;
             }
@@ -203,6 +236,7 @@ fn open(app: &AppHandle) {
         }
     };
     let _ = window.set_ignore_cursor_events(true);
+    *FRAME.lock_safe() = None;
     place(&window, &geometry);
 
     window.on_window_event(|event| {
@@ -233,6 +267,7 @@ async fn follow_foreground(app: AppHandle) {
         if over_controls != catching {
             let _ = window.set_ignore_cursor_events(!over_controls);
             catching = over_controls;
+            CATCHING.store(catching, Ordering::Relaxed);
         }
         tokio::time::sleep(POLL_INTERVAL).await;
     }
@@ -256,6 +291,8 @@ fn close(app: &AppHandle) {
     if let Some(window) = app.get_webview_window(INGAME_WINDOW) {
         let _ = window.destroy();
     }
+    CATCHING.store(false, Ordering::Relaxed);
+    *FRAME.lock_safe() = None;
 }
 
 /// Back where it was left — unless that was on a monitor that's gone since,
@@ -271,6 +308,7 @@ fn place(window: &WebviewWindow, geometry: &Value) {
     if let Some((x, y, width, height)) = saved.filter(|&(x, y, ..)| on_screen(window, x, y)) {
         let _ = window.set_size(PhysicalSize::new(width, height));
         let _ = window.set_position(PhysicalPosition::new(x, y));
+        remember_frame(PhysicalPosition::new(x, y), PhysicalSize::new(width, height));
         return;
     }
     let (Ok(Some(monitor)), Ok(size)) = (window.primary_monitor(), window.outer_size()) else { return };
@@ -278,6 +316,7 @@ fn place(window: &WebviewWindow, geometry: &Value) {
     let x = monitor.position().x + monitor.size().width as i32 - size.width as i32 - (24.0 * scale) as i32;
     let y = monitor.position().y + (96.0 * scale) as i32;
     let _ = window.set_position(PhysicalPosition::new(x, y));
+    remember_frame(PhysicalPosition::new(x, y), size);
 }
 
 /// Whether the window's top-left corner would land on a connected monitor.
@@ -290,7 +329,7 @@ fn on_screen(window: &WebviewWindow, x: i32, y: i32) -> bool {
 }
 
 fn save_geometry(window: &WebviewWindow) {
-    let (Ok(pos), Ok(size)) = (window.outer_position(), window.outer_size()) else { return };
+    let Some((pos, size)) = frame(window) else { return };
     let state = window.app_handle().state::<AppState>();
     state.core.lock_safe().settings.set_ingame_overlay_geometry(pos.x, pos.y, size.width, size.height);
 }

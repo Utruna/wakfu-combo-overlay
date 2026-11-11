@@ -342,7 +342,7 @@ pub fn run() {
             RunEvent::ExitRequested { code: None, api, .. } => api.prevent_exit(),
             // A click on the Dock icon.
             #[cfg(target_os = "macos")]
-            RunEvent::Reopen { .. } => show_settings_window(_app),
+            RunEvent::Reopen { .. } if !ingame_window::clicking_the_bar() => show_settings_window(_app),
             _ => {}
         });
 }
