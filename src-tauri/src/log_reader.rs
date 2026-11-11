@@ -43,12 +43,107 @@ static COMBAT_SPELL_CAST: LazyLock<Regex> = LazyLock::new(|| {
         .expect("valid regex")
 });
 
-/// `%APPDATA%\zaap\gamesLogs\wakfu\logs`, where the Ankama launcher puts them.
+/// Where the Ankama launcher has the game write its logs, under its own data
+/// folder ("zaap", an Electron app).
+const ZAAP_LOGS: [&str; 4] = ["zaap", "gamesLogs", "wakfu", "logs"];
+
+fn zaap_logs_in(app_data: PathBuf) -> PathBuf {
+    ZAAP_LOGS.iter().fold(app_data, |dir, part| dir.join(part))
+}
+
+/// The folder watched until the user picks another: the likeliest of
+/// `logs_dir_candidates`.
 pub fn default_logs_dir() -> PathBuf {
-    let roaming = std::env::var_os("APPDATA")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(r"C:\Users\Default\AppData\Roaming"));
-    roaming.join("zaap").join("gamesLogs").join("wakfu").join("logs")
+    pick_logs_dir(&logs_dir_candidates())
+}
+
+/// `%APPDATA%\zaap\gamesLogs\wakfu\logs`.
+#[cfg(windows)]
+pub fn logs_dir_candidates() -> Vec<PathBuf> {
+    vec![zaap_logs_in(crate::user_dirs::app_data())]
+}
+
+#[cfg(not(windows))]
+pub fn logs_dir_candidates() -> Vec<PathBuf> {
+    logs_dir_candidates_in(&crate::user_dirs::home(), crate::user_dirs::app_data())
+}
+
+/// Where Wakfu's logs can be, most likely first: the native launcher's folder
+/// (`app_data`, where Electron keeps an app's data: `~/.config/zaap` on Linux,
+/// `~/Library/Application Support/zaap` on macOS), then the Windows
+/// launcher's, inside each Wine prefix found — Wine, Steam's Proton, Lutris,
+/// Bottles, CrossOver, Whisky. Not all of them exist.
+#[cfg(not(windows))]
+pub fn logs_dir_candidates_in(home: &Path, app_data: PathBuf) -> Vec<PathBuf> {
+    let mut candidates = vec![zaap_logs_in(app_data)];
+    let mut seen = Vec::new();
+    for prefix in wine_prefixes(home) {
+        // ~/.steam/steam is a link to ~/.local/share/Steam: one prefix, two paths.
+        let real = fs::canonicalize(&prefix).unwrap_or_else(|_| prefix.clone());
+        if seen.contains(&real) {
+            continue;
+        }
+        seen.push(real);
+        for user in subdirs(&prefix.join("drive_c").join("users")) {
+            candidates.push(zaap_logs_in(user.join("AppData").join("Roaming")));
+        }
+    }
+    candidates
+}
+
+#[cfg(not(windows))]
+fn wine_prefixes(home: &Path) -> Vec<PathBuf> {
+    let mut prefixes = vec![home.join(".wine")];
+    for steam in [".steam/steam", ".local/share/Steam", ".var/app/com.valvesoftware.Steam/.local/share/Steam"] {
+        let compatdata = home.join(steam).join("steamapps").join("compatdata");
+        prefixes.extend(subdirs(&compatdata).into_iter().map(|game| game.join("pfx")));
+    }
+    for bottles in [
+        "Games", // Lutris: one prefix per game
+        ".local/share/bottles/bottles",
+        ".var/app/com.usebottles.bottles/data/bottles/bottles",
+        "Library/Application Support/CrossOver/Bottles",
+        "Library/Containers/com.isaacmarovitz.Whisky/Bottles",
+    ] {
+        prefixes.extend(subdirs(&home.join(bottles)));
+    }
+    prefixes
+}
+
+#[cfg(not(windows))]
+fn subdirs(dir: &Path) -> Vec<PathBuf> {
+    let Ok(entries) = fs::read_dir(dir) else { return Vec::new() };
+    let mut dirs: Vec<PathBuf> = entries.filter_map(Result::ok).map(|e| e.path()).filter(|p| p.is_dir()).collect();
+    dirs.sort();
+    dirs
+}
+
+/// The candidate whose wakfu.log was written last — the game in use, when
+/// several are installed. Failing that, the first that exists (the game was
+/// installed but never played), and failing that the first: the folder the
+/// game will create once launched.
+pub fn pick_logs_dir(candidates: &[PathBuf]) -> PathBuf {
+    let written_at = |dir: &PathBuf| fs::metadata(dir.join(MAIN_LOG_FILE_NAME)).and_then(|m| m.modified()).ok();
+    candidates
+        .iter()
+        .filter_map(|dir| Some((written_at(dir)?, dir)))
+        .max_by_key(|(at, _)| *at)
+        .map(|(_, dir)| dir)
+        .or_else(|| candidates.iter().find(|dir| dir.is_dir()))
+        .or(candidates.first())
+        .cloned()
+        .unwrap_or_default()
+}
+
+/// The folder to switch to when `current` was a default picked before the
+/// game wrote any log there (installed later, or run some other way) and
+/// another candidate now has them. A folder the user chose is left alone.
+pub fn redetected_logs_dir(current: &Path, candidates: &[PathBuf]) -> Option<PathBuf> {
+    let has_log = |dir: &Path| dir.join(MAIN_LOG_FILE_NAME).is_file();
+    if !candidates.iter().any(|c| c == current) || has_log(current) {
+        return None;
+    }
+    Some(pick_logs_dir(candidates)).filter(|picked| has_log(picked))
 }
 
 pub fn now_ms() -> i64 {

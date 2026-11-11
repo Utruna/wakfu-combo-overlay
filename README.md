@@ -9,13 +9,14 @@ Affiche en direct sur ton stream les sorts lancés par tes personnages Wakfu, so
 
 L'application lit les logs de combat du client Wakfu en temps réel. Elle ne garde que les sorts de tes personnages (les autres joueurs et les mobs sont ignorés) et les envoie à une page web transparente que tu ajoutes comme **Source Navigateur** dans OBS.
 
-**[⬇ Télécharger la dernière version](https://github.com/utruna/wakfu-combo-overlay/releases/latest)** (Windows)
+**[⬇ Télécharger la dernière version](https://github.com/utruna/wakfu-combo-overlay/releases/latest)** (Windows, macOS, Linux)
 
 ---
 
 ## Sommaire
 
 - [Installation et premier lancement](#installation-et-premier-lancement)
+- [Sur macOS et Linux](#sur-macos-et-linux)
 - [Gérer tes héros](#gérer-tes-héros)
 - [Régler l'affichage](#régler-laffichage)
 - [Configurer OBS](#configurer-obs)
@@ -29,7 +30,7 @@ L'application lit les logs de combat du client Wakfu en temps réel. Elle ne gar
 
 ## Installation et premier lancement
 
-1. Télécharge `wakfu-combo-overlay-setup-X.Y.Z.exe` depuis la [dernière release](https://github.com/utruna/wakfu-combo-overlay/releases/latest) et lance-le.
+1. Télécharge `wakfu-combo-overlay-setup-X.Y.Z.exe` depuis la [dernière release](https://github.com/utruna/wakfu-combo-overlay/releases/latest) et lance-le. Sur Mac ou sous Linux, voir [plus bas](#sur-macos-et-linux).
 2. Windows SmartScreen peut afficher un avertissement, parce que l'installeur n'est pas signé : clique sur **Informations complémentaires** → **Exécuter quand même**.
 
 Tu avais une version 1.x ? L'installeur la désinstalle tout seul et reprend tes réglages (héros, affichage, port, lancement avec Windows) : rien à refaire, ni dans l'appli ni dans OBS.
@@ -54,6 +55,34 @@ Tu peux passer l'assistant et tout configurer à la main. Tu peux aussi le relan
 L'appli vit ensuite dans la **zone de notification Windows** (souvent rangée derrière la flèche `^` à côté de l'horloge). Fermer la fenêtre ne quitte **pas** l'appli : le suivi continue en arrière-plan pendant le stream. Pour la fermer complètement : clic droit sur l'icône → **Quitter**.
 
 En arrière-plan, fenêtre fermée, l'appli occupe environ 5 Mo de mémoire.
+
+---
+
+## Sur macOS et Linux
+
+L'appli fonctionne pareil que sous Windows. Seuls l'installation et quelques détails changent.
+
+### macOS
+
+1. Télécharge `wakfu-combo-overlay-X.Y.Z-macos.dmg` (une seule version pour les Mac Apple Silicon et Intel), ouvre-le et glisse **Wakfu Combo Overlay** dans **Applications**.
+2. L'appli n'est pas signée par Apple (c'est payant). Au premier lancement, macOS refuse de l'ouvrir : ouvre **Réglages Système** → **Confidentialité et sécurité**, descends jusqu'au message sur Wakfu Combo Overlay et clique sur **Ouvrir quand même**. Sur les macOS plus anciens, un clic droit sur l'appli → **Ouvrir** suffit. Ce n'est à faire qu'une fois.
+
+Lance-la bien depuis **Applications**, pas depuis le disque monté ni depuis Téléchargements : sinon macOS la fait tourner depuis une copie temporaire, et ni le lancement à l'ouverture de session ni les mises à jour ne peuvent marcher.
+
+L'icône de l'appli est dans la **barre des menus**, en haut à droite. Un clic sur l'icône du Dock rouvre aussi les réglages.
+
+### Linux
+
+1. Télécharge `wakfu-combo-overlay-X.Y.Z-x86_64.AppImage`, rends-le exécutable (clic droit → Propriétés → « Autoriser l'exécution », ou `chmod +x` dans un terminal) et lance-le. Range-le d'abord là où il restera (par exemple `~/Applications`) : le lancement à l'ouverture de session et les mises à jour pointent vers ce fichier.
+2. Sur Ubuntu 24.04 et plus récent, s'il ne se lance pas, installe `libfuse2t64` (`sudo apt install libfuse2t64`) ; sur les autres distributions, le paquet s'appelle en général `fuse2` ou `fuse-libs`.
+
+L'icône vit dans la **zone de notification**. Sous GNOME (Fedora, Debian…), elle n'apparaît qu'avec l'extension **AppIndicator** (déjà là sur Ubuntu). Sans elle, relance simplement l'AppImage : l'appli déjà ouverte affiche ses réglages.
+
+L'**affichage tête haute** a besoin de X11 : sur un bureau Wayland (GNOME, KDE…), l'appli passe toute seule par XWayland, comme Wakfu. Dans une session Wayland sans XWayland, il reste affiché par-dessus tout.
+
+### Le dossier de logs
+
+L'appli le cherche toute seule : celui du launcher Ankama (`~/.config/zaap/gamesLogs/wakfu/logs` sous Linux, `~/Library/Application Support/zaap/gamesLogs/wakfu/logs` sur Mac), puis, si tu fais tourner le client Windows avec Wine, Proton (Steam), Lutris, Bottles, CrossOver ou Whisky, celui de chaque préfixe trouvé. S'il en trouve plusieurs, il prend celui où le jeu a écrit en dernier. Sinon, indique-le dans **OBS & diagnostic** → **Configuration** : c'est le dossier qui contient `wakfu.log`.
 
 ---
 
@@ -137,7 +166,7 @@ Pas de stream, pas d'OBS ? L'appli peut afficher l'overlay **directement sur ton
 1. Ouvre la page **Affichage** de l'appli.
 2. Allume l'interrupteur **Affichage tête haute (sans OBS)**. Il apparaît en haut à droite de l'écran principal.
 
-Tu peux aussi l'allumer ou l'éteindre sans ouvrir l'appli : clic droit sur son icône près de l'horloge Windows, puis **Affichage tête haute**.
+Tu peux aussi l'allumer ou l'éteindre sans ouvrir l'appli : clic droit sur son icône près de l'horloge Windows (dans la barre des menus sur Mac), puis **Affichage tête haute**.
 
 Le bouton **Tuto**, à côté de l'interrupteur, rappelle comment t'en servir.
 
@@ -156,7 +185,7 @@ La fenêtre prend toute seule la bonne taille d'après tes réglages d'affichage
 - **Il ne gêne pas le jeu** : la fenêtre est transparente et tes clics passent au travers, comme si elle n'était pas là. Seule la barre de contrôle capte la souris.
 - **Il n'apparaît que sur Wakfu** : dès que tu passes sur une autre fenêtre (navigateur, Discord…), il se cache, et il revient quand tu retournes en jeu. Tu préfères le voir tout le temps ? Éteins **Seulement quand Wakfu est au premier plan**.
 - **Les réglages de la page Affichage s'appliquent aussi** : disposition, taille des icônes, durée, compteur de dégâts…
-- **Mode d'affichage de Wakfu** : le jeu doit être en **fenêtré** ou en **plein écran fenêtré**. En plein écran « exclusif », Windows ne laisse aucune fenêtre s'afficher par-dessus le jeu.
+- **Mode d'affichage de Wakfu** : le jeu doit être en **fenêtré** ou en **plein écran fenêtré**. En plein écran « exclusif », Windows ne laisse aucune fenêtre s'afficher par-dessus le jeu (sur Mac, le plein écran ouvre un bureau à part où il ne suit pas).
 
 Tu peux utiliser l'affichage tête haute et OBS en même temps : les deux montrent les mêmes sorts.
 
@@ -237,7 +266,7 @@ Après une mise à jour, la fenêtre **Nouveautés** présente ce qui a changé,
 - S'il disparaît dès que tu changes de fenêtre, c'est voulu : voir **Seulement quand Wakfu est au premier plan** dans la page Affichage.
 
 **Le dossier de logs est introuvable**
-- Wakfu n'a peut-être jamais été lancé sur cette machine, ou il est installé ailleurs que via Zaap. Indique le bon dossier dans **Configuration**. Par défaut : `%APPDATA%\zaap\gamesLogs\wakfu\logs`.
+- Wakfu n'a peut-être jamais été lancé sur cette machine, ou il est installé ailleurs que via Zaap. Indique le bon dossier dans **Configuration**. Par défaut : `%APPDATA%\zaap\gamesLogs\wakfu\logs` (Mac et Linux : voir [Le dossier de logs](#le-dossier-de-logs)).
 
 **« Port déjà utilisé » ou « Port réservé par Windows » au lancement**
 - Une autre application utilise déjà le port 3457, ou Windows l'a réservé (Hyper-V, WSL, Docker) : change le port dans **Configuration**, puis mets à jour l'adresse dans OBS.
@@ -284,7 +313,7 @@ Ce qu'il faut retenir pour coder :
 
 ### Installer les outils (une seule fois)
 
-Windows uniquement (chemin des logs Wakfu, zone de notification). Dans PowerShell :
+Sous Windows, dans PowerShell :
 
 ```powershell
 winget install Rustlang.Rustup
@@ -293,6 +322,12 @@ winget install OpenJS.NodeJS.LTS
 ```
 
 Puis ouvre un **nouveau** terminal (pour que `cargo` et `node` soient dans le `PATH`). WebView2 est déjà installé sur Windows 10/11 à jour. Wakfu doit être installé via le launcher Zaap pour avoir de vrais logs.
+
+Sur Mac : les outils Xcode (`xcode-select --install`), [Rust](https://rustup.rs) et Node.js. Sous Linux (Debian, Ubuntu) : Rust, Node.js et les bibliothèques de WebKitGTK :
+
+```bash
+sudo apt install build-essential pkg-config libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev
+```
 
 ### Lancer en dev
 
@@ -325,7 +360,7 @@ En dev, les messages de l'appli (`[debug] broadcast — …`, erreurs) s'affiche
 npm run dist
 ```
 
-Produit l'installeur Windows (NSIS) dans `src-tauri/target/release/bundle/nsis/`. Pour qu'il soit signé pour l'updater, définis d'abord la clé privée (voir ci-dessous) :
+Produit l'installeur du système sur lequel tu es : Windows (NSIS) dans `src-tauri/target/release/bundle/nsis/`, AppImage dans `…/bundle/appimage/`, `.app` et `.dmg` dans `…/bundle/macos/` et `…/bundle/dmg/` (réglages propres à chaque système : `src-tauri/tauri.linux.conf.json`, `src-tauri/tauri.macos.conf.json`). Pour qu'il soit signé pour l'updater, définis d'abord la clé privée (voir ci-dessous) :
 
 ```powershell
 $env:TAURI_SIGNING_PRIVATE_KEY = Get-Content "$env:USERPROFILE\.tauri\wakfu-combo-overlay.key" -Raw
@@ -337,16 +372,18 @@ npm run dist
 
 ### Publier une release
 
-Le workflow `.github/workflows/release.yml` compile l'installeur sur un runner Windows et le publie en **GitHub Release** : pas besoin de commiter l'exe.
+Le workflow `.github/workflows/release.yml` compile l'appli sur des runners Windows, Linux (Ubuntu 22.04) et macOS, et la publie en **GitHub Release** : pas besoin de commiter l'exe.
 
 1. Monte la version dans `package.json` (`npm version patch` / `minor` / `major`). C'est la seule version à changer : `src-tauri/tauri.conf.json` la lit dans `package.json`.
 2. Ajoute en haut de `CHANGELOG.md` une section `## vX.Y.Z` : c'est le texte de la release. Sans elle, le workflow s'arrête avant de créer le tag. Pousse les commits sur `main`.
-3. Sur GitHub : **Actions** → **Build & Release (Windows)** → **Run workflow**.
-4. Une fois le workflow terminé (~10 min, moins quand le cache Rust est chaud), la release `vX.Y.Z` apparaît dans **Releases** avec l'installeur `wakfu-combo-overlay-setup-X.Y.Z.exe`, `latest.json` et `latest.yml`, et en notes la section du `CHANGELOG.md`, suivie de la liste des PR fusionnées générée par GitHub.
+3. Sur GitHub : **Actions** → **Build & Release** → **Run workflow**.
+4. Une fois le workflow terminé (~15 min, moins quand le cache Rust est chaud), la release `vX.Y.Z` apparaît dans **Releases** avec `wakfu-combo-overlay-setup-X.Y.Z.exe`, `wakfu-combo-overlay-X.Y.Z-x86_64.AppImage`, `wakfu-combo-overlay-X.Y.Z-macos.dmg`, `wakfu-combo-overlay-X.Y.Z-macos.app.tar.gz` (ce que télécharge l'updater sur Mac), `latest.json` et `latest.yml`, et en notes la section du `CHANGELOG.md`, suivie de la liste des PR fusionnées générée par GitHub.
 
-Le workflow vérifie que la version n'a pas déjà de release publiée et que le secret de signature existe, crée et pousse le tag `vX.Y.Z`, crée la release en brouillon (ou réutilise le brouillon d'un essai raté), lance ESLint et les tests, compile, envoie les fichiers, puis publie la release. Elle n'est donc visible qu'une fois complète.
+Le workflow vérifie d'abord que la version n'a pas déjà de release publiée, que le secret de signature existe et que le `CHANGELOG.md` a sa section, puis lance ESLint. Chaque système lance ensuite les tests et compile. Seulement si les trois réussissent, il crée et pousse le tag `vX.Y.Z`, crée la release en brouillon (ou réutilise le brouillon d'un essai raté), envoie les fichiers, puis publie la release. Elle n'est donc visible qu'une fois complète.
 
-- `latest.json` est lu par l'updater de l'appli. Il contient la signature de l'installeur : l'updater refuse toute mise à jour qui ne correspond pas à la clé publique de `src-tauri/tauri.conf.json`. La clé privée est le secret GitHub `TAURI_SIGNING_PRIVATE_KEY` du dépôt (copie locale : `%USERPROFILE%\.tauri\wakfu-combo-overlay.key`). Sans elle, impossible de publier une mise à jour que les installations existantes accepteront : garde-en une sauvegarde.
+Sur Mac, l'appli n'a qu'une signature « ad hoc » (`signingIdentity: "-"`), sans compte développeur Apple : assez pour que macOS l'accepte sur Apple Silicon, mais Gatekeeper demande à l'utilisateur de l'autoriser une fois (voir [macOS](#macos)).
+
+- `latest.json` est lu par l'updater de l'appli. Il contient, pour chaque système, la signature du fichier à télécharger : l'updater refuse toute mise à jour qui ne correspond pas à la clé publique de `src-tauri/tauri.conf.json`. La clé privée est le secret GitHub `TAURI_SIGNING_PRIVATE_KEY` du dépôt (copie locale : `%USERPROFILE%\.tauri\wakfu-combo-overlay.key`). Sans elle, impossible de publier une mise à jour que les installations existantes accepteront : garde-en une sauvegarde.
 - `latest.yml` est lu par les anciennes versions 1.x (Electron), pour qu'elles proposent elles aussi la nouvelle version. L'installeur désinstalle alors la 1.x (`src-tauri/installer-hooks.nsh`).
 
 Les deux updaters ne voient que les releases **publiées**, pas les brouillons.
@@ -367,7 +404,8 @@ Les deux updaters ne voient que les releases **publiées**, pas les brouillons.
 - `src-tauri/src/overlay_server.rs` : petit serveur HTTP/SSE de l'overlay
 - `src-tauri/src/loader_page.rs` : génère `overlay-obs.html` (méthode Fichier local)
 - `src-tauri/src/catalog.rs` : icônes des sorts et des classes
-- `src-tauri/src/updates.rs`, `autostart.rs` : mises à jour, lancement avec Windows
+- `src-tauri/src/updates.rs`, `autostart.rs` : mises à jour, lancement à l'ouverture de session
+- `src-tauri/src/user_dirs.rs` : dossiers de l'appli et des données, selon le système
 - `src-tauri/tests/` : tests
 - `ui/settings/` : fenêtre de réglages et assistant de premier lancement (`tauri-api.js` la relie aux commandes)
 - `ui/overlay/` : page servie à OBS (et à l'affichage tête haute, avec `?ingame`)
@@ -378,7 +416,7 @@ Les deux updaters ne voient que les releases **publiées**, pas les brouillons.
 
 `ui/` et `data/` sont embarqués dans l'exe : la même copie sert la fenêtre de réglages et l'overlay.
 
-Les réglages sont enregistrés dans `%APPDATA%\Wakfu Combo Overlay\settings.json`. Ce dossier est séparé de l'installation : les réglages survivent à une réinstallation.
+Les réglages sont enregistrés dans `%APPDATA%\Wakfu Combo Overlay\settings.json` (macOS : `~/Library/Application Support/Wakfu Combo Overlay/`, Linux : `~/.config/wakfu-combo-overlay/`). Ce dossier est séparé de l'installation : les réglages survivent à une réinstallation.
 
 ### Régénérer les icônes de sorts
 

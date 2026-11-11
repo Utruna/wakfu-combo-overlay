@@ -357,10 +357,6 @@ function swapCounter(key) {
   }, TURN_SWAP_MS);
 }
 
-// Marks the in-game window's own requests: a web page can't add a header like
-// this without a CORS preflight, which the server never answers.
-const hudFetch = (url) => fetch(url, { headers: { 'X-Wakfu-Overlay': '1' } });
-
 /** Turn or fight total — from the settings, or the in-game window's switch. */
 function setCounterMode(mode) {
   if (mode !== 'turn' && mode !== 'fight') return;
@@ -564,6 +560,10 @@ const hudBar = isHud ? document.createElement('div') : null;
 
 /** What the bar above the overlay takes up, with the gap under it. */
 const barRoom = () => (hudBar ? hudBar.offsetHeight + HUD_BAR_GAP_PX : 0);
+
+// Marks the in-game window's own requests: a web page can't add a header like
+// this without a CORS preflight, which the server never answers.
+const hudFetch = (url) => fetch(url, { headers: { 'X-Wakfu-Overlay': '1' } });
 
 /**
  * What the overlay can take up at most with the current layout — every cast
