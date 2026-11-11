@@ -1,5 +1,6 @@
 use serde_json::{json, Value};
 use std::fs;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use wakfu_combo_overlay_lib::catalog::Catalog;
 use wakfu_combo_overlay_lib::fight_recap::{parse_tags, EffectTags};
@@ -35,7 +36,11 @@ fn record(messages: &[&str]) -> Value {
 
 /// Records the lines, then does `then` to the tracker before reading the recap.
 fn record_then(messages: &[&str], then: impl FnOnce(&mut CombatTurnTracker)) -> Value {
-    let dir = std::env::temp_dir().join(format!("wakfu-recap-{}", std::process::id()));
+    // One folder per call: the tests run in parallel threads, and sharing one
+    // settings.json let a test read it while another was rewriting it (empty
+    // for an instant), so its heroes vanished.
+    static NEXT: AtomicUsize = AtomicUsize::new(0);
+    let dir = std::env::temp_dir().join(format!("wakfu-recap-{}-{}", std::process::id(), NEXT.fetch_add(1, Ordering::Relaxed)));
     fs::create_dir_all(&dir).unwrap();
     let path = dir.join("settings.json");
     fs::write(
