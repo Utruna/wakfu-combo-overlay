@@ -166,8 +166,25 @@ app.whenReady().then(async () => {
     [...document.querySelectorAll('.rc-row-btn')].find((b) => b.getAttribute('aria-label').startsWith('${name} :')).click();
     document.querySelectorAll('.rc-detail .rc-spells button')[${n}]?.dispatchEvent(new MouseEvent('mouseenter'));
   `;
-  const recapWin = await page(path.join('recap', 'index.html'), 1200, 820);
+  const recapWin = await page(path.join('recap', 'index.html'), 1200, 1180);
   await shot(recapWin, 'app-5-recap.png', openHero('Lueur Pourpre', 1));
+  // One foe only, and a turn pinned on the curve (the fight's 5th, mid-way along it).
+  await recapWin.webContents.executeJavaScript(`
+    const pick = document.querySelector('.rc-target');
+    pick.value = pick.options[1].value;
+    pick.dispatchEvent(new Event('change'));
+  `);
+  await wait(400);
+  await shot(recapWin, 'app-5b-recap-cible.png', `
+    const box = document.querySelector('.rc-curve-svg').getBoundingClientRect();
+    document.querySelector('.rc-curve-plot').dispatchEvent(new MouseEvent('click', { clientX: box.left + box.width * 0.5, clientY: box.top + 40, bubbles: true }));
+  `);
+  await recapWin.webContents.executeJavaScript(`
+    const all = document.querySelector('.rc-target');
+    all.value = '';
+    all.dispatchEvent(new Event('change'));
+  `);
+  await wait(400);
   await shot(recapWin, 'app-6-recap-soins.png', `
     [...document.querySelectorAll('[role=tab]')].find((b) => b.textContent.includes('Soins')).click();
     ${openHero('Lueur Grenat', 0)}
