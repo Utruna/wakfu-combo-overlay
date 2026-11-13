@@ -1,3 +1,14 @@
+## v2.3.3
+
+### Wakfu Combo Overlay devient Taktik
+
+L'application change de nom et d'icône. Rien ne change dans son fonctionnement.
+
+- **Tes réglages sont repris** : au premier lancement, héros, affichage et combats gardés du récap sont copiés dans le nouveau dossier `Taktik` (`%APPDATA%\Taktik` sous Windows). L'ancien dossier reste en place.
+- **OBS** : le chemin `overlay-obs.html` déjà collé dans ta source Navigateur continue de fonctionner, rien à refaire.
+- **Lancement avec la session** : si tu l'avais activé, il est repris sous le nouveau nom.
+- **Mise à jour** : sous Windows, l'installeur remplace l'ancienne application « Wakfu Combo Overlay » au lieu de s'installer à côté.
+
 ## v2.3.2
 
 ### Récap : victoire et défaite
