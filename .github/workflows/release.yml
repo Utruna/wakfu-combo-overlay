@@ -74,14 +74,17 @@ jobs:
         include:
           - system: windows
             runner: windows-latest
-          # The oldest supported Ubuntu: an AppImage runs on distros at least
-          # as recent as the one it was built on.
-          - system: linux
-            runner: ubuntu-22.04
-          # One universal app, for Apple Silicon and Intel Macs alike.
-          - system: macos
-            runner: macos-latest
-            build-args: --target universal-apple-darwin
+          # Linux and macOS are left out of the releases for now (they still
+          # build through build-linux.yml / build-macos.yml). To bring them
+          # back, uncomment:
+          # # The oldest supported Ubuntu: an AppImage runs on distros at least
+          # # as recent as the one it was built on.
+          # - system: linux
+          #   runner: ubuntu-22.04
+          # # One universal app, for Apple Silicon and Intel Macs alike.
+          # - system: macos
+          #   runner: macos-latest
+          #   build-args: --target universal-apple-darwin
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout

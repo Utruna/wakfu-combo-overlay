@@ -1,3 +1,14 @@
+## v2.3.1
+
+### Récap : les joueurs non suivis
+
+Le récap affiche maintenant aussi les joueurs du groupe qui ne sont pas dans tes héros : leurs dégâts, soins et sorts sont relevés, marqués **Non suivi**. Si le joueur a gagné de l'XP en fin de combat, c'est un de tes persos : il est signalé **Ton perso · non suivi**. Un bouton **Ajouter à mes héros** permet de le suivre sur l'overlay. Quand la classe n'est pas connue, elle est déduite des sorts lancés (« déduit »).
+
+### Corrections
+
+- Overlay : correction d'une erreur d'initialisation du bouton **Récap** de l'affichage tête haute.
+- La barre de contrôle de l'affichage tête haute reste visible quand on redimensionne la fenêtre.
+
 ## v2.3.0
 
 ### Nouveau : récap des combats
