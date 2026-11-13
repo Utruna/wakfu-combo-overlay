@@ -108,7 +108,7 @@ function releaseNotes() {
 
 // Shown as the real defaults would be, not the demo profile's temp paths.
 const SHOWN_LOGS_DIR = 'C:\\Users\\toi\\AppData\\Roaming\\zaap\\gamesLogs\\wakfu\\logs';
-const SHOWN_LOADER = 'C:\\Users\\toi\\AppData\\Roaming\\Wakfu Combo Overlay\\overlay-obs.html';
+const SHOWN_LOADER = 'C:\\Users\\toi\\AppData\\Roaming\\Taktik\\overlay-obs.html';
 
 const handlers = {
   get_state: () => ({

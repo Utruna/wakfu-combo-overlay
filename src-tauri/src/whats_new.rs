@@ -124,7 +124,7 @@ pub fn show(app: &AppHandle, since: Option<&str>) {
         None => "whatsnew/index.html".to_string(),
     };
     let built = WebviewWindowBuilder::new(app, WHATS_NEW_WINDOW, WebviewUrl::App(page.into()))
-        .title("Nouveautés — Wakfu Combo Overlay")
+        .title("Nouveautés — Taktik")
         .inner_size(560.0, 600.0)
         .min_inner_size(420.0, 360.0)
         .background_color(tauri::window::Color(0x13, 0x1a, 0x1e, 0xff))

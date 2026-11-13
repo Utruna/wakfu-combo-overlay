@@ -1,4 +1,4 @@
-use wakfu_combo_overlay_lib::turn_tracker::{CombatTurnTracker, TurnUpdate, TurnUpdateKind};
+use taktik_lib::turn_tracker::{CombatTurnTracker, TurnUpdate, TurnUpdateKind};
 
 fn combat(message: &str) -> String {
     format!(" INFO 19:16:35,717 [AWT-EventQueue-0] (aNZ:174) - [Information (combat)] {message}")

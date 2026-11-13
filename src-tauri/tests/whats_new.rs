@@ -1,4 +1,4 @@
-use wakfu_combo_overlay_lib::whats_new::{notes, on_launch, parse_version, sections, OnLaunch};
+use taktik_lib::whats_new::{notes, on_launch, parse_version, sections, OnLaunch};
 
 const CHANGELOG: &str = "## v2.2.0\r\n\r\n### Nouveau\r\n\r\n- A\r\n\r\n## v2.1.1\n\n- B\n\n## v2.1.0\n\n- C\n\n## v2.0.0\n\n- D\n";
 

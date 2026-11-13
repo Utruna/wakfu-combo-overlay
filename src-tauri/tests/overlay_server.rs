@@ -3,7 +3,7 @@ use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use wakfu_combo_overlay_lib::overlay_server::{FileSource, HudHandler, HudRequest, OverlayHub, OverlayServer};
+use taktik_lib::overlay_server::{FileSource, HudHandler, HudRequest, OverlayHub, OverlayServer};
 
 fn free_port() -> u16 {
     std::net::TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port()

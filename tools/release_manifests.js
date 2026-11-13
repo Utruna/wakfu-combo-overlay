@@ -25,7 +25,7 @@ const fs = require('fs');
 const path = require('path');
 
 const REPO = path.resolve(__dirname, '..');
-const OWNER_REPO = 'utruna/wakfu-combo-overlay';
+const OWNER_REPO = 'utruna/taktik';
 const TARGET = path.join(REPO, 'src-tauri', 'target');
 const OUT = path.join(REPO, 'dist');
 
@@ -38,7 +38,7 @@ const RELEASES = {
     {
       from: path.join(TARGET, 'release', 'bundle', 'nsis'),
       suffix: `_${version}_x64-setup.exe`,
-      name: `wakfu-combo-overlay-setup-${version}.exe`,
+      name: `taktik-setup-${version}.exe`,
       updater: ['windows-x86_64'],
     },
   ],
@@ -46,7 +46,7 @@ const RELEASES = {
     {
       from: path.join(TARGET, 'release', 'bundle', 'appimage'),
       suffix: `_${version}_amd64.AppImage`,
-      name: `wakfu-combo-overlay-${version}-x86_64.AppImage`,
+      name: `taktik-${version}-x86_64.AppImage`,
       updater: ['linux-x86_64'],
     },
   ],
@@ -55,12 +55,12 @@ const RELEASES = {
     {
       from: path.join(TARGET, 'universal-apple-darwin', 'release', 'bundle', 'dmg'),
       suffix: `_${version}_universal.dmg`,
-      name: `wakfu-combo-overlay-${version}-macos.dmg`,
+      name: `taktik-${version}-macos.dmg`,
     },
     {
       from: path.join(TARGET, 'universal-apple-darwin', 'release', 'bundle', 'macos'),
       suffix: '.app.tar.gz',
-      name: `wakfu-combo-overlay-${version}-macos.app.tar.gz`,
+      name: `taktik-${version}-macos.app.tar.gz`,
       updater: ['darwin-aarch64', 'darwin-x86_64'],
     },
   ],

@@ -1,7 +1,7 @@
 use serde_json::{json, Value};
 use std::fs;
 
-use wakfu_combo_overlay_lib::saved_fights::SavedFights;
+use taktik_lib::saved_fights::SavedFights;
 
 fn ids(recap: &Value) -> Vec<Value> {
     recap["fights"].as_array().unwrap().iter().map(|f| f["id"].clone()).collect()

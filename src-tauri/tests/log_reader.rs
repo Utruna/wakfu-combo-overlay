@@ -3,7 +3,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use wakfu_combo_overlay_lib::log_reader::{CastEvent, LogEvent, WakfuCombatLogReader};
+use taktik_lib::log_reader::{CastEvent, LogEvent, WakfuCombatLogReader};
 
 static NEXT_DIR: AtomicU32 = AtomicU32::new(0);
 

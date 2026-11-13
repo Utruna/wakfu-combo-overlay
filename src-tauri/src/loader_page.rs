@@ -26,11 +26,11 @@ pub fn build_loader_html(port: u16) -> String {
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Wakfu Combo Overlay</title>
+  <title>Taktik</title>
   <style>html, body {{ margin: 0; background: transparent; }}</style>
 </head>
 <body>
-  <!-- Généré par Wakfu Combo Overlay — attend que l'application soit lancée puis ouvre l'overlay. -->
+  <!-- Généré par Taktik — attend que l'application soit lancée puis ouvre l'overlay. -->
   <script>
     const OVERLAY_URL = "{overlay_url}";
     function tryOpenOverlay() {{

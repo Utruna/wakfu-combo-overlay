@@ -32,7 +32,7 @@ const heroes = [
 ];
 const tracked = heroes.slice(0, 4).map((h) => h.characterName);
 const profile = createDemoProfile({
-  name: 'wakfu-combo-overlay-capture',
+  name: 'taktik-capture',
   port: PORT,
   heroes,
   tracked,

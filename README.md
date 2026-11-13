@@ -1,7 +1,7 @@
-# Wakfu Combo Overlay
+# Taktik
 
-[![Téléchargements totaux](https://img.shields.io/github/downloads/utruna/wakfu-combo-overlay/total?label=T%C3%A9l%C3%A9chargements%20totaux&color=4a90e2)](https://github.com/utruna/wakfu-combo-overlay/releases)
-[![Dernière release](https://img.shields.io/github/v/release/utruna/wakfu-combo-overlay?label=Derni%C3%A8re%20release&color=7c4dff)](https://github.com/utruna/wakfu-combo-overlay/releases/latest)
+[![Téléchargements](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Futruna%2Ftaktik%2Fbadges%2Fdownloads.json)](https://github.com/utruna/taktik/releases)
+[![Dernière release](https://img.shields.io/github/v/release/utruna/taktik?label=Derni%C3%A8re%20release&color=7c4dff)](https://github.com/utruna/taktik/releases/latest)
 
 Affiche en direct sur ton stream les sorts lancés par tes personnages Wakfu, sous forme d'icônes qui défilent dans OBS. Tu ne streames pas ? L'**affichage tête haute** les montre directement par-dessus le jeu. Après chaque combat, le **récap des combats** te montre qui a fait quoi : dégâts, soins, meilleur tour, sort par sort.
 
@@ -9,7 +9,7 @@ Affiche en direct sur ton stream les sorts lancés par tes personnages Wakfu, so
 
 L'application lit les logs de combat du client Wakfu en temps réel. Elle ne garde que les sorts de tes personnages (les autres joueurs et les mobs sont ignorés) et les envoie à une page web transparente que tu ajoutes comme **Source Navigateur** dans OBS.
 
-**[⬇ Télécharger la dernière version](https://github.com/utruna/wakfu-combo-overlay/releases/latest)** (Windows, macOS, Linux)
+**[⬇ Télécharger la dernière version](https://github.com/utruna/taktik/releases/latest)** (Windows, macOS, Linux)
 
 ---
 
@@ -30,7 +30,7 @@ L'application lit les logs de combat du client Wakfu en temps réel. Elle ne gar
 
 ## Installation et premier lancement
 
-1. Télécharge `wakfu-combo-overlay-setup-X.Y.Z.exe` depuis la [dernière release](https://github.com/utruna/wakfu-combo-overlay/releases/latest) et lance-le. Sur Mac ou sous Linux, voir [plus bas](#sur-macos-et-linux).
+1. Télécharge `taktik-setup-X.Y.Z.exe` depuis la [dernière release](https://github.com/utruna/taktik/releases/latest) et lance-le. Sur Mac ou sous Linux, voir [plus bas](#sur-macos-et-linux).
 2. Windows SmartScreen peut afficher un avertissement, parce que l'installeur n'est pas signé : clique sur **Informations complémentaires** → **Exécuter quand même**.
 
 Tu avais une version 1.x ? L'installeur la désinstalle tout seul et reprend tes réglages (héros, affichage, port, lancement avec Windows) : rien à refaire, ni dans l'appli ni dans OBS.
@@ -64,8 +64,8 @@ L'appli fonctionne pareil que sous Windows. Seuls l'installation et quelques dé
 
 ### macOS
 
-1. Télécharge `wakfu-combo-overlay-X.Y.Z-macos.dmg` (une seule version pour les Mac Apple Silicon et Intel), ouvre-le et glisse **Wakfu Combo Overlay** dans **Applications**.
-2. L'appli n'est pas signée par Apple (c'est payant). Au premier lancement, macOS refuse de l'ouvrir : ouvre **Réglages Système** → **Confidentialité et sécurité**, descends jusqu'au message sur Wakfu Combo Overlay et clique sur **Ouvrir quand même**. Sur les macOS plus anciens, un clic droit sur l'appli → **Ouvrir** suffit. Ce n'est à faire qu'une fois.
+1. Télécharge `taktik-X.Y.Z-macos.dmg` (une seule version pour les Mac Apple Silicon et Intel), ouvre-le et glisse **Taktik** dans **Applications**.
+2. L'appli n'est pas signée par Apple (c'est payant). Au premier lancement, macOS refuse de l'ouvrir : ouvre **Réglages Système** → **Confidentialité et sécurité**, descends jusqu'au message sur Taktik et clique sur **Ouvrir quand même**. Sur les macOS plus anciens, un clic droit sur l'appli → **Ouvrir** suffit. Ce n'est à faire qu'une fois.
 
 Lance-la bien depuis **Applications**, pas depuis le disque monté ni depuis Téléchargements : sinon macOS la fait tourner depuis une copie temporaire, et ni le lancement à l'ouverture de session ni les mises à jour ne peuvent marcher.
 
@@ -73,7 +73,7 @@ L'icône de l'appli est dans la **barre des menus**, en haut à droite. Un clic 
 
 ### Linux
 
-1. Télécharge `wakfu-combo-overlay-X.Y.Z-x86_64.AppImage`, rends-le exécutable (clic droit → Propriétés → « Autoriser l'exécution », ou `chmod +x` dans un terminal) et lance-le. Range-le d'abord là où il restera (par exemple `~/Applications`) : le lancement à l'ouverture de session et les mises à jour pointent vers ce fichier.
+1. Télécharge `taktik-X.Y.Z-x86_64.AppImage`, rends-le exécutable (clic droit → Propriétés → « Autoriser l'exécution », ou `chmod +x` dans un terminal) et lance-le. Range-le d'abord là où il restera (par exemple `~/Applications`) : le lancement à l'ouverture de session et les mises à jour pointent vers ce fichier.
 2. Sur Ubuntu 24.04 et plus récent, s'il ne se lance pas, installe `libfuse2t64` (`sudo apt install libfuse2t64`) ; sur les autres distributions, le paquet s'appelle en général `fuse2` ou `fuse-libs`.
 
 L'icône vit dans la **zone de notification**. Sous GNOME (Fedora, Debian…), elle n'apparaît qu'avec l'extension **AppIndicator** (déjà là sur Ubuntu). Sans elle, relance simplement l'AppImage : l'appli déjà ouverte affiche ses réglages.
@@ -282,7 +282,7 @@ Après une mise à jour, la fenêtre **Nouveautés** présente ce qui a changé,
 - L'appli n'a pas pu lire `latest.json` dans la dernière release publiée : pas de connexion, ou la nouvelle release est encore en brouillon (draft). Publie-la, puis relance la vérification. Pour voir ce que voit l'updater :
 
 ```bash
-curl -sL https://github.com/utruna/wakfu-combo-overlay/releases/latest/download/latest.json
+curl -sL https://github.com/utruna/taktik/releases/latest/download/latest.json
 ```
 
 ---
@@ -309,7 +309,7 @@ Ce qu'il faut retenir pour coder :
 - **Ajouter une action appelée par la page**, c'est trois endroits : une fonction `#[tauri::command]` dans `src-tauri/src/commands.rs`, son enregistrement dans `generate_handler![…]` (`src-tauri/src/lib.rs`), et sa méthode dans `ui/settings/tauri-api.js`. Les arguments passent en camelCase côté JS (`characterName`) et arrivent en snake_case côté Rust (`character_name`).
 - **Pousser un événement vers la page** (comme l'activité en temps réel) : `app.emit_to("settings", "nom:evenement", payload)` côté Rust, `listen()` côté `tauri-api.js`.
 - **Les fichiers de `ui/` et `data/` sont embarqués dans l'exe** : la même copie sert la fenêtre de réglages et le serveur de l'overlay pour OBS.
-- **Les réglages restent au même endroit** (`%APPDATA%\Wakfu Combo Overlay\settings.json`, même format) : une 1.x mise à jour garde tout, y compris le chemin `overlay-obs.html` collé dans OBS.
+- **Les réglages sont repris d'une version à l'autre** : au premier lancement, le dossier de l'ancien nom de l'appli (`%APPDATA%\Wakfu Combo Overlay`, même format) est copié dans `%APPDATA%\Taktik`. L'ancien dossier reste en place, donc le chemin `overlay-obs.html` déjà collé dans OBS continue de fonctionner.
 
 ### Installer les outils (une seule fois)
 
@@ -363,12 +363,12 @@ npm run dist
 Produit l'installeur du système sur lequel tu es : Windows (NSIS) dans `src-tauri/target/release/bundle/nsis/`, AppImage dans `…/bundle/appimage/`, `.app` et `.dmg` dans `…/bundle/macos/` et `…/bundle/dmg/` (réglages propres à chaque système : `src-tauri/tauri.linux.conf.json`, `src-tauri/tauri.macos.conf.json`). Pour qu'il soit signé pour l'updater, définis d'abord la clé privée (voir ci-dessous) :
 
 ```powershell
-$env:TAURI_SIGNING_PRIVATE_KEY = Get-Content "$env:USERPROFILE\.tauri\wakfu-combo-overlay.key" -Raw
+$env:TAURI_SIGNING_PRIVATE_KEY = Get-Content "$env:USERPROFILE\.tauri\taktik.key" -Raw
 $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = ""
 npm run dist
 ```
 
-`npm run tauri build -- --no-bundle` ne produit que l'exe (`src-tauri/target/release/wakfu-combo-overlay.exe`), sans installeur ni signature.
+`npm run tauri build -- --no-bundle` ne produit que l'exe (`src-tauri/target/release/taktik.exe`), sans installeur ni signature.
 
 ### Publier une release
 
@@ -377,13 +377,13 @@ Le workflow `.github/workflows/release.yml` compile l'appli sur des runners Wind
 1. Monte la version dans `package.json` (`npm version patch` / `minor` / `major`). C'est la seule version à changer : `src-tauri/tauri.conf.json` la lit dans `package.json`.
 2. Ajoute en haut de `CHANGELOG.md` une section `## vX.Y.Z` : c'est le texte de la release. Sans elle, le workflow s'arrête avant de créer le tag. Pousse les commits sur `main`.
 3. Sur GitHub : **Actions** → **Build & Release** → **Run workflow**.
-4. Une fois le workflow terminé (~15 min, moins quand le cache Rust est chaud), la release `vX.Y.Z` apparaît dans **Releases** avec `wakfu-combo-overlay-setup-X.Y.Z.exe`, `wakfu-combo-overlay-X.Y.Z-x86_64.AppImage`, `wakfu-combo-overlay-X.Y.Z-macos.dmg`, `wakfu-combo-overlay-X.Y.Z-macos.app.tar.gz` (ce que télécharge l'updater sur Mac), `latest.json` et `latest.yml`, et en notes la section du `CHANGELOG.md`, suivie de la liste des PR fusionnées générée par GitHub.
+4. Une fois le workflow terminé (~15 min, moins quand le cache Rust est chaud), la release `vX.Y.Z` apparaît dans **Releases** avec `taktik-setup-X.Y.Z.exe`, `taktik-X.Y.Z-x86_64.AppImage`, `taktik-X.Y.Z-macos.dmg`, `taktik-X.Y.Z-macos.app.tar.gz` (ce que télécharge l'updater sur Mac), `latest.json` et `latest.yml`, et en notes la section du `CHANGELOG.md`, suivie de la liste des PR fusionnées générée par GitHub.
 
 Le workflow vérifie d'abord que la version n'a pas déjà de release publiée, que le secret de signature existe et que le `CHANGELOG.md` a sa section, puis lance ESLint. Chaque système lance ensuite les tests et compile. Seulement si les trois réussissent, il crée et pousse le tag `vX.Y.Z`, crée la release en brouillon (ou réutilise le brouillon d'un essai raté), envoie les fichiers, puis publie la release. Elle n'est donc visible qu'une fois complète.
 
 Sur Mac, l'appli n'a qu'une signature « ad hoc » (`signingIdentity: "-"`), sans compte développeur Apple : assez pour que macOS l'accepte sur Apple Silicon, mais Gatekeeper demande à l'utilisateur de l'autoriser une fois (voir [macOS](#macos)).
 
-- `latest.json` est lu par l'updater de l'appli. Il contient, pour chaque système, la signature du fichier à télécharger : l'updater refuse toute mise à jour qui ne correspond pas à la clé publique de `src-tauri/tauri.conf.json`. La clé privée est le secret GitHub `TAURI_SIGNING_PRIVATE_KEY` du dépôt (copie locale : `%USERPROFILE%\.tauri\wakfu-combo-overlay.key`). Sans elle, impossible de publier une mise à jour que les installations existantes accepteront : garde-en une sauvegarde.
+- `latest.json` est lu par l'updater de l'appli. Il contient, pour chaque système, la signature du fichier à télécharger : l'updater refuse toute mise à jour qui ne correspond pas à la clé publique de `src-tauri/tauri.conf.json`. La clé privée est le secret GitHub `TAURI_SIGNING_PRIVATE_KEY` du dépôt (copie locale : `%USERPROFILE%\.tauri\taktik.key`). Sans elle, impossible de publier une mise à jour que les installations existantes accepteront : garde-en une sauvegarde.
 - `latest.yml` est lu par les anciennes versions 1.x (Electron), pour qu'elles proposent elles aussi la nouvelle version. L'installeur désinstalle alors la 1.x (`src-tauri/installer-hooks.nsh`).
 
 Les deux updaters ne voient que les releases **publiées**, pas les brouillons.
@@ -416,7 +416,7 @@ Les deux updaters ne voient que les releases **publiées**, pas les brouillons.
 
 `ui/` et `data/` sont embarqués dans l'exe : la même copie sert la fenêtre de réglages et l'overlay.
 
-Les réglages sont enregistrés dans `%APPDATA%\Wakfu Combo Overlay\settings.json` (macOS : `~/Library/Application Support/Wakfu Combo Overlay/`, Linux : `~/.config/wakfu-combo-overlay/`). Ce dossier est séparé de l'installation : les réglages survivent à une réinstallation.
+Les réglages sont enregistrés dans `%APPDATA%\Taktik\settings.json` (macOS : `~/Library/Application Support/Taktik/`, Linux : `~/.config/taktik/`). Ce dossier est séparé de l'installation : les réglages survivent à une réinstallation.
 
 ### Régénérer les icônes de sorts
 

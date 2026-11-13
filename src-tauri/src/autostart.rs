@@ -38,14 +38,14 @@ pub fn set_enabled(enabled: bool) -> io::Result<()> {
     imp::set_enabled(enabled)
 }
 
-/// The 1.x (Electron) versions registered their own entry, pointing at an
-/// exe the new installer removes: carry the user's choice over to this
-/// version's entry instead of leaving a dead one behind. 1.x only ever
-/// existed on Windows.
-pub fn migrate_from_electron() {
-    #[cfg(windows)]
+/// Earlier versions registered an entry under another name (the app was
+/// "Wakfu Combo Overlay" before Taktik; the 1.x Electron versions, Windows
+/// only, had their own too), pointing at an exe the installer removes: carry
+/// the user's choice over to this version's entry instead of leaving a dead
+/// one behind.
+pub fn migrate_legacy_entries() {
     if available() {
-        imp::migrate_from_electron();
+        imp::migrate_legacy_entries();
     }
 }
 
@@ -58,7 +58,9 @@ mod imp {
     use super::HIDDEN_ARG;
 
     const RUN_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Run";
-    const VALUE_NAME: &str = "Wakfu Combo Overlay";
+    const VALUE_NAME: &str = "Taktik";
+    /// What the entry was called before the app became Taktik.
+    const LEGACY_VALUE_NAME: &str = "Wakfu Combo Overlay";
     /// Electron's own name for the entry the 1.x versions registered.
     const ELECTRON_VALUE_PREFIX: &str = "electron.app.";
     const ELECTRON_INSTALL_MARKER: &str = r"\programs\wakfu-combo-overlay\";
@@ -88,9 +90,9 @@ mod imp {
         }
     }
 
-    pub fn migrate_from_electron() {
+    pub fn migrate_legacy_entries() {
         let Ok(key) = run_key(KEY_READ | KEY_SET_VALUE) else { return };
-        let electron_entries: Vec<String> = key
+        let mut legacy_entries: Vec<String> = key
             .enum_values()
             .filter_map(Result::ok)
             .filter(|(name, value)| {
@@ -99,10 +101,13 @@ mod imp {
             })
             .map(|(name, _)| name)
             .collect();
-        if electron_entries.is_empty() {
+        if key.get_value::<String, _>(LEGACY_VALUE_NAME).is_ok() {
+            legacy_entries.push(LEGACY_VALUE_NAME.to_string());
+        }
+        if legacy_entries.is_empty() {
             return;
         }
-        for name in &electron_entries {
+        for name in &legacy_entries {
             let _ = key.delete_value(name);
         }
         if let Err(err) = set_enabled(true) {
@@ -121,8 +126,23 @@ mod imp {
     }
 
     /// `~/.config/autostart`: what every desktop (GNOME, KDE, Xfce…) starts at login.
+    fn entry_path_named(file: &str) -> PathBuf {
+        crate::user_dirs::app_data().join("autostart").join(file)
+    }
+
     fn entry_path() -> PathBuf {
-        crate::user_dirs::app_data().join("autostart").join("wakfu-combo-overlay.desktop")
+        entry_path_named("taktik.desktop")
+    }
+
+    /// Carries over the entry the app had before it was called Taktik.
+    pub fn migrate_legacy_entries() {
+        let legacy = entry_path_named("wakfu-combo-overlay.desktop");
+        if legacy.is_file() {
+            let _ = std::fs::remove_file(&legacy);
+            if let Err(err) = set_enabled(true) {
+                eprintln!("[autostart] Failed to carry the login item over: {err}");
+            }
+        }
     }
 
     /// The AppImage file itself: the running executable is a copy mounted
@@ -149,7 +169,9 @@ mod imp {
     use std::io;
     use std::path::PathBuf;
 
-    const LABEL: &str = "com.colinliaud.wakfu-combo-overlay";
+    const LABEL: &str = "com.colinliaud.taktik";
+    /// The launch agent's label before the app became Taktik.
+    const LEGACY_LABEL: &str = "com.colinliaud.wakfu-combo-overlay";
 
     /// An app opened where it was downloaded runs from a random read-only
     /// copy (App Translocation), and one opened straight from its disk image
@@ -163,8 +185,23 @@ mod imp {
     }
 
     /// Launch agents in this folder are started by launchd at every login.
+    fn agent_path_for(label: &str) -> PathBuf {
+        crate::user_dirs::home().join("Library").join("LaunchAgents").join(format!("{label}.plist"))
+    }
+
     fn agent_path() -> PathBuf {
-        crate::user_dirs::home().join("Library").join("LaunchAgents").join(format!("{LABEL}.plist"))
+        agent_path_for(LABEL)
+    }
+
+    /// Carries over the launch agent the app had before it was called Taktik.
+    pub fn migrate_legacy_entries() {
+        let legacy = agent_path_for(LEGACY_LABEL);
+        if legacy.is_file() {
+            let _ = std::fs::remove_file(&legacy);
+            if let Err(err) = set_enabled(true) {
+                eprintln!("[autostart] Failed to carry the login item over: {err}");
+            }
+        }
     }
 
     pub fn is_enabled() -> bool {
@@ -200,7 +237,7 @@ pub fn desktop_entry(exe: &Path) -> String {
     format!(
         "[Desktop Entry]\n\
          Type=Application\n\
-         Name=Wakfu Combo Overlay\n\
+         Name=Taktik\n\
          Comment=Overlay des sorts lancés dans Wakfu\n\
          Exec={} {HIDDEN_ARG}\n\
          Terminal=false\n\

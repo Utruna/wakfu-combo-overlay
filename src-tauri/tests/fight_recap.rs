@@ -2,10 +2,10 @@ use serde_json::{json, Value};
 use std::fs;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use wakfu_combo_overlay_lib::catalog::Catalog;
-use wakfu_combo_overlay_lib::fight_recap::{parse_tags, EffectTags};
-use wakfu_combo_overlay_lib::settings::SettingsStore;
-use wakfu_combo_overlay_lib::turn_tracker::CombatTurnTracker;
+use taktik_lib::catalog::Catalog;
+use taktik_lib::fight_recap::{parse_tags, EffectTags};
+use taktik_lib::settings::SettingsStore;
+use taktik_lib::turn_tracker::CombatTurnTracker;
 
 fn tags(element: Option<&str>, source: Option<&str>) -> EffectTags {
     EffectTags { element: element.map(str::to_string), source: source.map(str::to_string), lifesteal: false }

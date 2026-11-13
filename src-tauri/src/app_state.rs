@@ -59,7 +59,7 @@ pub struct AppState {
     /// Held while the overlay port is being changed, so two changes can't interleave.
     pub port_change: tokio::sync::Mutex<()>,
     pub reader: Mutex<Option<LogReaderThread>>,
-    /// %APPDATA%\Wakfu Combo Overlay — settings.json and the OBS loader page.
+    /// %APPDATA%\Taktik — settings.json and the OBS loader page.
     pub data_dir: PathBuf,
 }
 

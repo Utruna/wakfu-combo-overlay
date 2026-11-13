@@ -1,0 +1,49 @@
+name: Downloads badge
+
+# Le badge « Téléchargements » du README ne compte que les installeurs
+# (.exe, .AppImage, .dmg), pas latest.json / latest.yml / *.sig / *.tar.gz :
+# ceux-là sont lus par l'updater des applis déjà installées, à chaque
+# lancement, et gonflent le total de shields.io (`/github/downloads/.../total`).
+#
+# Le total est écrit dans downloads.json, sur la branche `badges` (recréée à
+# chaque exécution, un seul commit), que le README lit via shields.io/endpoint.
+
+on:
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  badge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Count the installer downloads, every release included
+        id: count
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          total=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/releases" \
+            --jq '[.[].assets[] | select(.name | test("[.](exe|AppImage|dmg)$"; "i")) | .download_count] | add // 0' \
+            | awk '{ s += $1 } END { print s + 0 }')
+          echo "total=${total}" >> "$GITHUB_OUTPUT"
+          echo "Installer downloads: ${total}"
+
+      - name: Publish downloads.json on the badges branch
+        env:
+          TOTAL: ${{ steps.count.outputs.total }}
+        run: |
+          mkdir "${RUNNER_TEMP}/badge"
+          printf '{"schemaVersion":1,"label":"Téléchargements","message":"%s","color":"4a90e2","cacheSeconds":3600}\n' \
+            "${TOTAL}" > "${RUNNER_TEMP}/badge/downloads.json"
+          git clone --quiet "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git" "${RUNNER_TEMP}/repo"
+          cd "${RUNNER_TEMP}/repo"
+          git checkout --quiet --orphan badges
+          git rm -rfq .
+          cp "${RUNNER_TEMP}/badge/downloads.json" .
+          git add downloads.json
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+            commit --quiet -m "chore: downloads badge (${TOTAL})"
+          git push --quiet --force origin badges

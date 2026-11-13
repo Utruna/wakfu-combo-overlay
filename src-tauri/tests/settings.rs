@@ -3,7 +3,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use wakfu_combo_overlay_lib::settings::{Defaults, SettingsStore};
+use taktik_lib::settings::{Defaults, SettingsStore};
 
 static NEXT: AtomicU32 = AtomicU32::new(0);
 

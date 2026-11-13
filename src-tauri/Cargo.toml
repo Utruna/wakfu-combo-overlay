@@ -1,5 +1,5 @@
 [package]
-name = "wakfu-combo-overlay"
+name = "taktik"
 # The app's real version lives in package.json (tauri.conf.json reads it from there).
 version = "0.0.0"
 description = "Overlay OBS des sorts lancés dans Wakfu"
@@ -55,5 +55,5 @@ panic = "abort"
 strip = true
 
 [lib]
-name = "wakfu_combo_overlay_lib"
+name = "taktik_lib"
 path = "src/lib.rs"

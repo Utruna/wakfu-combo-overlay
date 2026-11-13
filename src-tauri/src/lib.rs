@@ -1,4 +1,4 @@
-//! Wakfu Combo Overlay: tails the Wakfu combat log, filters casts down to the
+//! Taktik: tails the Wakfu combat log, filters casts down to the
 //! tracked heroes, and serves a live combo-list overlay for OBS. Lives in the
 //! tray; the settings window is only created while it's open, so that the
 //! web view — by far the heaviest part — costs nothing the rest of the time.
@@ -39,12 +39,13 @@ use settings::{Defaults, SettingsStore, DEFAULT_OVERLAY_PORT};
 use turn_tracker::CombatTurnTracker;
 use updates::UpdateState;
 
-/// See `user_dirs::app_dir`. WAKFU_OVERLAY_DATA_DIR points it elsewhere
+/// See `user_dirs::app_dir`. TAKTIK_DATA_DIR points it elsewhere
 /// (tests, demo captures).
 fn data_dir() -> PathBuf {
-    if let Some(dir) = std::env::var_os("WAKFU_OVERLAY_DATA_DIR") {
+    if let Some(dir) = std::env::var_os("TAKTIK_DATA_DIR") {
         return PathBuf::from(dir);
     }
+    user_dirs::migrate_legacy_app_dir();
     user_dirs::app_dir()
 }
 
@@ -64,7 +65,7 @@ pub fn show_settings_window(app: &AppHandle) {
     // view's processes — nearly all of the app's memory — are freed while
     // the app sits in the tray. It's rebuilt from the settings on reopen.
     let built = WebviewWindowBuilder::new(app, SETTINGS_WINDOW, WebviewUrl::App("settings/index.html".into()))
-        .title("Réglages — Wakfu Combo Overlay")
+        .title("Réglages — Taktik")
         .inner_size(980.0, 680.0)
         .min_inner_size(900.0, 620.0)
         .background_color(tauri::window::Color(0x13, 0x1a, 0x1e, 0xff))
@@ -89,7 +90,7 @@ pub fn show_recap_window(app: &AppHandle) {
         return;
     }
     let built = WebviewWindowBuilder::new(app, RECAP_WINDOW, WebviewUrl::App("recap/index.html".into()))
-        .title("Récap des combats — Wakfu Combo Overlay")
+        .title("Récap des combats — Taktik")
         .inner_size(1200.0, 820.0)
         .min_inner_size(960.0, 600.0)
         .background_color(tauri::window::Color(0x13, 0x1a, 0x1e, 0xff))
@@ -125,7 +126,7 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
     )?;
     TrayIconBuilder::with_id("main")
         .icon(Image::from_bytes(include_bytes!("../../ui/assets/tray-icon.png"))?)
-        .tooltip("Wakfu Combo Overlay")
+        .tooltip("Taktik")
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id.as_ref() {
@@ -248,7 +249,7 @@ fn setup(app: &AppHandle, launched_at_login: bool) -> Result<(), Box<dyn std::er
 
     *state.reader.lock_safe() = Some(LogReaderThread::start(app.clone(), logs_dir));
 
-    autostart::migrate_from_electron();
+    autostart::migrate_legacy_entries();
     create_tray(app)?;
     ingame_window::refresh(app);
     // At login the app starts straight in the tray: don't even create the
@@ -290,7 +291,7 @@ pub fn run() {
 
     let launched_at_login = std::env::args().any(|arg| arg == autostart::HIDDEN_ARG);
     // An isolated profile (demo captures) runs next to the user's own instance.
-    let isolated_profile = std::env::var_os("WAKFU_OVERLAY_DATA_DIR").is_some();
+    let isolated_profile = std::env::var_os("TAKTIK_DATA_DIR").is_some();
 
     let mut builder = tauri::Builder::default();
     if !isolated_profile {

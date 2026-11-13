@@ -295,7 +295,7 @@ fn open(app: &AppHandle) {
         return;
     }
     let built = WebviewWindowBuilder::new(app, INGAME_WINDOW, WebviewUrl::External(page_url(port)))
-        .title("Wakfu Combo Overlay — tête haute")
+        .title("Taktik — tête haute")
         .inner_size(DEFAULT_WIDTH, DEFAULT_HEIGHT)
         .transparent(true)
         .decorations(false)
@@ -687,7 +687,7 @@ mod foreground {
             assert!(is_wakfu_title("Lueur Pourpre - WAKFU"));
             assert!(is_wakfu_title("WAKFU"));
             assert!(is_wakfu_title("lueur pourpre - Wakfu"));
-            assert!(!is_wakfu_title("Wakfu Combo Overlay"));
+            assert!(!is_wakfu_title("Taktik"));
             assert!(!is_wakfu_title("wakfu.log - Notepad"));
             assert!(!is_wakfu_title("Guide WAKFU - Google Chrome"));
         }

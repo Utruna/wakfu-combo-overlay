@@ -2,8 +2,8 @@ use serde_json::json;
 use std::fs;
 use std::path::Path;
 
-use wakfu_combo_overlay_lib::loader_page::{build_loader_html, write_loader_page, PROBED_ASSET};
-use wakfu_combo_overlay_lib::matcher::{find_hero_index, normalize_name};
+use taktik_lib::loader_page::{build_loader_html, write_loader_page, PROBED_ASSET};
+use taktik_lib::matcher::{find_hero_index, normalize_name};
 
 #[test]
 fn normalizes_accents_case_and_punctuation() {

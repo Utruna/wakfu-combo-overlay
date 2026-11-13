@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::{Duration, SystemTime};
 
-use wakfu_combo_overlay_lib::log_reader::{pick_logs_dir, redetected_logs_dir};
+use taktik_lib::log_reader::{pick_logs_dir, redetected_logs_dir};
 
 static NEXT_DIR: AtomicU32 = AtomicU32::new(0);
 
@@ -77,7 +77,7 @@ fn stays_on_the_default_while_no_candidate_has_logs() {
 #[cfg(not(windows))]
 mod candidates {
     use super::*;
-    use wakfu_combo_overlay_lib::log_reader::logs_dir_candidates_in;
+    use taktik_lib::log_reader::logs_dir_candidates_in;
 
     const ZAAP: &str = "AppData/Roaming/zaap/gamesLogs/wakfu/logs";
 

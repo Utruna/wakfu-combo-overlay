@@ -28,7 +28,7 @@ const BACKGROUND = '#1b1f24';
 const SIZE = ORIENTATION === 'vertical' ? { width: 188, height: 705 } : { width: 854, height: 130 };
 
 const profile = createDemoProfile({
-  name: 'wakfu-combo-overlay-gif',
+  name: 'taktik-gif',
   port: PORT,
   heroes: [
     hero('Lueur Ocre', 'iop', 74, 144, 226),

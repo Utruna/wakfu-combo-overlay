@@ -16,7 +16,7 @@ const os = require('os');
 const path = require('path');
 
 const REPO = path.resolve(__dirname, '..');
-const APP_EXE = path.join(REPO, 'src-tauri', 'target', 'release', 'wakfu-combo-overlay.exe');
+const APP_EXE = path.join(REPO, 'src-tauri', 'target', 'release', 'taktik.exe');
 
 const hero = (n, cls, r, g, b) => ({ name: n, characterName: n, class: cls, color: { r, g, b } });
 
@@ -75,7 +75,7 @@ async function startDemoApp(profile) {
     throw new Error(`${path.relative(REPO, APP_EXE)} is missing — run \`npm run tauri build -- --no-bundle\` first.`);
   }
   const child = spawn(APP_EXE, ['--hidden'], {
-    env: { ...process.env, WAKFU_OVERLAY_DATA_DIR: profile.dataDir },
+    env: { ...process.env, TAKTIK_DATA_DIR: profile.dataDir },
     stdio: 'ignore',
   });
   process.on('exit', () => child.kill());
