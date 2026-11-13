@@ -89,7 +89,10 @@ function manifests() {
   const now = new Date().toISOString();
 
   const platforms = {};
-  for (const file of Object.values(RELEASES).flat().filter((f) => f.updater)) {
+  // A system the release leaves out (see the build matrix in release.yml) has
+  // nothing in dist/ and no update entry; one that was built must be complete.
+  const built = Object.values(RELEASES).filter((files) => files.some((f) => fs.existsSync(path.join(OUT, f.name))));
+  for (const file of built.flat().filter((f) => f.updater)) {
     const sigPath = path.join(OUT, `${file.name}.sig`);
     if (!fs.existsSync(sigPath)) throw new Error(`dist/${file.name}.sig missing: was every system built?`);
     const signature = fs.readFileSync(sigPath, 'utf8').trim();
