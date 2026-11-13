@@ -1,3 +1,16 @@
+## v2.3.2
+
+### Récap : victoire et défaite
+
+Un combat est maintenant une **victoire** dès que du butin est ramassé en fin de combat (ou que l'XP est gagnée, comme avant), et une **défaite** sinon. Un combat terminé sans butin ni XP affiche **Défaite (déduit)**. Un combat gagné sans aucun butin sera donc marqué comme une défaite.
+
+### Récap : dégâts sur une cible et courbe par tour
+
+- Quand un combat compte plusieurs monstres, un menu **Cibles** apparaît à droite des onglets Dégâts et Subis. Choisis un monstre pour ne voir que les dégâts qu'il a reçus : classement, meilleur tour, sorts du combat et éléments se recalculent. Les dégâts qui ne viennent pas d'un sort (vol de vie, marques…) n'ont pas de cible et ne sont pas comptés. Des monstres du même nom restent regroupés.
+- Une **courbe cumulée par tour** s'affiche sous les onglets Dégâts, Soins et Armure : une ligne par héros et une ligne pointillée pour l'équipe. Elle suit la cible choisie, ce qui permet de voir la progression des dégâts sur un seul monstre.
+- Survole la courbe pour voir, tour par tour, ce que chaque joueur a cumulé et ce que le tour a ajouté. **Clique** sur un tour (ou utilise le curseur **Tour** sous la courbe) pour l'épingler : le détail de chaque joueur affiche alors ce tour au lieu du meilleur. Un second clic, ou **Meilleur tour**, revient à l'affichage habituel.
+- Dans le détail d'un joueur, sur l'onglet Dégâts, **Cibles touchées** donne les dégâts de ses sorts par monstre.
+
 ## v2.3.1
 
 ### Récap : les joueurs non suivis

@@ -153,7 +153,7 @@ struct FightRecord {
     /// read late.
     started_clock: Option<i64>,
     ended_clock: Option<i64>,
-    /// Earned XP at the end: a won fight.
+    /// Earned XP or picked-up loot at the end: a won fight.
     victory: bool,
     /// Players announced as joining (allies): name -> their join line's
     /// "breed" (the class id).
@@ -364,6 +364,14 @@ impl FightRecorder {
             if let Some(player) = player {
                 fight.local.insert(player.to_string());
             }
+        }
+    }
+
+    /// Loot picked up while a fight is open: it was won. Outside a fight
+    /// (gathering, a drop picked up later) it says nothing.
+    pub fn loot(&mut self) {
+        if let Some(fight) = self.current.as_mut() {
+            fight.victory = true;
         }
     }
 

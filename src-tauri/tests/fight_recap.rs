@@ -268,3 +268,23 @@ fn shows_the_whole_group_and_spots_the_users_untracked_characters() {
     assert_eq!(fighter(fight, "Autre Iop")["class"], "iop");
     assert_eq!(fighter(fight, "Autre Muet")["class"], "huppermage");
 }
+
+#[test]
+fn loot_means_victory_and_none_means_defeat() {
+    let fight_with = |extra: &[&str]| {
+        let mut lines = JOIN.to_vec();
+        lines.extend(["[Information (combat)] Lueur Pourpre lance le sort Kleptosram", "[Information (combat)] Ogrest: -12 000 PV (Air)"]);
+        lines.extend(extra);
+        lines.extend(["[FIGHT] End fight with id 42", "[Information (combat)] Combat terminé, cliquez ici pour rouvrir l'écran de fin de combat."]);
+        record(&lines)["fights"][0]["victory"].clone()
+    };
+    // Loot, no XP line (another client's fight, or a character at max level).
+    assert_eq!(fight_with(&["[Information (jeu)] Vous avez ramassé 4x Jeton Infernal ."]), true);
+    assert_eq!(fight_with(&[]), false);
+
+    // Loot picked up between fights doesn't make the next one a win.
+    let mut lines = vec!["[Information (jeu)] Vous avez ramassé 1x Ferraille stasifiée ."];
+    lines.extend(JOIN);
+    lines.extend(["[Information (combat)] Lueur Pourpre lance le sort Kleptosram", "[Information (combat)] Ogrest: -12 000 PV (Air)", "[FIGHT] End fight with id 42"]);
+    assert_eq!(record(&lines)["fights"][0]["victory"], false);
+}

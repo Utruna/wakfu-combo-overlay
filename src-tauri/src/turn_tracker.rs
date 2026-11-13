@@ -59,6 +59,9 @@ static CRITICAL: LazyLock<Regex> = LazyLock::new(|| re(r"\(Critiques\)\s*$"));
 // client(s) writing the log — never for the group's other players:
 // "Lueur Grenat : +96 808 163 points d'XP.  Prochain niveau dans : …".
 static XP_GAINED: LazyLock<Regex> = LazyLock::new(|| re(r"points\s+d'XP"));
+// "[Information (jeu)] Vous avez ramassé 4x Jeton Infernal ." — the loot, picked
+// up just before the fight ends: a fight that dropped some was won.
+static LOOT_PICKED: LazyLock<Regex> = LazyLock::new(|| re(r"\(jeu\)\]\s+Vous\s+avez\s+ramass[ée]"));
 static XP_EARNER: LazyLock<Regex> = LazyLock::new(|| re(r"^(.+?)\s*:\s*\+[0-9][0-9\s]*points\s+d'XP"));
 static INVOKE: LazyLock<Regex> = LazyLock::new(|| re(r"^(.+?):\s+Invoque\s+(?:un\(e\)\s+(.+?)\s*$)?"));
 static TURN_END: LazyLock<Regex> = LazyLock::new(|| {
@@ -274,6 +277,11 @@ impl CombatTurnTracker {
         }
         if FIGHT_END.is_match(line) {
             self.end_fight(&mut out);
+            return out;
+        }
+
+        if LOOT_PICKED.is_match(line) {
+            self.recorder.loot();
             return out;
         }
 

@@ -38,6 +38,8 @@ const state = {
   open: null, // name of the expanded row
   hover: 0, // spell of its best turn under the mouse
   search: '', // monster searched for in the fight list
+  target: null, // foe whose damage alone is shown (null: all of them)
+  turn: null, // turn picked with the curve's slider (null: each player's best)
   armed: null, // fight whose bin waits for its second click
   saveError: null,
 };
@@ -168,17 +170,17 @@ const MODES = {
   dmg: {
     lines: 'hits', others: 'others', outside: null, units: 'coups', none: 'Aucun dégât',
     best: 'Meilleur tour', bestOfFight: 'Meilleur tour du combat', spells: 'Sorts du combat',
-    noTurn: 'Aucun tour joué.', noSpell: 'Aucun dégât.',
+    noTurn: 'Aucun tour joué.', noSpell: 'Aucun dégât.', curve: 'Dégâts',
   },
   heal: {
     lines: 'heals', others: 'healOthers', outside: 'healOutside', units: 'soins', none: 'Aucun soin',
     best: 'Meilleur tour de soins', bestOfFight: 'Meilleur tour de soins', spells: 'Soins du combat',
-    noTurn: 'Aucun soin pendant ses tours.', noSpell: 'Aucun soin.', targets: 'Cibles soignées', kind: 'sorts de soin',
+    noTurn: 'Aucun soin pendant ses tours.', noSpell: 'Aucun soin.', targets: 'Cibles soignées', kind: 'sorts de soin', curve: 'Soins',
   },
   armor: {
     lines: 'shields', others: 'shieldOthers', outside: 'shieldOutside', units: 'armures', none: 'Aucune armure',
     best: 'Meilleur tour d\'armure', bestOfFight: 'Meilleur tour d\'armure', spells: 'Armure du combat',
-    noTurn: 'Aucune armure donnée pendant ses tours.', noSpell: 'Aucune armure donnée.', targets: 'Cibles protégées', kind: 'sorts d\'armure',
+    noTurn: 'Aucune armure donnée pendant ses tours.', noSpell: 'Aucune armure donnée.', targets: 'Cibles protégées', kind: 'sorts d\'armure', curve: 'Armure',
   },
 };
 
@@ -254,6 +256,8 @@ function statsOf(fighter) {
     targets: {
       heal: shares(spells.flatMap((s) => listOf(s, 'heals')), 'target'),
       armor: shares(spells.flatMap((s) => listOf(s, 'shields')), 'target'),
+      // Damage the spells did, per foe (what no spell explains has no target).
+      dmg: shares(spells.flatMap((s) => s.hits), 'target'),
     },
   };
 }
@@ -302,6 +306,138 @@ function spellTile(tile, color, size, extra = {}) {
     style: tile.others ? undefined : { borderColor: rgb(color) },
     ...extra.attrs,
   }, img, tile.spell?.crit ? h('span', { class: 'rc-crit', 'aria-hidden': 'true' }) : null);
+}
+
+/**
+ * The fight as if the allies had only ever hit one foe: spells that missed
+ * it are dropped, and so is damage no spell explains (it has no target).
+ */
+function onlyTarget(fight, target) {
+  const keep = (spell) => ({ ...spell, hits: listOf(spell, 'hits').filter((hit) => hit.target === target) });
+  return {
+    ...fight,
+    fighters: fight.fighters.map((f) => ({
+      ...f,
+      turns: f.turns.map((t) => ({ ...t, others: [], spells: t.spells.map(keep).filter((sp) => sp.hits.length) })),
+    })),
+  };
+}
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+function svgEl(tag, attrs = {}, ...children) {
+  const node = document.createElementNS(SVG_NS, tag);
+  for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, String(value));
+  node.append(...children);
+  return node;
+}
+
+/**
+ * Running total after each of the fighter's turns (their n-th turn is about
+ * the n-th round), one line per fighter plus the group's.
+ */
+function renderCurve(team, mode, label) {
+  const series = team.map(({ fighter }) => {
+    let total = 0;
+    return { name: fighter.name, color: fighter.color, points: fighter.turns.map((t) => (total += turnTotal(t, mode))) };
+  });
+  const rounds = Math.max(0, ...series.map((sr) => sr.points.length));
+  const at = (sr, i) => sr.points[Math.min(i, sr.points.length - 1)] ?? 0;
+  const group = { name: 'Équipe', color: null, group: true,
+    points: Array.from({ length: rounds }, (_, i) => sum(series, (sr) => at(sr, i))) };
+  const lines = series.length > 1 ? [...series, group] : series;
+  const top = Math.max(0, ...lines.map((sr) => sr.points.at(-1) ?? 0));
+  if (rounds < 2 || !top) return null;
+
+  const W = 640, H = 150, L = 8, R = 8, T = 10, B = 22;
+  const x = (i) => L + ((W - L - R) * i) / (rounds - 1);
+  const y = (v) => T + (H - T - B) * (1 - v / top);
+  const svg = svgEl('svg', { class: 'rc-curve-svg', viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none', role: 'img',
+    'aria-label': `${label} cumulés par tour` });
+  svg.append(svgEl('line', { x1: L, x2: W - R, y1: y(0), y2: y(0), class: 'rc-curve-axis' }));
+  const step = Math.max(1, Math.ceil(rounds / 10));
+  for (let i = 0; i < rounds; i += step) {
+    svg.append(svgEl('text', { x: x(i), y: H - 6, class: 'rc-curve-tick', 'text-anchor': i === 0 ? 'start' : 'middle' }, String(i + 1)));
+  }
+  for (const sr of lines) {
+    const stroke = sr.group ? '#e8eef0' : rgb(sr.color);
+    svg.append(svgEl('polyline', {
+      points: sr.points.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' '),
+      fill: 'none', stroke, 'stroke-width': sr.group ? 2.5 : 1.8, 'stroke-linejoin': 'round', 'stroke-linecap': 'round',
+      'stroke-dasharray': sr.group ? '5 4' : 'none', 'vector-effect': 'non-scaling-stroke', opacity: sr.group ? 0.9 : 1,
+    }, svgEl('title', {}, `${sr.name} : ${fmt(sr.points.at(-1))}`)));
+  }
+  // Hover a turn: each line's running total there, and what that turn added.
+  const guide = svgEl('line', { y1: T, y2: y(0), class: 'rc-curve-guide', visibility: 'hidden' });
+  svg.append(guide);
+  const tip = h('div', { class: 'rc-curve-tip', hidden: true });
+  const plot = h('div', { class: 'rc-curve-plot' }, svg, tip);
+  // Shows each line's running total at turn i (0-based), and what that turn added.
+  const showTurn = (i) => {
+    guide.setAttribute('x1', x(i));
+    guide.setAttribute('x2', x(i));
+    guide.setAttribute('visibility', 'visible');
+    tip.replaceChildren(
+      h('div', { class: 'rc-curve-tip-top', text: `Tour ${i + 1}` }),
+      ...[...lines].sort((p, q) => at(q, i) - at(p, i)).map((sr) => {
+        const gained = at(sr, i) - (i ? at(sr, i - 1) : 0);
+        return h('div', { class: 'rc-curve-tip-row' },
+          h('span', { class: 'rc-swatch', style: { background: sr.group ? '#e8eef0' : rgb(sr.color) } }),
+          h('span', { class: 'rc-curve-tip-name', text: sr.name }),
+          h('span', { class: 'num', text: fmt(at(sr, i)) }),
+          h('span', { class: 'rc-curve-tip-gain', text: gained ? `+${fmt(gained)}` : '' }));
+      }));
+    tip.hidden = false;
+    // Beside the guide, flipped to its left in the right half so it stays inside.
+    const ratio = x(i) / W;
+    const left = ratio * svg.getBoundingClientRect().width;
+    tip.style.left = ratio < 0.55 ? `${left + 12}px` : 'auto';
+    tip.style.right = ratio < 0.55 ? 'auto' : `${svg.getBoundingClientRect().width - left + 12}px`;
+  };
+  // The turn picked with the slider stays shown (and drives the players' detail) when the mouse leaves.
+  const picked = state.turn && state.turn <= rounds ? state.turn - 1 : null;
+  const settle = () => (picked === null ? (tip.hidden = true, guide.setAttribute('visibility', 'hidden')) : showTurn(picked));
+  plot.addEventListener('mousemove', (event) => {
+    const box = svg.getBoundingClientRect();
+    const ratio = (event.clientX - box.left) / box.width;
+    showTurn(Math.min(rounds - 1, Math.max(0, Math.round(((ratio * W - L) / (W - L - R)) * (rounds - 1)))));
+  });
+  plot.addEventListener('mouseleave', settle);
+  // A click pins the turn under the mouse (a second click on it lets go).
+  plot.addEventListener('click', (event) => {
+    const box = svg.getBoundingClientRect();
+    const ratio = (event.clientX - box.left) / box.width;
+    const turn = Math.min(rounds, Math.max(1, Math.round(((ratio * W - L) / (W - L - R)) * (rounds - 1)) + 1));
+    state.turn = state.turn === turn ? null : turn;
+    state.hover = 0;
+    render();
+  });
+
+  // The slider: goes to a turn; its detail shows in the players' rows. "Meilleur tour" lets go.
+  const slider = h('input', {
+    type: 'range', class: 'rc-curve-slider', min: 1, max: rounds, step: 1, value: picked === null ? rounds : picked + 1,
+    'aria-label': 'Aller au tour', 'aria-valuetext': picked === null ? 'meilleur tour' : `tour ${picked + 1}`,
+    oninput: () => showTurn(Number(slider.value) - 1),
+    onchange: () => {
+      state.turn = Number(slider.value);
+      state.hover = 0;
+      render();
+      document.querySelector('.rc-curve-slider')?.focus();
+    },
+  });
+  const reset = picked === null ? null : h('button', {
+    type: 'button', class: 'btn sm', text: 'Meilleur tour',
+    onclick: () => { state.turn = null; state.hover = 0; render(); },
+  });
+  settle();
+  return h('section', { class: 'rc-curve', 'aria-label': `Courbe : ${label}` },
+    h('div', { class: 'rc-sec-head' },
+      h('span', { class: 'cap' }, `${label} cumulés `, h('span', { class: 'cap-note', text: '· par tour' })),
+      h('span', { class: 'cap-note', text: `${fmt(top)} max` })),
+    plot,
+    h('div', { class: 'rc-curve-scrub' }, h('span', { class: 'cap-note', text: 'Tour' }), slider, reset),
+    h('div', { class: 'rc-legend' }, lines.map((sr) => h('span', {},
+      h('span', { class: 'rc-swatch', style: { background: sr.group ? '#e8eef0' : rgb(sr.color) } }),
+      `${sr.name} ${fmt(sr.points.at(-1))}`))));
 }
 
 /** For searching: no case, no accents ("Bouftou Royal" ~ "bouftou royal"). */
@@ -384,9 +520,13 @@ function renderMain() {
   }
 
   const tab = TABS.find((t) => t.key === state.tab);
+  // One foe's damage alone: only on the damage tabs, and only a foe of this fight.
+  const canTarget = tab.key === 'dmg' || tab.key === 'taken';
+  if (state.target && !fight.foes.includes(state.target)) state.target = null;
+  const shown = canTarget && state.target ? onlyTarget(fight, state.target) : fight;
   // The whole group, followed heroes or not: the players who aren't carry a
   // "non suivi" tag but count like the others.
-  const team = fight.fighters.map((f) => ({ fighter: f, stats: statsOf(f) }))
+  const team = shown.fighters.map((f) => ({ fighter: f, stats: statsOf(f) }))
     .sort((a, b) => b.stats[tab.key] - a.stats[tab.key]);
   const teamTotal = sum(team, (x) => x.stats[tab.key]);
   const max = Math.max(1, ...team.map((x) => x.stats[tab.key]));
@@ -400,7 +540,10 @@ function renderMain() {
     ? [`Commencé à ${time(start)} · ${duration(end - start)} écoulées · ${rounds} tours joués`]
     : [`${when(start)} → ${time(end)} · ${duration(end - start)} · ${rounds} tours`];
   if (fight.victory) {
-    meta.push(' · ', h('span', { class: 'rc-victory', title: 'Déduit de l\'XP gagnée en fin de combat', text: 'Victoire' }),
+    meta.push(' · ', h('span', { class: 'rc-victory', title: 'Déduit du butin ramassé ou de l\'XP gagnée en fin de combat', text: 'Victoire' }),
+      ' ', h('span', { class: 'rc-deduced', text: '(déduit)' }));
+  } else if (!fight.live) {
+    meta.push(' · ', h('span', { class: 'rc-defeat', title: 'Ni butin ni XP en fin de combat', text: 'Défaite' }),
       ' ', h('span', { class: 'rc-deduced', text: '(déduit)' }));
   }
   main.append(h('div', { class: 'rc-head' },
@@ -409,7 +552,7 @@ function renderMain() {
       state.saveError ? h('p', { class: 'error', role: 'alert', text: state.saveError }) : null,
       h('span', { class: 'rc-head-meta' }, ...meta)),
     h('div', { class: 'rc-head-total' },
-      h('span', { class: 'cap', text: `${tab.label} de l'équipe` }),
+      h('span', { class: 'cap', text: `${tab.label} de l'équipe${canTarget && state.target ? ` · ${state.target}` : ''}` }),
       h('span', { class: 'num', text: fmt(teamTotal) }))));
 
   // Tabs and, always at the far right, the save button.
@@ -419,7 +562,14 @@ function renderMain() {
         type: 'button', role: 'tab', 'aria-selected': String(t.key === state.tab),
         onclick: () => { state.tab = t.key; render(); },
       }, h('span', { class: 'rc-tab-dot', style: { background: t.dot } }), t.label))),
-    h('div', { class: 'rc-bar-end' }, saveButton(fight))));
+    h('div', { class: 'rc-bar-end' }, targetPicker(fight, canTarget), saveButton(fight))));
+
+  // Running total, turn after turn.
+  const mode = modeOf(tab);
+  if (tab.key !== 'taken') {
+    const curve = renderCurve(team, mode, MODES[mode].curve);
+    if (curve) main.append(curve);
+  }
 
   // Rows.
   const rows = h('ul', { class: 'rc-rows' });
@@ -428,7 +578,6 @@ function renderMain() {
 
   // Best turn of the fight, while no row is open.
   if (!team.some((x) => x.fighter.name === state.open)) {
-    const mode = modeOf(tab);
     const bestOf = (x) => x.stats.measures[mode].best;
     const best = team.filter(bestOf).sort((a, b) => bestOf(b).total - bestOf(a).total)[0];
     if (best) {
@@ -453,6 +602,17 @@ function renderMain() {
         h('span', { class: 'rc-moment-hint', text: `Voir le détail de ${best.fighter.name}` })));
     }
   }
+}
+
+/** Chooses the foe whose damage alone is shown (damage tabs only). */
+function targetPicker(fight, canTarget) {
+  if (!canTarget || fight.foes.length < 2) return null;
+  const select = h('select', {
+    class: 'input sm rc-target', 'aria-label': 'Cible des dégâts',
+    onchange: () => { state.target = select.value || null; state.hover = 0; render(); },
+  }, h('option', { value: '', text: 'Toutes les cibles' }),
+    fight.foes.map((foe) => h('option', { value: foe, text: foe, selected: foe === state.target })));
+  return select;
 }
 
 /** Keeps the fight after the app quits (the bin, in the list, removes it). */
@@ -558,8 +718,12 @@ function renderDetail(fighter, stats, mode) {
   const color = fighter.color;
   const detail = h('div', { class: 'rc-detail' });
   if (!fighter.hero) detail.append(followBanner(fighter));
-  const measure = stats.measures[mode];
   const m = MODES[mode];
+  // A turn picked on the curve replaces the best turn.
+  const chosen = state.turn ? fighter.turns[state.turn - 1] : null;
+  const measure = chosen
+    ? { ...stats.measures[mode], best: { turn: chosen, number: state.turn, total: turnTotal(chosen, mode), picked: true } }
+    : stats.measures[mode];
 
   // Best turn, with each spell's damage (or heals) on hover.
   const bestSection = h('section', { 'aria-label': 'Meilleur tour' });
@@ -589,7 +753,7 @@ function renderDetail(fighter, stats, mode) {
     }));
     bestSection.append(
       h('div', { class: 'rc-sec-head' },
-        h('span', { class: 'cap', text: `${m.best} · tour ${measure.best.number}` }),
+        h('span', { class: 'cap', text: measure.best.picked ? `Tour ${measure.best.number}` : `${m.best} · tour ${measure.best.number}` }),
         h('span', { class: 'num', style: { color: rgb(color), fontSize: '16px' }, text: fmt(measure.best.total) })),
       tiles.length ? h('div', { class: 'rc-spells' }, buttons) : h('p', { class: 'rc-none', text: 'Aucun sort lancé.' }),
       tiles.length ? tip : null);
@@ -647,6 +811,15 @@ function renderDetail(fighter, stats, mode) {
   } else {
     elemSection.append(h('span', { class: 'cap', text: 'Éléments' }), h('p', { class: 'rc-none', text: 'Aucun dégât élémentaire.' }));
   }
+  // Which foes the spells hit, and how hard (the target filter shows one alone).
+  if (mode === 'dmg' && !state.target && stats.targets.dmg.length > 1) {
+    elemSection.append(h('span', { class: 'cap', style: { marginTop: '6px' } }, 'Cibles touchées ', h('span', { class: 'cap-note', text: '· sorts' })));
+    for (const target of stats.targets.dmg) {
+      elemSection.append(h('div', { class: 'rc-def' },
+        h('span', { class: 'rc-def-label', text: target.name }),
+        h('span', { class: 'num', text: `${fmt(target.total)} · ${target.share} %` })));
+    }
+  }
   elemSection.append(h('span', { class: 'cap', style: { marginTop: '6px' }, text: 'Défense & soutien' }));
   for (const [label, value, swatch] of [
     ['Soins donnés', stats.heal, '#ff5c8a'], ['Armure donnée', stats.armor, '#34d27b'], ['Dégâts subis', stats.taken, '#8fa1a9'],
@@ -671,6 +844,7 @@ function selectFight(id) {
   state.saveError = null;
   state.open = null;
   state.hover = 0;
+  state.turn = null;
   const fight = state.fights.find((f) => f.id === id);
   if (fight?.isNew) {
     fight.isNew = false;
